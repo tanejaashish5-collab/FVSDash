@@ -1,0 +1,5 @@
+{
+  "name": "Fresh Changes_Admin Dashboard_ForgeVoice Studio Client Dashboard",
+  "description": "A comprehensive and visually rich dashboard for ForgeVoice Studio clients to track their content production pipeline, from submission to publication. Features include a Kanban board, KPI tracking, notifications, and a content calendar.",
+  "requestFramePermissions": []
+}

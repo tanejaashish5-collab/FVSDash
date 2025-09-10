@@ -1,0 +1,180 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+    scroll-behavior: smooth;
+}
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+/* Custom scrollbar for a more polished look */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #121212;
+}
+::-webkit-scrollbar-thumb {
+    background-color: #2A2A2A;
+    border-radius: 10px;
+    border: 2px solid #121212;
+}
+::-webkit-scrollbar-thumb:hover {
+    background-color: #F1C87A;
+}
+@keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+@keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+    animation: fade-in 0.3s ease-out forwards;
+}
+.animate-fade-in-up {
+    animation: fade-in-up 0.3s ease-out forwards;
+}
+/* Markdown Preview Styles */
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3 {
+    color: #F1C87A;
+    border-bottom: 1px solid #2A2A2A;
+    padding-bottom: 0.3em;
+    margin-top: 1.5em;
+    margin-bottom: 1em;
+}
+.markdown-preview h1 { font-size: 2em; }
+.markdown-preview h2 { font-size: 1.5em; }
+.markdown-preview h3 { font-size: 1.25em; }
+.markdown-preview p {
+    line-height: 1.7;
+    margin-bottom: 1em;
+    color: #B3B3B3;
+}
+.markdown-preview a {
+    color: #60A5FA;
+    text-decoration: underline;
+}
+.markdown-preview ul, .markdown-preview ol {
+    padding-left: 2em;
+    margin-bottom: 1em;
+    color: #B3B3B3;
+}
+.markdown-preview li {
+    margin-bottom: 0.5em;
+}
+.markdown-preview blockquote {
+    border-left: 4px solid #F1C87A;
+    padding-left: 1em;
+    margin-left: 0;
+    color: #B3B3B3;
+    font-style: italic;
+}
+.markdown-preview code {
+    background-color: #2A2A2A;
+    color: #F1C87A;
+    padding: 0.2em 0.4em;
+    border-radius: 4px;
+    font-family: 'Courier New', Courier, monospace;
+}
+.markdown-preview pre {
+    background-color: #1A1A1A;
+    border: 1px solid #2A2A2A;
+    padding: 1em;
+    border-radius: 8px;
+    overflow-x: auto;
+}
+.markdown-preview pre code {
+    padding: 0;
+    background-color: transparent;
+}
+.markdown-preview table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1em;
+}
+.markdown-preview th, .markdown-preview td {
+    border: 1px solid #2A2A2A;
+    padding: 0.5em 1em;
+}
+.markdown-preview th {
+    background-color: #1A1A1A;
+    font-weight: bold;
+    color: #EDEDED;
+}
+.markdown-preview tr:nth-child(even) {
+    background-color: #121212;
+}
+
+/* --- New System Walkthrough Styles --- */
+#system-page-wrapper {
+  --scroll-progress: 0;
+}
+
+.aurora-background {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    radial-gradient(ellipse 50% 80% at 20% 40%, rgba(241, 200, 122, 0.15), transparent),
+    radial-gradient(ellipse 50% 80% at 80% 50%, rgba(96, 165, 250, 0.15), transparent);
+  animation: aurora 20s linear infinite;
+  opacity: 0.3;
+  transition: opacity 0.5s ease;
+}
+
+@keyframes aurora {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.system-narrative-card {
+  background: rgba(20, 20, 20, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.system-diagram-node {
+  position: absolute;
+  transition: opacity 0.5s ease, filter 0.5s ease, transform 0.5s ease;
+}
+
+@keyframes data-pulse-anim {
+  from { motion-offset: 0%; }
+  to { motion-offset: 100%; }
+}
+
+.data-pulse {
+  animation: data-pulse-anim var(--duration, 3s) linear infinite;
+  transition: opacity 0.5s;
+}
+
+.walkthrough-close-btn {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    z-index: 20;
+    padding: 0.5rem;
+    color: white;
+    background-color: rgba(0,0,0,0.3);
+    border-radius: 9999px;
+    transition: all 0.2s ease;
+}
+.walkthrough-close-btn:hover {
+    background-color: rgba(255,255,255,0.2);
+    transform: scale(1.1);
+}
+
+@keyframes particle-flow {
+  from { motion-offset: 0%; }
+  to { motion-offset: 100%; }
+}

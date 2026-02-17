@@ -62,6 +62,15 @@ class TokenResponse(BaseModel):
 class StatusUpdate(BaseModel):
     status: str
 
+class SubmissionCreate(BaseModel):
+    title: str
+    guest: str = ""
+    description: str
+    contentType: str
+    priority: str = "Medium"
+    releaseDate: Optional[str] = None
+    sourceFileUrl: Optional[str] = None
+
 
 # ==================== AUTH HELPERS ====================
 

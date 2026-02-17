@@ -380,7 +380,8 @@ class ForgeVoiceAPITester:
             data={"status": "EDITING"},
             token=self.client_token
         )
-        """Test other available endpoints"""
+
+    def test_other_endpoints(self):
         print("\n" + "="*50)
         print("TESTING OTHER ENDPOINTS")
         print("="*50)

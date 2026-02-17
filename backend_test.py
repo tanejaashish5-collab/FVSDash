@@ -175,15 +175,51 @@ class ForgeVoiceAPITester:
                 token=self.client_token
             )
         
+        # Test dashboard overview with client token
+        if self.client_token:
+            success, overview = self.run_test(
+                "Dashboard Overview (Client)",
+                "GET",
+                "dashboard/overview",
+                200,
+                token=self.client_token
+            )
+            if success:
+                print(f"   Client Name: {overview.get('clientName', 'N/A')}")
+                kpis = overview.get('kpis', {})
+                print(f"   Active Projects: {kpis.get('activeProjects', 0)}")
+                print(f"   Published 30d: {kpis.get('publishedLast30d', 0)}")
+                print(f"   Total Assets: {kpis.get('totalAssets', 0)}")
+                print(f"   ROI 30d: ${kpis.get('roiLast30d', 0)}")
+                pipeline = overview.get('pipeline', {})
+                print(f"   Pipeline columns: {list(pipeline.keys())}")
+                for status, items in pipeline.items():
+                    print(f"     {status}: {len(items)} items")
+        
+        # Test dashboard overview with admin token
+        if self.admin_token:
+            success, overview = self.run_test(
+                "Dashboard Overview (Admin)",
+                "GET",
+                "dashboard/overview",
+                200,
+                token=self.admin_token
+            )
+            if success:
+                print(f"   Admin overview successful")
+        
         # Test submissions with client token
         if self.client_token:
-            self.run_test(
+            success, submissions = self.run_test(
                 "Get Submissions (Client)",
                 "GET",
                 "submissions",
                 200,
                 token=self.client_token
             )
+            if success and submissions:
+                self.sample_submission_id = submissions[0].get('id') if submissions else None
+                print(f"   Found {len(submissions)} submissions")
         
         # Test assets with client token
         if self.client_token:

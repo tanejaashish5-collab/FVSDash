@@ -31,6 +31,8 @@ class ForgeVoiceAPITester:
                 response = requests.get(url, headers=headers, timeout=30)
             elif method == 'POST':
                 response = requests.post(url, json=data, headers=headers, timeout=30)
+            elif method == 'PATCH':
+                response = requests.patch(url, json=data, headers=headers, timeout=30)
             elif method == 'PUT':
                 response = requests.put(url, json=data, headers=headers, timeout=30)
             elif method == 'DELETE':

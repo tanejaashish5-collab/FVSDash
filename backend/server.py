@@ -175,6 +175,80 @@ async def get_dashboard_stats(user: dict = Depends(get_current_user)):
         "analyticsData": list(reversed(analytics[:14]))
     }
 
+@api_router.get("/dashboard/overview")
+async def get_dashboard_overview(user: dict = Depends(get_current_user)):
+    client_id = get_client_id_from_user(user)
+    query = {"clientId": client_id} if client_id else {}
+
+    client_info = None
+    if client_id:
+        client_info = await db.clients.find_one({"id": client_id}, {"_id": 0})
+
+    submissions = await db.submissions.find(query, {"_id": 0}).to_list(1000)
+    assets = await db.assets.find(query, {"_id": 0}).to_list(1000)
+
+    thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
+    analytics_query = {**query, "date": {"$gte": thirty_days_ago}}
+    analytics = await db.analytics_snapshots.find(analytics_query, {"_id": 0}).to_list(1000)
+
+    active_projects = len([s for s in submissions if s["status"] != "PUBLISHED"])
+    published_30d = len([s for s in submissions if s["status"] == "PUBLISHED" and s.get("releaseDate") and s["releaseDate"] >= thirty_days_ago])
+    total_assets = len(assets)
+    roi_30d = sum(a.get("roiEstimate", 0) for a in analytics)
+
+    pipeline = {}
+    for st in ["INTAKE", "EDITING", "DESIGN", "SCHEDULED", "PUBLISHED"]:
+        pipeline[st] = [s for s in submissions if s["status"] == st]
+
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    upcoming = sorted(
+        [s for s in submissions if s["status"] in ("SCHEDULED", "PUBLISHED") and s.get("releaseDate") and s["releaseDate"] >= today_str],
+        key=lambda x: x["releaseDate"]
+    )[:5]
+
+    video_tasks = await db.video_tasks.find(query, {"_id": 0}).to_list(100)
+
+    activities = []
+    status_verbs = {
+        "INTAKE": "submitted for intake",
+        "EDITING": "moved to editing",
+        "DESIGN": "entered design phase",
+        "SCHEDULED": "scheduled for release",
+        "PUBLISHED": "published",
+    }
+    for s in sorted(submissions, key=lambda x: x.get("updatedAt", ""), reverse=True)[:6]:
+        activities.append({
+            "type": "submission",
+            "message": f"'{s['title']}' {status_verbs.get(s['status'], 'updated')}",
+            "timestamp": s.get("updatedAt", s.get("createdAt", "")),
+            "status": s["status"],
+        })
+    for vt in sorted(video_tasks, key=lambda x: x.get("createdAt", ""), reverse=True)[:3]:
+        activities.append({
+            "type": "video_task",
+            "message": f"AI Video: '{vt['prompt'][:40]}' — {vt['status']}",
+            "timestamp": vt.get("createdAt", ""),
+            "status": vt["status"],
+        })
+    activities.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+
+    recent = sorted(submissions, key=lambda x: x.get("createdAt", ""), reverse=True)[:10]
+
+    return {
+        "clientName": client_info["name"] if client_info else user.get("name", "User"),
+        "userName": user.get("name", "User"),
+        "kpis": {
+            "activeProjects": active_projects,
+            "publishedLast30d": published_30d,
+            "totalAssets": total_assets,
+            "roiLast30d": round(roi_30d, 2),
+        },
+        "pipeline": pipeline,
+        "upcoming": upcoming,
+        "activities": activities[:10],
+        "recentSubmissions": recent,
+    }
+
 @api_router.get("/submissions")
 async def get_submissions(user: dict = Depends(get_current_user)):
     client_id = get_client_id_from_user(user)

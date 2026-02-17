@@ -259,10 +259,39 @@ async def get_dashboard_overview(user: dict = Depends(get_current_user)):
     }
 
 @api_router.get("/submissions")
-async def get_submissions(user: dict = Depends(get_current_user)):
+async def get_submissions(user: dict = Depends(get_current_user), status: Optional[str] = None, content_type: Optional[str] = None):
     client_id = get_client_id_from_user(user)
     query = {"clientId": client_id} if client_id else {}
-    return await db.submissions.find(query, {"_id": 0}).to_list(1000)
+    if status:
+        query["status"] = status
+    if content_type:
+        query["contentType"] = content_type
+    return await db.submissions.find(query, {"_id": 0}).sort("createdAt", -1).to_list(1000)
+
+@api_router.post("/submissions")
+async def create_submission(data: SubmissionCreate, user: dict = Depends(get_current_user)):
+    client_id = get_client_id_from_user(user)
+    if not client_id:
+        raise HTTPException(status_code=400, detail="Client ID required to create submissions")
+    submission_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    doc = {
+        "id": submission_id,
+        "clientId": client_id,
+        "title": data.title,
+        "guest": data.guest,
+        "description": data.description,
+        "contentType": data.contentType,
+        "status": "INTAKE",
+        "priority": data.priority,
+        "releaseDate": data.releaseDate,
+        "sourceFileUrl": data.sourceFileUrl,
+        "createdAt": now,
+        "updatedAt": now,
+    }
+    await db.submissions.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
 
 @api_router.patch("/submissions/{submission_id}/status")
 async def update_submission_status(submission_id: str, data: StatusUpdate, user: dict = Depends(get_current_user)):

@@ -11,6 +11,7 @@ class ForgeVoiceAPITester:
         self.api_url = f"{base_url}/api"
         self.admin_token = None
         self.client_token = None
+        self.sample_submission_id = None
         self.tests_run = 0
         self.tests_passed = 0
         self.failed_tests = []

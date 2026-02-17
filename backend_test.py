@@ -561,6 +561,7 @@ def main():
     # Run all test suites
     tester.test_auth_endpoints()
     tester.test_dashboard_endpoints()
+    tester.test_submissions_crud()
     tester.test_status_update_endpoints()
     tester.test_admin_endpoints()
     tester.test_other_endpoints()

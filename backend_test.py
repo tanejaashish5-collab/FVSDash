@@ -381,6 +381,130 @@ class ForgeVoiceAPITester:
             token=self.client_token
         )
 
+    def test_submissions_crud(self):
+        """Test submissions create and filtering functionality"""
+        print("\n" + "="*50)
+        print("TESTING SUBMISSIONS CRUD OPERATIONS")
+        print("="*50)
+        
+        if not self.client_token:
+            print("⚠️  Skipping submissions CRUD tests - no client token")
+            return
+        
+        created_submission_id = None
+        
+        # Test create new submission
+        success, response = self.run_test(
+            "Create New Submission",
+            "POST",
+            "submissions",
+            200,
+            data={
+                "title": "Test Submission from API Test",
+                "guest": "Test Guest",
+                "description": "This is a test submission created during API testing",
+                "contentType": "Podcast",
+                "priority": "High",
+                "releaseDate": "2026-02-01",
+                "sourceFileUrl": "https://drive.google.com/test-file"
+            },
+            token=self.client_token
+        )
+        if success and response:
+            created_submission_id = response.get('id')
+            print(f"   Created submission ID: {created_submission_id}")
+            print(f"   Status: {response.get('status', 'Unknown')}")
+        
+        # Test create submission without required fields
+        self.run_test(
+            "Create Submission (Missing Fields)",
+            "POST",
+            "submissions",
+            422,  # Should fail validation
+            data={
+                "title": "Incomplete Submission"
+                # Missing required fields
+            },
+            token=self.client_token
+        )
+        
+        # Test create submission without token
+        self.run_test(
+            "Create Submission (No Token)",
+            "POST",
+            "submissions",
+            401,
+            data={
+                "title": "Test Submission",
+                "guest": "Test Guest",
+                "description": "Test description",
+                "contentType": "Podcast",
+                "priority": "High",
+                "releaseDate": "2026-02-01"
+            }
+        )
+        
+        # Test get all submissions
+        success, all_submissions = self.run_test(
+            "Get All Submissions",
+            "GET",
+            "submissions",
+            200,
+            token=self.client_token
+        )
+        if success:
+            print(f"   Total submissions: {len(all_submissions)}")
+        
+        # Test filter by status
+        success, intake_submissions = self.run_test(
+            "Get Submissions (Status=INTAKE)",
+            "GET",
+            "submissions?status=INTAKE",
+            200,
+            token=self.client_token
+        )
+        if success:
+            print(f"   INTAKE submissions: {len(intake_submissions)}")
+            for sub in intake_submissions[:3]:  # Show first 3
+                print(f"     - {sub.get('title', 'Unknown')}")
+        
+        # Test filter by content type
+        success, podcast_submissions = self.run_test(
+            "Get Submissions (Type=Podcast)",
+            "GET",
+            "submissions?content_type=Podcast",
+            200,
+            token=self.client_token
+        )
+        if success:
+            print(f"   Podcast submissions: {len(podcast_submissions)}")
+        
+        # Test filter by both status and content type
+        success, filtered_submissions = self.run_test(
+            "Get Submissions (Status=EDITING & Type=Podcast)",
+            "GET",
+            "submissions?status=EDITING&content_type=Podcast",
+            200,
+            token=self.client_token
+        )
+        if success:
+            print(f"   Filtered submissions (EDITING+Podcast): {len(filtered_submissions)}")
+        
+        # Test filter with non-existent status
+        success, empty_submissions = self.run_test(
+            "Get Submissions (Invalid Status)",
+            "GET",
+            "submissions?status=NONEXISTENT",
+            200,  # Should return empty array, not error
+            token=self.client_token
+        )
+        if success:
+            print(f"   Invalid status submissions: {len(empty_submissions)} (should be 0)")
+        
+        # Clean up - delete the test submission if we created one
+        if created_submission_id:
+            print(f"   Note: Created test submission {created_submission_id} (will remain in system)")
+
     def test_other_endpoints(self):
         print("\n" + "="*50)
         print("TESTING OTHER ENDPOINTS")

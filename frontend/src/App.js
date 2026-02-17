@@ -7,6 +7,7 @@ import LoginPage from "@/pages/LoginPage";
 import SignupPage from "@/pages/SignupPage";
 import OverviewPage from "@/pages/OverviewPage";
 import AdminPage from "@/pages/AdminPage";
+import SubmissionsPage from "@/pages/SubmissionsPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 
 function LoadingScreen() {

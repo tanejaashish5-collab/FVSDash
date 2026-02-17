@@ -255,6 +255,21 @@ async def get_submissions(user: dict = Depends(get_current_user)):
     query = {"clientId": client_id} if client_id else {}
     return await db.submissions.find(query, {"_id": 0}).to_list(1000)
 
+@api_router.patch("/submissions/{submission_id}/status")
+async def update_submission_status(submission_id: str, data: StatusUpdate, user: dict = Depends(get_current_user)):
+    client_id = get_client_id_from_user(user)
+    query = {"id": submission_id}
+    if client_id:
+        query["clientId"] = client_id
+    valid_statuses = ["INTAKE", "EDITING", "DESIGN", "SCHEDULED", "PUBLISHED"]
+    if data.status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
+    now = datetime.now(timezone.utc).isoformat()
+    result = await db.submissions.update_one(query, {"$set": {"status": data.status, "updatedAt": now}})
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    return {"message": f"Status updated to {data.status}", "status": data.status}
+
 @api_router.get("/assets")
 async def get_assets(user: dict = Depends(get_current_user)):
     client_id = get_client_id_from_user(user)

@@ -59,6 +59,9 @@ class TokenResponse(BaseModel):
     token: str
     user: UserResponse
 
+class StatusUpdate(BaseModel):
+    status: str
+
 
 # ==================== AUTH HELPERS ====================
 

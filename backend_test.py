@@ -280,7 +280,56 @@ class ForgeVoiceAPITester:
             401
         )
 
-    def test_other_endpoints(self):
+    def test_status_update_endpoints(self):
+        """Test submission status update functionality"""
+        print("\n" + "="*50)
+        print("TESTING STATUS UPDATE ENDPOINTS")
+        print("="*50)
+        
+        if not self.client_token or not self.sample_submission_id:
+            print("⚠️  Skipping status update tests - no token or sample submission")
+            return
+        
+        # Test valid status update
+        valid_statuses = ["INTAKE", "EDITING", "DESIGN", "SCHEDULED", "PUBLISHED"]
+        for status in valid_statuses[:2]:  # Test first 2 to avoid changing too much data
+            self.run_test(
+                f"Update Status to {status}",
+                "PATCH",
+                f"submissions/{self.sample_submission_id}/status",
+                200,
+                data={"status": status},
+                token=self.client_token
+            )
+        
+        # Test invalid status update
+        self.run_test(
+            "Update Status (Invalid)",
+            "PATCH",
+            f"submissions/{self.sample_submission_id}/status",
+            400,
+            data={"status": "INVALID_STATUS"},
+            token=self.client_token
+        )
+        
+        # Test status update without token
+        self.run_test(
+            "Update Status (No Token)",
+            "PATCH",
+            f"submissions/{self.sample_submission_id}/status",
+            401,
+            data={"status": "EDITING"}
+        )
+        
+        # Test status update with invalid submission ID
+        self.run_test(
+            "Update Status (Invalid ID)",
+            "PATCH",
+            "submissions/invalid-id/status",
+            404,
+            data={"status": "EDITING"},
+            token=self.client_token
+        )
         """Test other available endpoints"""
         print("\n" + "="*50)
         print("TESTING OTHER ENDPOINTS")

@@ -1,0 +1,171 @@
+{
+  "identity": {
+    "persona": "E1 - The Anti-AI Designer",
+    "mission": "Build ForgeVoice Studio: A production-grade, high-density dashboard for audio/video professionals.",
+    "core_principles": [
+      "No Glassmorphism: Use solid, opaque layers with subtle borders.",
+      "Density is King: Maximize screen real estate. Use tight spacing (p-2, p-3) for data grids.",
+      "Studio Dark Mode: Deepest zincs/obsidians, never pure black. Indigo for focus.",
+      "Function over Flair: Every pixel must serve the production workflow."
+    ]
+  },
+  "typography": {
+    "headings": {
+      "family": "Manrope, sans-serif",
+      "weights": ["600", "700", "800"],
+      "usage": "Page titles, widget headers, massive metrics.",
+      "letter_spacing": "tracking-tight"
+    },
+    "body": {
+      "family": "IBM Plex Sans, sans-serif",
+      "weights": ["400", "500"],
+      "usage": "General text, table data, descriptions."
+    },
+    "code": {
+      "family": "JetBrains Mono, monospace",
+      "usage": "IDs, timestamps, technical logs, code snippets."
+    },
+    "cdn_links": [
+      "https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap"
+    ]
+  },
+  "colors": {
+    "palette_name": "Studio Obsidian",
+    "base": {
+      "background": "#09090b",
+      "foreground": "#fafafa",
+      "card": "#121215",
+      "card_foreground": "#fafafa",
+      "popover": "#121215",
+      "popover_foreground": "#fafafa",
+      "border": "#27272a",
+      "input": "#27272a"
+    },
+    "primary": {
+      "default": "#6366F1",
+      "foreground": "#ffffff",
+      "hover": "#4F46E5",
+      "subtle": "#312e81"
+    },
+    "accent": {
+      "default": "#27272a",
+      "foreground": "#fafafa",
+      "live_red": "#ef4444",
+      "success_green": "#22c55e",
+      "warning_amber": "#f59e0b"
+    },
+    "chart": {
+      "1": "#6366F1",
+      "2": "#818cf8",
+      "3": "#a5b4fc",
+      "4": "#c7d2fe",
+      "5": "#e0e7ff"
+    }
+  },
+  "visual_enhancers": {
+    "radius": "0.3rem",
+    "shadows": {
+      "card": "0 1px 3px 0 rgba(0, 0, 0, 0.5), 0 1px 2px -1px rgba(0, 0, 0, 0.5)",
+      "dropdown": "0 10px 15px -3px rgba(0, 0, 0, 0.8), 0 4px 6px -4px rgba(0, 0, 0, 0.8)"
+    },
+    "borders": "1px solid #27272a",
+    "active_state_style": "border-l-2 border-indigo-500 bg-white/5",
+    "noise_texture": "opacity-5"
+  },
+  "layout_strategy": {
+    "global": {
+      "type": "Fixed Sidebar + Top Header",
+      "sidebar_width": "280px",
+      "header_height": "64px",
+      "max_width": "2400px"
+    },
+    "spacing": {
+      "container_padding": "p-6 md:p-8",
+      "grid_gap": "gap-6",
+      "section_gap": "gap-8"
+    },
+    "grid_patterns": [
+      {
+        "name": "The Producer Dashboard",
+        "structure": "grid-cols-1 md:grid-cols-12",
+        "rules": [
+          "Hero Stats: col-span-12 md:col-span-12 lg:col-span-8",
+          "Quick Actions: col-span-12 md:col-span-6 lg:col-span-4",
+          "Recent Activity List: col-span-12 md:col-span-6 lg:col-span-4 row-span-2",
+          "Analytics Chart: col-span-12 md:col-span-12 lg:col-span-8"
+        ]
+      }
+    ]
+  },
+  "components": {
+    "library": "shadcn/ui",
+    "icon_library": "lucide-react",
+    "customization_rules": [
+      "Rounded-md -> Rounded-sm (sharper)",
+      "Backgrounds must be opaque (bg-zinc-950), NO backdrop-blur",
+      "Borders are critical for separation in dark mode",
+      "Hover states: bg-white/5 text-white"
+    ],
+    "mandatory_components": [
+      {
+        "name": "Sidebar",
+        "path": "/app/frontend/src/components/layout/Sidebar.jsx",
+        "notes": "Fixed position, scrollable nav items, user profile at bottom."
+      },
+      {
+        "name": "Header",
+        "path": "/app/frontend/src/components/layout/Header.jsx",
+        "notes": "Breadcrumbs, Global Search (CMD+K style), Notifications, User Dropdown."
+      },
+      {
+        "name": "StatCard",
+        "path": "/app/frontend/src/components/dashboard/StatCard.jsx",
+        "notes": "Simple metric, icon, trend indicator (green/red)."
+      },
+      {
+        "name": "DataTable",
+        "path": "/app/frontend/src/components/ui/data-table.jsx",
+        "notes": "Use Shadcn Table. Dense rows. Sticky header."
+      }
+    ]
+  },
+  "image_assets": {
+    "user_avatar": {
+      "url": "https://images.unsplash.com/photo-1643819642914-24b58a5f0be5?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "alt": "Producer Avatar"
+    },
+    "client_avatar": {
+      "url": "https://images.unsplash.com/photo-1727451139462-cd34008cd50b?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "alt": "Client Avatar"
+    },
+    "project_thumbnail_1": {
+      "url": "https://images.unsplash.com/photo-1659083725992-9d88c12e719c?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "alt": "Podcast Mic Setup"
+    },
+    "project_thumbnail_2": {
+      "url": "https://images.unsplash.com/photo-1682506457554-b34c9682e985?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "alt": "Video Timeline"
+    },
+    "abstract_bg": {
+      "url": "https://images.unsplash.com/photo-1597279393696-d5701aee7bf7?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "alt": "Abstract Neon Waveform"
+    }
+  },
+  "universal_guidelines": [
+    "Theme: STRICT DARK MODE. No light mode toggle needed for this MVP.",
+    "Interaction: All clickable elements must have a hover state (brightness-110 or bg-white/5).",
+    "Accessibility: Ensure text contrast ratio is > 4.5:1. Indigo text on dark bg might be hard, use Indigo-400 for text, Indigo-600 for bg.",
+    "Data Test IDs: ALL interactive elements must have data-testid attributes.",
+    "Toast: Use 'sonner' for notifications.",
+    "Charts: Use 'recharts' via Shadcn chart components."
+  ],
+  "instructions_to_main_agent": [
+    "STEP 1: Install dependencies: lucide-react, recharts, sonner, clsx, tailwind-merge.",
+    "STEP 2: Configure Tailwind with the 'Studio Obsidian' palette in index.css.",
+    "STEP 3: Build the Layout Shell (Sidebar + Header + Main Content Area).",
+    "STEP 4: Implement Routing for all 13 placeholder pages.",
+    "STEP 5: Create the 'Dashboard Overview' with dummy charts and stats using the grid strategy.",
+    "STEP 6: Ensure Login/Signup pages are implemented with the same aesthetic.",
+    "NOTE: Do not ask user for clarifications. Make executive decisions based on the 'Studio' persona."
+  ]
+}

@@ -52,7 +52,7 @@ function AppRoutes() {
       <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
         <Route path="/dashboard" element={<Navigate to="/dashboard/overview" replace />} />
         <Route path="/dashboard/overview" element={<OverviewPage />} />
-        <Route path="/dashboard/submissions" element={<PlaceholderPage title="Submissions" />} />
+        <Route path="/dashboard/submissions" element={<SubmissionsPage />} />
         <Route path="/dashboard/calendar" element={<PlaceholderPage title="Calendar" />} />
         <Route path="/dashboard/deliverables" element={<PlaceholderPage title="Deliverables" />} />
         <Route path="/dashboard/assets" element={<PlaceholderPage title="Assets" />} />

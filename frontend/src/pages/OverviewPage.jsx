@@ -36,7 +36,7 @@ const typeCfg = {
 
 function KPICard({ label, value, subtext, icon: Icon, trend }) {
   return (
-    <Card className="bg-[#0B1120] border-[#1F2933] stat-card" data-testid={`kpi-${label.toLowerCase().replace(/[\s()]+/g, '-')}`}>
+    <Card className="bg-[#0B1120] border-[#1F2933] stat-card" data-testid={`kpi-${label.toLowerCase().replace(/[\s().]+/g, '-').replace(/-+/g, '-').replace(/-$/, '')}`}>
       <CardContent className="p-5">
         <div className="flex items-center justify-between mb-4">
           <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">{label}</span>

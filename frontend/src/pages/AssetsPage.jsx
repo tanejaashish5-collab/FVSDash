@@ -8,9 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   Search, FolderOpen, ChevronDown, ExternalLink, MoreHorizontal,
-  FileVideo, FileAudio, FileImage, FileText as FileTextIcon, FileBox, Link as LinkIcon, Eye
+  FileVideo, FileAudio, FileImage, FileText as FileTextIcon, FileBox, Link as LinkIcon, Eye, ZoomIn, Play
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -39,6 +40,27 @@ const assetTypeCfg = {
   Thumbnail: 'bg-pink-500/10 text-pink-400 border-pink-500/20',
   Transcript: 'bg-green-500/10 text-green-400 border-green-500/20',
   Other: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20',
+};
+
+// Helper to check if URL is a viewable image
+const isImageUrl = (url) => {
+  if (!url) return false;
+  if (url.startsWith('data:image')) return true;
+  const imageExts = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'];
+  const lowerUrl = url.toLowerCase();
+  // Check for image extensions or unsplash/image hosting
+  return imageExts.some(ext => lowerUrl.includes(ext)) || 
+         lowerUrl.includes('unsplash.com') ||
+         lowerUrl.includes('placeholder.com');
+};
+
+// Helper to check if URL is a video
+const isVideoUrl = (url) => {
+  if (!url) return false;
+  const videoExts = ['.mp4', '.webm', '.mov', '.avi'];
+  const lowerUrl = url.toLowerCase();
+  return videoExts.some(ext => lowerUrl.includes(ext)) ||
+         lowerUrl.includes('storage.googleapis.com/gtv-videos');
 };
 
 export default function AssetsPage() {

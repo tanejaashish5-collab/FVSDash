@@ -293,7 +293,9 @@ class TestFvsProduceEpisode:
         
         # Verify response structure
         assert "submission" in data
-        assert "assets" in data
+        assert "audioAsset" in data
+        assert "videoAsset" in data
+        assert "thumbnailAsset" in data
         assert "script" in data
         
         # Verify submission was created
@@ -302,21 +304,30 @@ class TestFvsProduceEpisode:
         assert "title" in submission
         assert submission["status"] == "INTAKE"
         
-        # Verify assets were created (audio, video, thumbnail)
-        assets = data["assets"]
-        assert len(assets) >= 3  # audio, video, thumbnail
+        # Verify audio asset was created
+        audio_asset = data["audioAsset"]
+        assert "id" in audio_asset
+        assert audio_asset["type"] == "Audio"
+        assert audio_asset.get("fvsGenerated") == True
         
-        asset_types = [a["type"] for a in assets]
-        assert "Audio" in asset_types
-        assert "Video" in asset_types
-        assert "Thumbnail" in asset_types
+        # Verify video asset was created
+        video_asset = data["videoAsset"]
+        assert "id" in video_asset
+        assert video_asset["type"] == "Video"
+        assert video_asset.get("fvsGenerated") == True
+        
+        # Verify thumbnail asset was created
+        thumbnail_asset = data["thumbnailAsset"]
+        assert "id" in thumbnail_asset
+        assert thumbnail_asset["type"] == "Thumbnail"
+        assert thumbnail_asset.get("fvsGenerated") == True
         
         # Verify script was created
         script = data["script"]
         assert "scriptText" in script
         assert len(script["scriptText"]) > 0
         
-        return submission["id"], [a["id"] for a in assets]
+        return submission["id"], [audio_asset["id"], video_asset["id"], thumbnail_asset["id"]]
     
     def test_produce_episode_invalid_idea(self):
         """POST /api/fvs/produce-episode with invalid idea returns 404"""

@@ -586,18 +586,14 @@ async def get_roi_dashboard(
 ):
     """
     Returns ROI calculations based on AnalyticsSnapshot + ClientSettings.
-    Simple ROI model:
-    - hoursPerEpisode = 5 (configurable later)
-    - costPerEpisode = hoursPerEpisode * hourlyRate
-    - totalCost = costPerEpisode * totalEpisodesPublished
-    - roiMultiple = totalROI / totalCost
+    Uses hourlyRate and hoursPerEpisode from ClientSettings.
     """
     client_id = get_client_id_from_user(user)
     
-    # Get client settings for hourly rate
+    # Get client settings for hourly rate and hours per episode
     settings = await db.client_settings.find_one({"clientId": client_id}, {"_id": 0}) if client_id else None
     hourly_rate = settings.get("hourlyRate", 100) if settings else 100
-    hours_per_episode = 5  # Configurable later
+    hours_per_episode = settings.get("hoursPerEpisode", 5) if settings else 5
     
     # Get analytics data for the range
     today = datetime.now(timezone.utc).date()

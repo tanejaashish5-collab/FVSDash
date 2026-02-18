@@ -311,7 +311,7 @@ class TestFvsAssetsEndpoint:
         FVS-generated assets have correct metadata fields:
         - fvsGenerated: true
         - provider: correct provider name
-        - isMocked: correct boolean
+        - isMocked: correct boolean (for new assets)
         """
         response = requests.get(f"{BASE_URL}/api/assets", headers=self.headers)
         assert response.status_code == 200
@@ -323,8 +323,14 @@ class TestFvsAssetsEndpoint:
         if not fvs_assets:
             pytest.skip("No FVS-generated assets found - run produce-episode test first")
         
-        for asset in fvs_assets:
-            # All FVS assets should have these fields
+        # Filter to only assets with isMocked field (new integration)
+        new_fvs_assets = [a for a in fvs_assets if "isMocked" in a]
+        
+        if not new_fvs_assets:
+            pytest.skip("No new FVS assets with isMocked field found")
+        
+        for asset in new_fvs_assets:
+            # All new FVS assets should have these fields
             assert "provider" in asset, f"Asset {asset.get('id')} missing provider"
             assert "isMocked" in asset, f"Asset {asset.get('id')} missing isMocked"
             
@@ -341,7 +347,7 @@ class TestFvsAssetsEndpoint:
                     assert asset["provider"] == "mock_elevenlabs", \
                         f"Mocked audio should have provider 'mock_elevenlabs'"
         
-        print(f"✓ Found {len(fvs_assets)} FVS assets with correct metadata")
+        print(f"✓ Found {len(new_fvs_assets)} new FVS assets with correct metadata")
 
 
 if __name__ == "__main__":

@@ -803,6 +803,12 @@ async def get_support_requests_list(user: dict = Depends(get_current_user)):
 @api_router.post("/help/support")
 async def create_support_request(data: SupportRequestCreate, user: dict = Depends(get_current_user)):
     """Creates a new support request for the current client."""
+    # Validate required fields
+    if not data.subject or not data.subject.strip():
+        raise HTTPException(status_code=400, detail="Subject is required")
+    if not data.message or not data.message.strip():
+        raise HTTPException(status_code=400, detail="Message is required")
+    
     client_id = get_client_id_from_user(user)
     now = datetime.now(timezone.utc).isoformat()
     
@@ -810,8 +816,8 @@ async def create_support_request(data: SupportRequestCreate, user: dict = Depend
         "id": str(uuid.uuid4()),
         "clientId": client_id,
         "userEmail": user.get("email", ""),
-        "subject": data.subject,
-        "message": data.message,
+        "subject": data.subject.strip(),
+        "message": data.message.strip(),
         "status": "Open",
         "createdAt": now,
         "updatedAt": now

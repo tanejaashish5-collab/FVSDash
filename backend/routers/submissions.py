@@ -1,5 +1,5 @@
 """Submissions routes."""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from datetime import datetime, timezone
 from typing import Optional
 import uuid
@@ -12,8 +12,13 @@ router = APIRouter(tags=["submissions"])
 
 
 @router.get("/submissions")
-async def get_submissions(user: dict = Depends(get_current_user), status: Optional[str] = None, content_type: Optional[str] = None):
-    client_id = get_client_id_from_user(user)
+async def get_submissions(
+    user: dict = Depends(get_current_user), 
+    status: Optional[str] = None, 
+    content_type: Optional[str] = None,
+    impersonateClientId: Optional[str] = Query(None)
+):
+    client_id = get_client_id_from_user(user, impersonateClientId)
     db = submissions_collection()
     query = {"clientId": client_id} if client_id else {}
     if status:
@@ -24,8 +29,12 @@ async def get_submissions(user: dict = Depends(get_current_user), status: Option
 
 
 @router.post("/submissions")
-async def create_submission(data: SubmissionCreate, user: dict = Depends(get_current_user)):
-    client_id = get_client_id_from_user(user)
+async def create_submission(
+    data: SubmissionCreate, 
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    client_id = get_client_id_from_user(user, impersonateClientId)
     if not client_id:
         raise HTTPException(status_code=400, detail="Client ID required to create submissions")
     
@@ -52,8 +61,13 @@ async def create_submission(data: SubmissionCreate, user: dict = Depends(get_cur
 
 
 @router.patch("/submissions/{submission_id}/status")
-async def update_submission_status(submission_id: str, data: StatusUpdate, user: dict = Depends(get_current_user)):
-    client_id = get_client_id_from_user(user)
+async def update_submission_status(
+    submission_id: str, 
+    data: StatusUpdate, 
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    client_id = get_client_id_from_user(user, impersonateClientId)
     db = submissions_collection()
     query = {"id": submission_id}
     if client_id:
@@ -69,8 +83,13 @@ async def update_submission_status(submission_id: str, data: StatusUpdate, user:
 
 
 @router.patch("/submissions/{submission_id}")
-async def update_submission(submission_id: str, data: SubmissionUpdate, user: dict = Depends(get_current_user)):
-    client_id = get_client_id_from_user(user)
+async def update_submission(
+    submission_id: str, 
+    data: SubmissionUpdate, 
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    client_id = get_client_id_from_user(user, impersonateClientId)
     db = submissions_collection()
     query = {"id": submission_id}
     if client_id:
@@ -100,9 +119,12 @@ async def update_submission(submission_id: str, data: SubmissionUpdate, user: di
 
 
 @router.get("/submissions/list")
-async def get_submissions_list(user: dict = Depends(get_current_user)):
+async def get_submissions_list(
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
     """Returns a minimal list of submissions for dropdown/linking purposes"""
-    client_id = get_client_id_from_user(user)
+    client_id = get_client_id_from_user(user, impersonateClientId)
     db = submissions_collection()
     query = {"clientId": client_id} if client_id else {}
     return await db.find(query, {"_id": 0, "id": 1, "title": 1, "contentType": 1}).to_list(1000)

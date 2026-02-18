@@ -38,82 +38,74 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 - Quick Actions panel (Submit Content, Strategy Lab, Video Lab)
 - Recent Activity feed (derived from submissions + video tasks)
 - Episodes & Deliverables table (10 rows)
-- Expanded seed: 10 submissions, 8 assets, 30 days analytics, 4 video tasks
 - PATCH /api/submissions/{id}/status endpoint
 
 ### Phase 3 — Submissions Page (Feb 17, 2026)
 - Submit New Content form with all fields
-- Source file URL input
-- Episode title, guest, description
-- Content type and priority dropdowns
-- Release date picker
-- Confirmation checkbox
+- Source file URL, title, guest, description
+- Content type, priority dropdowns, release date picker
 - Filterable submissions list table
-- Detail sheet panel
-- Inline status editing via dropdown
+- Detail sheet panel with inline status editing
 
 ### Phase 4 — Calendar, Deliverables, Assets Pages (Feb 18, 2026)
-#### Calendar Page (`/dashboard/calendar`)
-- Full month calendar view with navigation (prev/next month)
-- Submissions displayed on release dates as clickable events
-- Content type badges (Podcast, Short, Blog, Webinar)
-- Status indicator dots
-- Filters: Content Type, Status
-- Detail panel (Sheet) with:
-  - Title, guest, description (read-only)
-  - Editable status buttons
-  - Editable release date picker
-  - "Open in Submissions" link
+- **Calendar**: Month view with navigation, events on release dates, detail panel with editable status/date
+- **Deliverables**: Joined Assets+Submissions table with filters, inline status editing
+- **Assets**: Browse-only library with filters, Mark Final button, link/unlink episodes
 
-#### Deliverables Page (`/dashboard/deliverables`)
-- Joined view of Assets + Submissions
-- Table columns: Episode, Deliverable, Type, Status, Content Type, Release Date
-- Filters: Deliverable Type, Status, Content Type
-- Search by episode title or asset name
-- Inline status editing (Draft/Final)
-- Episode name links to Submissions page
-- External link to asset URL
+### Phase 5 — Analytics, ROI, Billing Pages (Feb 18, 2026)
 
-#### Assets Page (`/dashboard/assets`)
-- Browse-only asset library (no upload)
-- Table with colored type icons
-- Type badges (Video, Audio, Thumbnail, Transcript)
-- Filters: Type, Status
-- Search by asset name or linked episode
-- Inline status editing (Draft/Final)
-- "Mark Final" quick action for Draft assets
-- Link/unlink to episode dropdown
-- External link to asset URL
+#### Analytics Page (`/dashboard/analytics`)
+- Date range selector: 7d, 30d, 90d, 365d presets + custom date pickers
+- 4 KPI cards: Total Downloads, Total Views, Episodes Published, Avg ROI/Episode
+- 4 Recharts visualizations:
+  - Line chart: Downloads over time
+  - Line chart: Views over time
+  - Bar chart: Episodes published per day
+  - Area chart: Estimated ROI over time
+- Empty state when no data in range
+
+#### ROI Center (`/dashboard/roi`)
+- Time period selector: 30d, 90d, 365d
+- 4 KPI cards: Total Cost, Total ROI, ROI Multiple, Episodes
+- Cost Assumptions panel (read-only): Hourly Rate ($150), Hours per Episode (5), Cost per Episode ($750)
+- ROI Breakdown: Text explanation + horizontal bar chart comparing Cost vs ROI
+- Net Profit card showing profit/loss
+- Additional metrics: Total Downloads, Total Views
+
+#### Billing Page (`/dashboard/billing`)
+- Current Subscription card: Plan name, status badge, price, next billing date
+- Plan Features list with checkmarks
+- Stripe Integration placeholder: "Coming Soon" message with feature badges
+- Available Plans section: Starter ($99), Pro ($299), Enterprise ($799) cards
+- Stripe buttons show toast: "Stripe integration is not yet connected"
+- Account Information card with client details
 
 #### New Backend Endpoints
-- `GET /api/calendar?year=&month=` - Calendar submissions
-- `GET /api/deliverables` - Joined assets+submissions view
-- `GET /api/assets/library` - Enriched assets with episode titles
-- `PATCH /api/assets/{id}/status` - Update asset status
-- `PATCH /api/assets/{id}/submission` - Link/unlink asset to submission
-- `PATCH /api/submissions/{id}` - Update submission status/release date
-- `GET /api/submissions/list` - Minimal submission list for dropdowns
+- `GET /api/analytics/dashboard?range=&from_date=&to_date=` - Analytics with date filtering
+- `GET /api/roi/dashboard?range=` - ROI calculations with clientSettings.hourlyRate
+- `GET /api/billing/dashboard` - Billing info with plan details and all plans
 
 #### Enhanced Seed Data
-- 14 assets total (previously 5)
-- Assets linked to 4 different submissions
-- 3 unlinked brand/general assets
+- 90 days of analytics snapshots (was 14)
+- Gradual growth trends in downloads/views
+- Variable episodesPublished (~15% probability per day)
 
 ## Prioritized Backlog
 
-### P0 — Completed
-- [x] Submissions page (CRUD form, filters, detail view)
-- [x] Calendar page (visual calendar with scheduled releases)
-- [x] Assets page (file management)
-- [x] Deliverables page (deliverables tracking)
+### P0 — Completed ✅
+- [x] Overview page
+- [x] Submissions page
+- [x] Calendar page
+- [x] Deliverables page
+- [x] Assets page
 
-### P1 — Feature Pages
-- [ ] Analytics page (charts, date range filters)
-- [ ] ROI Center (ROI calculations, cost tracking)
-- [ ] Billing page (plan display, Stripe integration placeholder)
-- [ ] Settings page (client settings, brand voice, API keys)
+### P1 — Completed ✅
+- [x] Analytics page
+- [x] ROI Center
+- [x] Billing page (Stripe PLACEHOLDER)
 
-### P2 — Advanced Features
+### P2 — Feature Pages
+- [ ] Settings page (client settings, brand voice, API keys, hourly rate config)
 - [ ] Strategy Lab (AI-powered content strategy)
 - [ ] AI Video Lab (video generation tasks)
 - [ ] Blog page (content management)
@@ -121,11 +113,13 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 - [ ] Admin panel (client management, impersonation)
 
 ### P3 — Integrations
-- [ ] Stripe billing integration
+- [ ] Stripe billing integration (replace placeholder)
 - [ ] AI Video generation (veo-3)
 - [ ] Airtable integration
 - [ ] Google Drive integration for file upload
-- [ ] Real activity log table (replace derived activity)
+
+## Mocked/Placeholder Features
+- **Stripe Integration**: Billing buttons show toast "Stripe integration is not yet connected"
 
 ## Test Credentials
 - **Client**: alex@company.com / client123
@@ -133,6 +127,7 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 
 ## Test Reports
 - `/app/test_reports/iteration_1.json` - Phase 2 tests
-- `/app/test_reports/iteration_2.json` - Phase 3 tests  
+- `/app/test_reports/iteration_2.json` - Phase 3 tests
 - `/app/test_reports/iteration_3.json` - Phase 3 regression
 - `/app/test_reports/iteration_4.json` - Phase 4 tests (Calendar, Deliverables, Assets)
+- `/app/test_reports/iteration_5.json` - Phase 5 tests (Analytics, ROI, Billing)

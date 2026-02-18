@@ -388,7 +388,7 @@ class TestAIEndpoints:
         response = requests.post(f"{BASE_URL}/api/ai/generate", json={
             "provider": "gemini",
             "task": "title",
-            "input": "A podcast about AI and technology"
+            "input": {"topic": "A podcast about AI and technology"}
         }, headers={
             "Authorization": f"Bearer {client_token}"
         })

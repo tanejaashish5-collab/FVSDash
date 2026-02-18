@@ -5,7 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   LayoutDashboard, FileText, Calendar, Package, FolderOpen,
   BookOpen, FlaskConical, Video, BarChart3, TrendingUp,
-  CreditCard, Settings, HelpCircle, ShieldCheck, Mic
+  CreditCard, Settings, HelpCircle, ShieldCheck, Mic, Brain
 } from 'lucide-react';
 
 const mainNav = [
@@ -20,6 +20,7 @@ const mainNav = [
 const labNav = [
   { label: 'Strategy Lab', path: '/dashboard/strategy', icon: FlaskConical },
   { label: 'AI Video Lab', path: '/dashboard/video-lab', icon: Video },
+  { label: 'FVS System', path: '/dashboard/system', icon: Brain },
 ];
 
 const insightsNav = [

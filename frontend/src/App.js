@@ -19,6 +19,7 @@ import HelpPage from "@/pages/HelpPage";
 import BlogPage from "@/pages/BlogPage";
 import StrategyPage from "@/pages/StrategyPage";
 import VideoLabPage from "@/pages/VideoLabPage";
+import FvsSystemPage from "@/pages/FvsSystemPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 
 function LoadingScreen() {
@@ -70,6 +71,7 @@ function AppRoutes() {
         <Route path="/dashboard/blog" element={<BlogPage />} />
         <Route path="/dashboard/strategy" element={<StrategyPage />} />
         <Route path="/dashboard/video-lab" element={<VideoLabPage />} />
+        <Route path="/dashboard/system" element={<FvsSystemPage />} />
         <Route path="/dashboard/analytics" element={<AnalyticsPage />} />
         <Route path="/dashboard/roi" element={<ROIPage />} />
         <Route path="/dashboard/billing" element={<BillingPage />} />

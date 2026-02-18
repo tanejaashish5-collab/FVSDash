@@ -203,12 +203,17 @@ export default function DeliverablesPage() {
                   return (
                     <TableRow
                       key={d.assetId}
-                      className="border-[#1F2933] hover:bg-white/[0.02]"
+                      className="border-[#1F2933] hover:bg-white/[0.02] cursor-pointer"
                       data-testid={`deliverable-row-${d.assetId}`}
+                      onClick={() => d.submissionId && navigate(`/dashboard/submissions/${d.submissionId}`)}
                     >
                       <TableCell>
+                        {/* Clicking a deliverable row deep-links to the parent Submission details page */}
                         <button
-                          onClick={() => d.submissionId && navigate(`/dashboard/submissions?id=${d.submissionId}`)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            d.submissionId && navigate(`/dashboard/submissions/${d.submissionId}`);
+                          }}
                           className={`text-sm font-medium truncate max-w-[180px] block text-left ${
                             d.submissionId ? 'text-white hover:text-indigo-400 transition-colors' : 'text-zinc-500'
                           }`}

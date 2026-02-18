@@ -1,13 +1,13 @@
 """Authentication service - password hashing, JWT, user validation."""
 from datetime import datetime, timezone, timedelta
 from typing import Optional
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from passlib.context import CryptContext
 import jwt
 import os
 
-from db.mongo import users_collection
+from db.mongo import users_collection, clients_collection
 
 # Configuration
 JWT_SECRET = os.environ.get('JWT_SECRET', 'forgevoice-fallback-secret')
@@ -57,8 +57,32 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
-def get_client_id_from_user(user: dict) -> Optional[str]:
-    """Extract client ID from user dict."""
+def get_client_id_from_user(user: dict, impersonate_client_id: Optional[str] = None) -> Optional[str]:
+    """
+    Extract client ID from user dict.
+    If user is admin and impersonate_client_id is provided, return that instead.
+    """
+    if user.get("role") == "admin" and impersonate_client_id:
+        return impersonate_client_id
+    return user.get("clientId")
+
+
+async def get_effective_client_id(
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None, description="Client ID to impersonate (admin only)")
+) -> str:
+    """
+    Dependency that returns the effective client ID.
+    For admin users with impersonateClientId param, validates and returns that client ID.
+    For regular users, returns their own client ID.
+    """
+    if impersonateClientId and user.get("role") == "admin":
+        # Validate the client exists
+        clients_db = clients_collection()
+        client = await clients_db.find_one({"id": impersonateClientId}, {"_id": 0})
+        if not client:
+            raise HTTPException(status_code=404, detail="Impersonated client not found")
+        return impersonateClientId
     return user.get("clientId")
 
 

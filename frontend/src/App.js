@@ -17,6 +17,8 @@ import BillingPage from "@/pages/BillingPage";
 import SettingsPage from "@/pages/SettingsPage";
 import HelpPage from "@/pages/HelpPage";
 import BlogPage from "@/pages/BlogPage";
+import StrategyPage from "@/pages/StrategyPage";
+import VideoLabPage from "@/pages/VideoLabPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 
 function LoadingScreen() {

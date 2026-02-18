@@ -347,7 +347,7 @@ async def _generate_thumbnail_openai(
 
 
 # =============================================================================
-# STORAGE HELPERS (TODO: P2)
+# STORAGE HELPERS - Now using services/storage_service.py
 # =============================================================================
 
 async def upload_to_storage(
@@ -358,26 +358,33 @@ async def upload_to_storage(
     """
     Upload binary data to first-party storage and return public URL.
     
-    TODO: P2 - Implement S3/Google Drive integration
+    This function now delegates to storage_service.upload_file().
     
     Args:
         data: Binary file data
-        filename: Desired filename
+        filename: Desired filename (used as path hint)
         content_type: MIME type
         
     Returns:
         Public URL to the uploaded file
+        
+    Raises:
+        StorageNotConfiguredError: If S3 is not configured
+        StorageUploadError: If the upload fails
     """
-    # Placeholder for P2 storage integration
-    # For now, we're using provider-hosted URLs or base64 data URLs
-    logger.warning("upload_to_storage() not yet implemented. Files stored as data URLs.")
-    raise NotImplementedError("First-party storage not yet configured. Use provider URLs for now.")
+    from services.storage_service import upload_file
+    return await upload_file(data, content_type, filename)
 
 
 def get_storage_config() -> Dict[str, Any]:
     """
     Get current storage configuration.
     
+    Returns:
+        Dict with storage provider info and status
+    """
+    from services.storage_service import get_storage_config as _get_config
+    return _get_config()
     Returns:
         Dict with storage provider info and status
     """

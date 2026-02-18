@@ -8,6 +8,7 @@ import SignupPage from "@/pages/SignupPage";
 import OverviewPage from "@/pages/OverviewPage";
 import AdminPage from "@/pages/AdminPage";
 import SubmissionsPage from "@/pages/SubmissionsPage";
+import SubmissionDetailPage from "@/pages/SubmissionDetailPage";
 import CalendarPage from "@/pages/CalendarPage";
 import DeliverablesPage from "@/pages/DeliverablesPage";
 import AssetsPage from "@/pages/AssetsPage";

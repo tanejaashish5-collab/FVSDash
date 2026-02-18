@@ -1,6 +1,17 @@
 """
 Seed data module for ForgeVoice Studio.
-Creates demo users, clients, submissions, assets, and other data.
+Creates a LIGHT demo dataset intended for performance and clarity.
+
+Demo Dataset Summary:
+- 2 users (admin + client)
+- 1 demo client
+- 5 submissions (various statuses)
+- ~12 assets (linked to submissions)
+- 45 days of analytics snapshots
+- 2 video tasks (examples)
+- 5 help articles
+- 5 blog posts
+- 2 support requests
 """
 from datetime import datetime, timezone, timedelta
 import uuid
@@ -16,7 +27,7 @@ from services.auth_service import hash_password
 
 
 async def run_seed():
-    """Seed the database with demo data. Returns True if seeded, False if already exists."""
+    """Seed the database with light demo data. Returns True if seeded, False if already exists."""
     users_db = users_collection()
     existing = await users_db.find_one({"email": "admin@forgevoice.com"}, {"_id": 0})
     if existing:
@@ -60,56 +71,57 @@ async def run_seed():
     }
     await clients_db.insert_one(demo_client)
 
-    # Create submissions
+    # Create 5 submissions (one per status for pipeline visibility)
     submissions_db = submissions_collection()
     submissions = [
-        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "title": "The Future of AI in Content Creation", "guest": "Dr. Sarah Mitchell", "description": "Deep dive into how AI tools are transforming podcast production", "contentType": "Podcast", "status": "PUBLISHED", "priority": "High", "releaseDate": "2025-12-15", "sourceFileUrl": None, "createdAt": now, "updatedAt": now},
-        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "title": "Building a Personal Brand Online", "guest": "Marcus Johnson", "description": "Strategies for growing your personal brand through podcasting", "contentType": "Podcast", "status": "EDITING", "priority": "Medium", "releaseDate": "2026-01-05", "sourceFileUrl": None, "createdAt": now, "updatedAt": now},
-        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "title": "Quick Tips: Microphone Setup", "guest": "", "description": "Short form content on getting the best audio quality", "contentType": "Short", "status": "DESIGN", "priority": "Low", "releaseDate": "2026-01-10", "sourceFileUrl": None, "createdAt": now, "updatedAt": now},
-        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "title": "Monetizing Your Content: A Webinar", "guest": "Lisa Park", "description": "Expert panel on content monetization strategies", "contentType": "Webinar", "status": "SCHEDULED", "priority": "High", "releaseDate": "2026-01-20", "sourceFileUrl": None, "createdAt": now, "updatedAt": now},
-        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "title": "SEO for Podcasters Blog Post", "guest": "", "description": "Written guide on optimizing podcast discoverability", "contentType": "Blog", "status": "INTAKE", "priority": "Medium", "releaseDate": None, "sourceFileUrl": None, "createdAt": now, "updatedAt": now},
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "title": "The Future of AI in Content Creation", "guest": "Dr. Sarah Mitchell", "description": "Deep dive into how AI tools are transforming podcast production", "contentType": "Podcast", "status": "PUBLISHED", "priority": "High", "releaseDate": "2026-02-10", "sourceFileUrl": None, "createdAt": now, "updatedAt": now},
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "title": "Building a Personal Brand Online", "guest": "Marcus Johnson", "description": "Strategies for growing your personal brand through podcasting", "contentType": "Podcast", "status": "EDITING", "priority": "Medium", "releaseDate": "2026-02-25", "sourceFileUrl": None, "createdAt": now, "updatedAt": now},
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "title": "Quick Tips: Microphone Setup", "guest": "", "description": "Short form content on getting the best audio quality", "contentType": "Short", "status": "DESIGN", "priority": "Low", "releaseDate": "2026-03-01", "sourceFileUrl": None, "createdAt": now, "updatedAt": now},
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "title": "Monetizing Your Content: A Webinar", "guest": "Lisa Park", "description": "Expert panel on content monetization strategies", "contentType": "Webinar", "status": "SCHEDULED", "priority": "High", "releaseDate": "2026-03-10", "sourceFileUrl": None, "createdAt": now, "updatedAt": now},
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "title": "SEO for Podcasters Guide", "guest": "", "description": "Written guide on optimizing podcast discoverability", "contentType": "Blog", "status": "INTAKE", "priority": "Medium", "releaseDate": None, "sourceFileUrl": None, "createdAt": now, "updatedAt": now},
     ]
     await submissions_db.insert_many(submissions)
 
-    # Create assets
+    # Create assets (2-3 per submission, lean set)
     assets_db = assets_collection()
     sub_ids = [s["id"] for s in submissions]
     assets = [
-        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[0], "name": "Episode 42 - Final Mix", "type": "Audio", "url": "https://drive.google.com/example1", "status": "Final", "createdAt": now, "updatedAt": now},
-        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[0], "name": "Episode 42 - Thumbnail", "type": "Thumbnail", "url": "https://drive.google.com/example2", "status": "Final", "createdAt": now, "updatedAt": now},
-        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[0], "name": "Episode 42 - Transcript", "type": "Transcript", "url": "https://drive.google.com/example4", "status": "Final", "createdAt": now, "updatedAt": now},
-        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[0], "name": "Episode 42 - Full Video", "type": "Video", "url": "https://drive.google.com/example6", "status": "Final", "createdAt": now, "updatedAt": now},
-        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[1], "name": "Raw Recording - Marcus", "type": "Audio", "url": "https://drive.google.com/example3", "status": "Draft", "createdAt": now, "updatedAt": now},
-        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[1], "name": "Personal Brand - Draft Thumbnail", "type": "Thumbnail", "url": "https://drive.google.com/example7", "status": "Draft", "createdAt": now, "updatedAt": now},
-        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[1], "name": "Interview Notes - Marcus", "type": "Transcript", "url": "https://drive.google.com/example8", "status": "Draft", "createdAt": now, "updatedAt": now},
-        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[2], "name": "Mic Setup - Short Video", "type": "Video", "url": "https://drive.google.com/example9", "status": "Draft", "createdAt": now, "updatedAt": now},
-        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[2], "name": "Mic Tips - Thumbnail v1", "type": "Thumbnail", "url": "https://drive.google.com/example10", "status": "Draft", "createdAt": now, "updatedAt": now},
-        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[3], "name": "Webinar - Registration Banner", "type": "Thumbnail", "url": "https://drive.google.com/example11", "status": "Final", "createdAt": now, "updatedAt": now},
-        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[3], "name": "Webinar - Promo Audio", "type": "Audio", "url": "https://drive.google.com/example12", "status": "Final", "createdAt": now, "updatedAt": now},
-        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": None, "name": "Brand Kit - Logo Pack", "type": "Video", "url": "https://drive.google.com/example5", "status": "Final", "createdAt": now, "updatedAt": now},
-        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": None, "name": "Podcast Intro Animation", "type": "Video", "url": "https://drive.google.com/example13", "status": "Final", "createdAt": now, "updatedAt": now},
-        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": None, "name": "Channel Banner 2024", "type": "Thumbnail", "url": "https://drive.google.com/example14", "status": "Final", "createdAt": now, "updatedAt": now},
+        # Published episode (complete set)
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[0], "name": "AI Content - Final Mix", "type": "Audio", "url": "https://drive.google.com/example1", "status": "Final", "createdAt": now, "updatedAt": now},
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[0], "name": "AI Content - Thumbnail", "type": "Thumbnail", "url": "https://drive.google.com/example2", "status": "Final", "createdAt": now, "updatedAt": now},
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[0], "name": "AI Content - Video", "type": "Video", "url": "https://drive.google.com/example3", "status": "Final", "createdAt": now, "updatedAt": now},
+        # Editing episode (partial)
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[1], "name": "Personal Brand - Raw Audio", "type": "Audio", "url": "https://drive.google.com/example4", "status": "Draft", "createdAt": now, "updatedAt": now},
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[1], "name": "Personal Brand - Thumbnail v1", "type": "Thumbnail", "url": "https://drive.google.com/example5", "status": "Draft", "createdAt": now, "updatedAt": now},
+        # Design episode
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[2], "name": "Mic Setup - Short Video", "type": "Video", "url": "https://drive.google.com/example6", "status": "Draft", "createdAt": now, "updatedAt": now},
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[2], "name": "Mic Tips - Thumbnail", "type": "Thumbnail", "url": "https://drive.google.com/example7", "status": "Draft", "createdAt": now, "updatedAt": now},
+        # Scheduled webinar
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[3], "name": "Webinar - Promo Banner", "type": "Thumbnail", "url": "https://drive.google.com/example8", "status": "Final", "createdAt": now, "updatedAt": now},
+        # Standalone brand assets
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": None, "name": "Podcast Intro Animation", "type": "Video", "url": "https://drive.google.com/example9", "status": "Final", "createdAt": now, "updatedAt": now},
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": None, "name": "Channel Banner 2026", "type": "Thumbnail", "url": "https://drive.google.com/example10", "status": "Final", "createdAt": now, "updatedAt": now},
     ]
     await assets_db.insert_many(assets)
 
-    # Create analytics snapshots
+    # Create analytics snapshots (45 days - lean but enough for charts)
     analytics_db = analytics_snapshots_collection()
     analytics = []
-    for i in range(90):
-        d = datetime.now(timezone.utc) - timedelta(days=89 - i)
-        base_downloads = 100 + (i * 2)
-        base_views = 500 + (i * 5)
+    for i in range(45):
+        d = datetime.now(timezone.utc) - timedelta(days=44 - i)
+        base_downloads = 150 + (i * 3)
+        base_views = 600 + (i * 8)
         weekend_boost = 1.3 if d.weekday() >= 5 else 1.0
         
         analytics.append({
             "id": str(uuid.uuid4()),
             "clientId": "demo-client-1",
             "date": d.strftime("%Y-%m-%d"),
-            "downloads": int(random.randint(int(base_downloads * 0.7), int(base_downloads * 1.3)) * weekend_boost),
-            "views": int(random.randint(int(base_views * 0.7), int(base_views * 1.3)) * weekend_boost),
-            "subscribersGained": random.randint(5, 50),
-            "episodesPublished": 1 if random.random() < 0.15 else 0,
-            "roiEstimate": round(random.uniform(800, 2500) * (1 + i/100), 2)
+            "downloads": int(random.randint(int(base_downloads * 0.8), int(base_downloads * 1.2)) * weekend_boost),
+            "views": int(random.randint(int(base_views * 0.8), int(base_views * 1.2)) * weekend_boost),
+            "subscribersGained": random.randint(10, 40),
+            "episodesPublished": 1 if random.random() < 0.1 else 0,
+            "roiEstimate": round(random.uniform(1200, 2800) * (1 + i/80), 2)
         })
     await analytics_db.insert_many(analytics)
 

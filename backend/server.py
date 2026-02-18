@@ -92,6 +92,23 @@ class SupportRequestCreate(BaseModel):
     subject: str
     message: str
 
+# AI Generation Models
+class AIGenerateRequest(BaseModel):
+    provider: str  # "gemini" | "openai" | "anthropic"
+    task: str  # "research" | "outline" | "script" | "title" | "description" | "tags" | "chapters" | "youtube_package"
+    input: dict  # Contains topic, audience, tone, goal, existingContent, etc.
+
+class VideoTaskCreate(BaseModel):
+    provider: str  # "runway" | "veo" | "kling"
+    prompt: str
+    mode: str  # "script" | "audio" | "remix"
+    scriptText: Optional[str] = None
+    audioAssetId: Optional[str] = None
+    sourceAssetId: Optional[str] = None
+    aspectRatio: str = "16:9"
+    outputProfile: str = "youtube_long"  # "youtube_long" | "shorts" | "reel"
+    submissionId: Optional[str] = None
+
 
 # ==================== AUTH HELPERS ====================
 

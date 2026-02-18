@@ -138,6 +138,45 @@ Refactored the monolithic `server.py` (~2000 lines) into a maintainable FastAPI 
 
 ### To add a new LLM provider:
 1. Add to `LLM_PROVIDERS` dict in server.py
+
+---
+
+## Phase 10 — Admin Panel & Impersonation (Feb 18, 2026)
+
+### Admin Dashboard (`/dashboard/admin`)
+Full admin panel for client management and impersonation.
+
+#### Features:
+- **Client List**: Table showing all clients with metrics (name, plan, submissions count, last activity)
+- **Client Summary**: Side panel with last 5 submissions, 30-day metrics, billing status
+- **Impersonation**: Admin can "view as" any client to see their dashboard exactly as they would
+- **Help Tour**: "?" icon shows multi-step toast guide for admin features
+
+#### New Backend Endpoints:
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/admin/clients` | GET | List all clients with metrics (admin only) |
+| `/api/admin/clients/{id}/summary` | GET | Client snapshot with recent activity (admin only) |
+| `/api/admin/impersonate` | POST | Validate client for impersonation (admin only) |
+
+#### Impersonation Architecture:
+- **View-only mode**: No server-side session changes
+- **Client-side state**: `impersonatedClientId` stored in AuthContext
+- **API Support**: All routers accept `impersonateClientId` query param for admin users
+- **Visual Feedback**: Yellow banner shows impersonated client name + "Return to Admin View" button
+- **Toast Notifications**: Start/stop impersonation shows toast feedback
+
+#### New Files:
+- `/app/backend/routers/admin.py` - Admin API routes
+- `/app/backend/services/admin_service.py` - Admin business logic
+- `/app/backend/models/admin.py` - Admin Pydantic models
+- `/app/frontend/src/components/ImpersonationBanner.jsx` - Yellow banner component
+
+#### Test Results:
+- Backend: 14/14 tests passed (100%)
+- Frontend: All admin features working correctly
+
+
 2. emergentintegrations library handles the routing
 
 ### To add a new Video provider:

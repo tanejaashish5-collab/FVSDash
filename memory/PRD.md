@@ -317,20 +317,23 @@ ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM  # Optional, defaults to Rachel
 ### Completed ✅
 - [x] All 11 dashboard pages
 - [x] Strategy Lab (multi-LLM)
-- [x] Video Lab (multi-provider, mocked)
+- [x] Video Lab (multi-provider)
 - [x] FVS System - Brain & Orchestrator (Feb 18, 2026)
+- [x] Admin panel (client management, impersonation) ✅ (Feb 18, 2026)
+- [x] Refactor server.py into modular structure (routers/, models/, services/) ✅ (Feb 18, 2026)
+- [x] Real thumbnail generation (OpenAI GPT-Image-1) ✅ (Feb 18, 2026)
+- [x] Google Veo video integration (graceful fallback) ✅ (Feb 18, 2026)
+- [x] ElevenLabs audio integration (graceful fallback) ✅ (Feb 18, 2026)
 
 ### P1 — Remaining
-- [x] Admin panel (client management, impersonation) ✅ (Feb 18, 2026)
-- [ ] Real video provider integration (Runway, Veo API)
-- [x] Refactor server.py into modular structure (routers/, models/, services/) ✅ (Feb 18, 2026)
+- [ ] Configure user-provided VEO_API_KEY for real video generation
+- [ ] Configure user-provided ELEVENLABS_API_KEY for real audio generation
+- [ ] Real Runway video provider integration
 
 ### P2 — Integrations
 - [ ] Stripe billing (replace placeholder)
-- [ ] Google Drive file upload
+- [ ] Google Drive file upload / First-party storage (S3/GCS)
 - [ ] Airtable integration
-- [ ] Real ElevenLabs voice generation
-- [ ] Real DALL-E thumbnail generation
 
 ## Test Credentials
 - **Client**: alex@company.com / client123

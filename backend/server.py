@@ -818,7 +818,8 @@ async def create_support_request(data: SupportRequestCreate, user: dict = Depend
     }
     
     await db.support_requests.insert_one(request)
-    del request["_id"] if "_id" in request else None
+    if "_id" in request:
+        del request["_id"]
     
     return {"message": "Support request submitted successfully", "request": request}
 

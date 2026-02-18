@@ -1,5 +1,5 @@
 """Dashboard overview and stats routes."""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
@@ -13,8 +13,11 @@ router = APIRouter(tags=["dashboard"])
 
 
 @router.get("/dashboard/stats")
-async def get_dashboard_stats(user: dict = Depends(get_current_user)):
-    client_id = get_client_id_from_user(user)
+async def get_dashboard_stats(
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    client_id = get_client_id_from_user(user, impersonateClientId)
     query = {"clientId": client_id} if client_id else {}
 
     submissions_db = submissions_collection()
@@ -41,8 +44,11 @@ async def get_dashboard_stats(user: dict = Depends(get_current_user)):
 
 
 @router.get("/dashboard/overview")
-async def get_dashboard_overview(user: dict = Depends(get_current_user)):
-    client_id = get_client_id_from_user(user)
+async def get_dashboard_overview(
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    client_id = get_client_id_from_user(user, impersonateClientId)
     query = {"clientId": client_id} if client_id else {}
 
     clients_db = clients_collection()

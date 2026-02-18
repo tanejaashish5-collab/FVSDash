@@ -1391,6 +1391,616 @@ async def save_video_as_asset(task_id: str, user: dict = Depends(get_current_use
     return {"message": "Video saved as asset", "asset": asset}
 
 
+# ==================== FVS SYSTEM - BRAIN & ORCHESTRATOR ====================
+
+# Sample external signals for idea generation (simulated data)
+SIMULATED_EXTERNAL_SIGNALS = [
+    {"source": "youtube_analytics", "topic": "Short-form content tips", "trend": "rising"},
+    {"source": "reddit", "topic": "Podcast equipment reviews", "trend": "hot"},
+    {"source": "search_trends", "topic": "AI voice generation", "trend": "breakout"},
+    {"source": "youtube_analytics", "topic": "Monetization strategies", "trend": "steady"},
+    {"source": "reddit", "topic": "Content repurposing workflows", "trend": "emerging"},
+    {"source": "search_trends", "topic": "Video podcast format", "trend": "rising"},
+    {"source": "competitor_analysis", "topic": "Interview techniques", "trend": "evergreen"},
+    {"source": "audience_feedback", "topic": "Behind-the-scenes content", "trend": "requested"},
+]
+
+async def generate_ideas_with_llm(client_id: str, analytics_data: dict, brand_voice: str, target_format: str) -> list:
+    """Use LLM to generate FVS ideas based on analytics and external signals."""
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        # Fallback to generating mock ideas without LLM
+        return generate_mock_ideas(target_format)
+    
+    # Build context from analytics
+    top_topics = analytics_data.get("topTopics", ["content creation", "podcasting", "AI tools"])
+    recent_performance = analytics_data.get("performance", "moderate growth")
+    
+    # Sample external signals
+    external_signals = random.sample(SIMULATED_EXTERNAL_SIGNALS, min(4, len(SIMULATED_EXTERNAL_SIGNALS)))
+    signals_text = "\n".join([f"- {s['source']}: '{s['topic']}' ({s['trend']})" for s in external_signals])
+    
+    prompt = f"""You are an AI content strategist for a podcast/video production studio.
+
+Based on the following data, generate 5 creative episode ideas in JSON format.
+
+CLIENT CONTEXT:
+- Brand voice: {brand_voice or 'Professional and engaging'}
+- Target format: {target_format} ({"60-90 second vertical videos" if target_format == "short" else "15-45 minute full episodes"})
+- Top performing topics: {', '.join(top_topics)}
+- Recent performance: {recent_performance}
+
+TRENDING SIGNALS:
+{signals_text}
+
+Generate 5 episode ideas. For each idea, provide:
+1. topic: A specific, actionable topic title
+2. hypothesis: Why this will resonate with the audience (1-2 sentences)
+3. source: Which signal inspired this (youtube_analytics, reddit, search_trends, competitor_analysis, audience_feedback, or original)
+4. format: "{target_format}"
+5. convictionScore: 0.0-1.0 based on how confident you are
+
+Return ONLY valid JSON array, no markdown:
+[{{"topic": "...", "hypothesis": "...", "source": "...", "format": "...", "convictionScore": 0.0}}]"""
+
+    try:
+        session_id = f"fvs-brain-{uuid.uuid4()}"
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=session_id,
+            system_message="You are a strategic content advisor. Always respond with valid JSON only."
+        ).with_model("gemini", "gemini-2.5-flash")
+        
+        response = await chat.send_message(UserMessage(text=prompt))
+        
+        # Parse JSON from response
+        import json
+        # Clean response - remove markdown code blocks if present
+        cleaned = response.strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.split("```")[1]
+            if cleaned.startswith("json"):
+                cleaned = cleaned[4:]
+        cleaned = cleaned.strip()
+        
+        ideas = json.loads(cleaned)
+        return ideas if isinstance(ideas, list) else []
+        
+    except Exception as e:
+        logger.error(f"FVS idea generation LLM error: {e}")
+        return generate_mock_ideas(target_format)
+
+def generate_mock_ideas(target_format: str) -> list:
+    """Generate mock ideas when LLM is unavailable."""
+    mock_ideas = [
+        {"topic": "5 Podcast Editing Mistakes That Kill Your Audience Retention", "hypothesis": "Editing tips consistently perform well, and this angle addresses a pain point", "source": "youtube_analytics", "format": target_format, "convictionScore": 0.85},
+        {"topic": "I Tried AI Voice Cloning for My Podcast - Here's What Happened", "hypothesis": "AI content is trending, and personal experiments drive engagement", "source": "search_trends", "format": target_format, "convictionScore": 0.78},
+        {"topic": "The $50 Mic Setup That Sounds Like $500", "hypothesis": "Budget content resonates with beginners, high search volume", "source": "reddit", "format": target_format, "convictionScore": 0.72},
+        {"topic": "How Top Podcasters Repurpose One Episode Into 10 Pieces of Content", "hypothesis": "Content multiplication is a hot topic in creator communities", "source": "competitor_analysis", "format": target_format, "convictionScore": 0.80},
+        {"topic": "Behind the Scenes: How We Produce an Episode in 2 Hours", "hypothesis": "Audience requested more process content, builds trust", "source": "audience_feedback", "format": target_format, "convictionScore": 0.68},
+    ]
+    return mock_ideas[:5]
+
+
+@api_router.post("/fvs/propose-ideas")
+async def fvs_propose_ideas(data: FvsProposeIdeasRequest, user: dict = Depends(get_current_user)):
+    """
+    FVS Brain: Analyzes client data and proposes new episode ideas.
+    Creates FvsIdea entries and a BrainSnapshot summarizing patterns.
+    """
+    client_id = get_client_id_from_user(user)
+    if not client_id:
+        raise HTTPException(status_code=400, detail="Client ID required")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    try:
+        # Fetch analytics data for context
+        range_days = {"30d": 30, "90d": 90}.get(data.range, 30)
+        today = datetime.now(timezone.utc).date()
+        start_date = (today - timedelta(days=range_days)).isoformat()
+        
+        analytics = await db.analytics_snapshots.find(
+            {"clientId": client_id, "date": {"$gte": start_date}},
+            {"_id": 0}
+        ).to_list(1000)
+        
+        # Summarize analytics
+        total_downloads = sum(a.get("downloads", 0) for a in analytics)
+        total_views = sum(a.get("views", 0) for a in analytics)
+        episodes_published = sum(a.get("episodesPublished", 0) for a in analytics)
+        
+        # Get client settings for brand voice
+        settings = await db.client_settings.find_one({"clientId": client_id}, {"_id": 0})
+        brand_voice = settings.get("brandVoiceDescription", "") if settings else ""
+        
+        # Get recent successful submissions for context
+        recent_subs = await db.submissions.find(
+            {"clientId": client_id, "status": {"$in": ["PUBLISHED", "SCHEDULED"]}},
+            {"_id": 0, "title": 1, "contentType": 1}
+        ).sort("createdAt", -1).to_list(10)
+        
+        top_topics = [s["title"] for s in recent_subs[:5]] if recent_subs else ["content creation", "podcasting"]
+        
+        analytics_context = {
+            "topTopics": top_topics,
+            "performance": f"{total_downloads} downloads, {total_views} views, {episodes_published} episodes in {range_days} days"
+        }
+        
+        # Generate ideas using LLM
+        raw_ideas = await generate_ideas_with_llm(client_id, analytics_context, brand_voice, data.format)
+        
+        # Store ideas in database
+        ideas = []
+        for idea_data in raw_ideas:
+            idea = {
+                "id": str(uuid.uuid4()),
+                "clientId": client_id,
+                "topic": idea_data.get("topic", "Untitled Idea"),
+                "hypothesis": idea_data.get("hypothesis", ""),
+                "source": idea_data.get("source", "original"),
+                "format": idea_data.get("format", data.format),
+                "convictionScore": min(1.0, max(0.0, float(idea_data.get("convictionScore", 0.5)))),
+                "status": "proposed",
+                "createdAt": now,
+                "updatedAt": now
+            }
+            ideas.append(idea)
+        
+        if ideas:
+            await db.fvs_ideas.insert_many(ideas)
+            # Remove _id from each idea
+            for idea in ideas:
+                if "_id" in idea:
+                    del idea["_id"]
+        
+        # Create brain snapshot
+        patterns = [
+            f"Format '{data.format}' episodes recommended based on current trends",
+            f"Top performing topics: {', '.join(top_topics[:3])}",
+            f"External signals suggest focus on AI and efficiency content",
+            f"Audience engagement is {('strong' if total_views > 5000 else 'growing')}"
+        ]
+        
+        snapshot = {
+            "id": str(uuid.uuid4()),
+            "clientId": client_id,
+            "timeWindow": data.range,
+            "summary": f"Analyzed {range_days} days of data. Generated {len(ideas)} {data.format}-format episode ideas based on {total_downloads} downloads and {total_views} views. Focus areas: trending AI topics, audience pain points, and content repurposing.",
+            "topPatterns": patterns,
+            "ideasGenerated": len(ideas),
+            "createdAt": now
+        }
+        
+        await db.fvs_brain_snapshots.insert_one(snapshot)
+        if "_id" in snapshot:
+            del snapshot["_id"]
+        
+        # Log FVS activity
+        activity = {
+            "id": str(uuid.uuid4()),
+            "clientId": client_id,
+            "action": "propose_ideas",
+            "description": f"FVS proposed {len(ideas)} new {data.format} ideas",
+            "metadata": {"ideaCount": len(ideas), "format": data.format, "range": data.range},
+            "createdAt": now
+        }
+        await db.fvs_activity.insert_one(activity)
+        
+        logger.info(f"FVS proposed {len(ideas)} ideas for client {client_id}")
+        
+        return {
+            "ideas": ideas,
+            "snapshot": snapshot
+        }
+        
+    except Exception as e:
+        logger.error(f"FVS propose-ideas error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to propose ideas: {str(e)}")
+
+
+@api_router.post("/fvs/produce-episode")
+async def fvs_produce_episode(data: FvsProduceEpisodeRequest, user: dict = Depends(get_current_user)):
+    """
+    FVS Orchestrator: Produces a full episode from an approved idea.
+    Creates Script, Submission, Audio/Video/Thumbnail Assets (mocked providers).
+    """
+    client_id = get_client_id_from_user(user)
+    if not client_id:
+        raise HTTPException(status_code=400, detail="Client ID required")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    try:
+        # Load the idea
+        idea = await db.fvs_ideas.find_one({"id": data.ideaId, "clientId": client_id}, {"_id": 0})
+        if not idea:
+            raise HTTPException(status_code=404, detail="Idea not found")
+        
+        # Mark idea as in_progress
+        await db.fvs_ideas.update_one(
+            {"id": data.ideaId},
+            {"$set": {"status": "in_progress", "updatedAt": now}}
+        )
+        
+        # Get client settings
+        settings = await db.client_settings.find_one({"clientId": client_id}, {"_id": 0})
+        brand_voice = settings.get("brandVoiceDescription", "Professional and engaging") if settings else "Professional and engaging"
+        
+        # Step 1: Generate script using LLM
+        script_text = ""
+        try:
+            from emergentintegrations.llm.chat import LlmChat, UserMessage
+            api_key = os.environ.get("EMERGENT_LLM_KEY")
+            
+            if api_key:
+                script_prompt = f"""Write a {idea.get('format', 'short')}-form script for this episode:
+
+Topic: {idea.get('topic')}
+Hypothesis/Angle: {idea.get('hypothesis')}
+Brand Voice: {brand_voice}
+Format: {"60-90 second vertical video script" if idea.get('format') == 'short' else "15-30 minute podcast episode"}
+
+Write an engaging, conversational script that:
+- Opens with a strong hook
+- Delivers clear value
+- Has a memorable closing/CTA
+
+Write the full script text only, no stage directions or timestamps."""
+
+                chat = LlmChat(
+                    api_key=api_key,
+                    session_id=f"fvs-script-{uuid.uuid4()}",
+                    system_message="You are an expert scriptwriter for podcasts and video content."
+                ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+                
+                script_text = await chat.send_message(UserMessage(text=script_prompt))
+            else:
+                script_text = f"[Auto-generated script for: {idea.get('topic')}]\n\nHey everyone! Today we're talking about {idea.get('topic')}.\n\n{idea.get('hypothesis')}\n\nLet's dive in...\n\n[Main content would go here]\n\nThat's it for today! Don't forget to like and subscribe."
+        except Exception as e:
+            logger.error(f"Script generation error: {e}")
+            script_text = f"[Auto-generated script for: {idea.get('topic')}]\n\n{idea.get('hypothesis')}"
+        
+        # Step 2: Generate YouTube metadata
+        title = idea.get("topic", "Untitled Episode")
+        description = idea.get("hypothesis", "")
+        tags = ["podcast", "content", idea.get("format", "short")]
+        
+        try:
+            if api_key:
+                metadata_prompt = f"""Generate YouTube metadata for this episode:
+
+Topic: {idea.get('topic')}
+Script excerpt: {script_text[:500]}
+
+Provide:
+1. TITLE: One catchy, SEO-friendly title (under 60 chars)
+2. DESCRIPTION: 150-200 word description
+3. TAGS: 10 relevant tags, comma-separated
+
+Format your response exactly as:
+TITLE: [title here]
+DESCRIPTION: [description here]
+TAGS: [tag1, tag2, tag3, ...]"""
+
+                chat = LlmChat(
+                    api_key=api_key,
+                    session_id=f"fvs-metadata-{uuid.uuid4()}",
+                    system_message="You are a YouTube SEO expert."
+                ).with_model("gemini", "gemini-2.5-flash")
+                
+                metadata_response = await chat.send_message(UserMessage(text=metadata_prompt))
+                
+                # Parse metadata
+                for line in metadata_response.split('\n'):
+                    if line.startswith('TITLE:'):
+                        title = line.replace('TITLE:', '').strip()
+                    elif line.startswith('DESCRIPTION:'):
+                        description = line.replace('DESCRIPTION:', '').strip()
+                    elif line.startswith('TAGS:'):
+                        tags = [t.strip() for t in line.replace('TAGS:', '').split(',')]
+        except Exception as e:
+            logger.error(f"Metadata generation error: {e}")
+        
+        # Step 3: Create Submission
+        release_date = (datetime.now(timezone.utc) + timedelta(days=3)).strftime("%Y-%m-%d")
+        submission = {
+            "id": str(uuid.uuid4()),
+            "clientId": client_id,
+            "title": title,
+            "guest": "",
+            "description": description,
+            "contentType": "Short" if idea.get("format") == "short" else "Podcast",
+            "status": "EDITING",
+            "priority": "High",
+            "releaseDate": release_date,
+            "sourceFileUrl": None,
+            "fvsIdeaId": data.ideaId,
+            "tags": tags,
+            "createdAt": now,
+            "updatedAt": now
+        }
+        await db.submissions.insert_one(submission)
+        submission_id = submission["id"]
+        if "_id" in submission:
+            del submission["_id"]
+        
+        # Step 4: Create Script entity
+        script = {
+            "id": str(uuid.uuid4()),
+            "clientId": client_id,
+            "submissionId": submission_id,
+            "fvsIdeaId": data.ideaId,
+            "provider": "anthropic",
+            "text": script_text,
+            "createdAt": now
+        }
+        await db.fvs_scripts.insert_one(script)
+        if "_id" in script:
+            del script["_id"]
+        
+        # Step 5: Create mocked Audio Asset (simulating ElevenLabs)
+        audio_asset = {
+            "id": str(uuid.uuid4()),
+            "clientId": client_id,
+            "submissionId": submission_id,
+            "name": f"FVS Audio - {title[:40]}",
+            "type": "Audio",
+            "url": "https://storage.googleapis.com/fvs-mock/audio-placeholder.mp3",
+            "status": "Final",
+            "provider": "mock_elevenlabs",
+            "fvsGenerated": True,
+            "createdAt": now,
+            "updatedAt": now
+        }
+        await db.assets.insert_one(audio_asset)
+        if "_id" in audio_asset:
+            del audio_asset["_id"]
+        
+        # Step 6: Create Video Task (using existing mocked infrastructure)
+        video_prompt = f"Create a {idea.get('format', 'short')}-form video for: {title}"
+        provider_job_id = f"fvs-kling-{uuid.uuid4()}"
+        
+        video_task = {
+            "id": str(uuid.uuid4()),
+            "clientId": client_id,
+            "provider": "kling",
+            "providerJobId": provider_job_id,
+            "prompt": video_prompt,
+            "mode": "audio",
+            "scriptText": script_text[:1000],
+            "audioAssetId": audio_asset["id"],
+            "sourceAssetId": None,
+            "aspectRatio": "9:16" if idea.get("format") == "short" else "16:9",
+            "outputProfile": "shorts" if idea.get("format") == "short" else "youtube_long",
+            "submissionId": submission_id,
+            "status": "READY",  # Kling mock returns ready immediately
+            "videoUrl": "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+            "fvsGenerated": True,
+            "createdAt": now,
+            "updatedAt": now
+        }
+        await db.video_tasks.insert_one(video_task)
+        if "_id" in video_task:
+            del video_task["_id"]
+        
+        # Step 7: Create Video Asset from completed task
+        video_asset = {
+            "id": str(uuid.uuid4()),
+            "clientId": client_id,
+            "submissionId": submission_id,
+            "name": f"FVS Video - {title[:40]}",
+            "type": "Video",
+            "url": video_task["videoUrl"],
+            "status": "Draft",
+            "provider": "kling",
+            "sourceVideoTaskId": video_task["id"],
+            "fvsGenerated": True,
+            "createdAt": now,
+            "updatedAt": now
+        }
+        await db.assets.insert_one(video_asset)
+        if "_id" in video_asset:
+            del video_asset["_id"]
+        
+        # Step 8: Create mocked Thumbnail Asset
+        thumbnail_asset = {
+            "id": str(uuid.uuid4()),
+            "clientId": client_id,
+            "submissionId": submission_id,
+            "name": f"FVS Thumbnail - {title[:40]}",
+            "type": "Thumbnail",
+            "url": "https://via.placeholder.com/1280x720/6366F1/FFFFFF?text=FVS+Generated",
+            "status": "Draft",
+            "provider": "mock_dalle",
+            "fvsGenerated": True,
+            "thumbnailPrompt": f"Engaging YouTube thumbnail for: {title}",
+            "createdAt": now,
+            "updatedAt": now
+        }
+        await db.assets.insert_one(thumbnail_asset)
+        if "_id" in thumbnail_asset:
+            del thumbnail_asset["_id"]
+        
+        # Step 9: Mark idea as completed and update submission status
+        await db.fvs_ideas.update_one(
+            {"id": data.ideaId},
+            {"$set": {"status": "completed", "submissionId": submission_id, "updatedAt": now}}
+        )
+        
+        await db.submissions.update_one(
+            {"id": submission_id},
+            {"$set": {"status": "SCHEDULED", "updatedAt": now}}
+        )
+        submission["status"] = "SCHEDULED"
+        
+        # Log FVS activity
+        activity = {
+            "id": str(uuid.uuid4()),
+            "clientId": client_id,
+            "action": "produce_episode",
+            "description": f"FVS produced episode '{title}' with script, audio, video, and thumbnail",
+            "metadata": {
+                "ideaId": data.ideaId,
+                "submissionId": submission_id,
+                "videoTaskId": video_task["id"]
+            },
+            "createdAt": now
+        }
+        await db.fvs_activity.insert_one(activity)
+        
+        # Update idea with completed status
+        idea["status"] = "completed"
+        idea["submissionId"] = submission_id
+        
+        logger.info(f"FVS produced episode '{title}' for client {client_id}")
+        
+        return {
+            "success": True,
+            "submission": submission,
+            "script": script,
+            "audioAsset": audio_asset,
+            "videoTask": video_task,
+            "videoAsset": video_asset,
+            "thumbnailAsset": thumbnail_asset,
+            "idea": idea
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"FVS produce-episode error: {e}")
+        # Revert idea status on failure
+        await db.fvs_ideas.update_one(
+            {"id": data.ideaId},
+            {"$set": {"status": "proposed", "updatedAt": now}}
+        )
+        raise HTTPException(status_code=500, detail=f"Failed to produce episode: {str(e)}")
+
+
+@api_router.get("/fvs/ideas")
+async def get_fvs_ideas(
+    user: dict = Depends(get_current_user),
+    status: Optional[str] = None
+):
+    """Returns FVS ideas for the current client, optionally filtered by status."""
+    client_id = get_client_id_from_user(user)
+    query = {"clientId": client_id} if client_id else {}
+    
+    if status:
+        statuses = status.split(",")
+        query["status"] = {"$in": statuses}
+    
+    ideas = await db.fvs_ideas.find(query, {"_id": 0}).sort("createdAt", -1).to_list(100)
+    return ideas
+
+
+@api_router.patch("/fvs/ideas/{idea_id}/status")
+async def update_fvs_idea_status(idea_id: str, data: FvsIdeaStatusUpdate, user: dict = Depends(get_current_user)):
+    """Update the status of an FVS idea."""
+    client_id = get_client_id_from_user(user)
+    query = {"id": idea_id}
+    if client_id:
+        query["clientId"] = client_id
+    
+    valid_statuses = ["proposed", "approved", "rejected", "in_progress", "completed"]
+    if data.status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    result = await db.fvs_ideas.update_one(query, {"$set": {"status": data.status, "updatedAt": now}})
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Idea not found")
+    
+    updated = await db.fvs_ideas.find_one(query, {"_id": 0})
+    return updated
+
+
+@api_router.get("/fvs/brain-snapshot")
+async def get_fvs_brain_snapshot(user: dict = Depends(get_current_user)):
+    """Returns the latest FVS brain snapshot for the current client."""
+    client_id = get_client_id_from_user(user)
+    if not client_id:
+        return None
+    
+    snapshot = await db.fvs_brain_snapshots.find_one(
+        {"clientId": client_id},
+        {"_id": 0}
+    )
+    
+    if not snapshot:
+        # Check if sorted descending by createdAt
+        snapshot = await db.fvs_brain_snapshots.find(
+            {"clientId": client_id},
+            {"_id": 0}
+        ).sort("createdAt", -1).limit(1).to_list(1)
+        snapshot = snapshot[0] if snapshot else None
+    
+    return snapshot
+
+
+@api_router.get("/fvs/activity")
+async def get_fvs_activity(user: dict = Depends(get_current_user)):
+    """Returns recent FVS activity for the current client."""
+    client_id = get_client_id_from_user(user)
+    query = {"clientId": client_id} if client_id else {}
+    
+    activities = await db.fvs_activity.find(query, {"_id": 0}).sort("createdAt", -1).to_list(50)
+    return activities
+
+
+@api_router.get("/fvs/config")
+async def get_fvs_config(user: dict = Depends(get_current_user)):
+    """Returns FVS configuration for the current client."""
+    client_id = get_client_id_from_user(user)
+    if not client_id:
+        return {"automationLevel": "manual"}
+    
+    config = await db.fvs_config.find_one({"clientId": client_id}, {"_id": 0})
+    if not config:
+        return {"automationLevel": "manual", "clientId": client_id}
+    return config
+
+
+@api_router.put("/fvs/config")
+async def update_fvs_config(data: FvsAutomationUpdate, user: dict = Depends(get_current_user)):
+    """Updates FVS configuration for the current client."""
+    client_id = get_client_id_from_user(user)
+    if not client_id:
+        raise HTTPException(status_code=400, detail="Client ID required")
+    
+    valid_levels = ["manual", "semi_auto", "full_auto_short"]
+    if data.automationLevel not in valid_levels:
+        raise HTTPException(status_code=400, detail=f"Invalid automation level. Must be one of: {valid_levels}")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    await db.fvs_config.update_one(
+        {"clientId": client_id},
+        {"$set": {"automationLevel": data.automationLevel, "updatedAt": now}, "$setOnInsert": {"createdAt": now}},
+        upsert=True
+    )
+    
+    config = await db.fvs_config.find_one({"clientId": client_id}, {"_id": 0})
+    return config
+
+
+@api_router.get("/fvs/scripts")
+async def get_fvs_scripts(user: dict = Depends(get_current_user), submissionId: Optional[str] = None):
+    """Returns FVS-generated scripts for the current client."""
+    client_id = get_client_id_from_user(user)
+    query = {"clientId": client_id} if client_id else {}
+    
+    if submissionId:
+        query["submissionId"] = submissionId
+    
+    scripts = await db.fvs_scripts.find(query, {"_id": 0}).sort("createdAt", -1).to_list(50)
+    return scripts
+
+
 # ==================== SEED DATA ====================
 
 async def run_seed():

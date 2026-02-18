@@ -602,11 +602,29 @@ async def run_seed():
 
     sub_ids = [s["id"] for s in submissions]
     assets = [
+        # Episode 1: "The Future of AI in Content Creation" (PUBLISHED) - 4 assets
         {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[0], "name": "Episode 42 - Final Mix", "type": "Audio", "url": "https://drive.google.com/example1", "status": "Final", "createdAt": now, "updatedAt": now},
         {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[0], "name": "Episode 42 - Thumbnail", "type": "Thumbnail", "url": "https://drive.google.com/example2", "status": "Final", "createdAt": now, "updatedAt": now},
-        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[1], "name": "Raw Recording - Marcus", "type": "Audio", "url": "https://drive.google.com/example3", "status": "Draft", "createdAt": now, "updatedAt": now},
         {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[0], "name": "Episode 42 - Transcript", "type": "Transcript", "url": "https://drive.google.com/example4", "status": "Final", "createdAt": now, "updatedAt": now},
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[0], "name": "Episode 42 - Full Video", "type": "Video", "url": "https://drive.google.com/example6", "status": "Final", "createdAt": now, "updatedAt": now},
+        
+        # Episode 2: "Building a Personal Brand Online" (EDITING) - 3 assets
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[1], "name": "Raw Recording - Marcus", "type": "Audio", "url": "https://drive.google.com/example3", "status": "Draft", "createdAt": now, "updatedAt": now},
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[1], "name": "Personal Brand - Draft Thumbnail", "type": "Thumbnail", "url": "https://drive.google.com/example7", "status": "Draft", "createdAt": now, "updatedAt": now},
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[1], "name": "Interview Notes - Marcus", "type": "Transcript", "url": "https://drive.google.com/example8", "status": "Draft", "createdAt": now, "updatedAt": now},
+        
+        # Episode 3: "Quick Tips: Microphone Setup" (DESIGN) - 2 assets
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[2], "name": "Mic Setup - Short Video", "type": "Video", "url": "https://drive.google.com/example9", "status": "Draft", "createdAt": now, "updatedAt": now},
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[2], "name": "Mic Tips - Thumbnail v1", "type": "Thumbnail", "url": "https://drive.google.com/example10", "status": "Draft", "createdAt": now, "updatedAt": now},
+        
+        # Episode 4: "Monetizing Your Content: A Webinar" (SCHEDULED) - 2 assets
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[3], "name": "Webinar - Registration Banner", "type": "Thumbnail", "url": "https://drive.google.com/example11", "status": "Final", "createdAt": now, "updatedAt": now},
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": sub_ids[3], "name": "Webinar - Promo Audio", "type": "Audio", "url": "https://drive.google.com/example12", "status": "Final", "createdAt": now, "updatedAt": now},
+        
+        # Unlinked assets (brand kit, general media)
         {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": None, "name": "Brand Kit - Logo Pack", "type": "Video", "url": "https://drive.google.com/example5", "status": "Final", "createdAt": now, "updatedAt": now},
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": None, "name": "Podcast Intro Animation", "type": "Video", "url": "https://drive.google.com/example13", "status": "Final", "createdAt": now, "updatedAt": now},
+        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "submissionId": None, "name": "Channel Banner 2024", "type": "Thumbnail", "url": "https://drive.google.com/example14", "status": "Final", "createdAt": now, "updatedAt": now},
     ]
     await db.assets.insert_many(assets)
 

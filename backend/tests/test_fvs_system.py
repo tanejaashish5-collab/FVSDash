@@ -302,7 +302,8 @@ class TestFvsProduceEpisode:
         submission = data["submission"]
         assert "id" in submission
         assert "title" in submission
-        assert submission["status"] == "INTAKE"
+        # FVS sets status to SCHEDULED after production
+        assert submission["status"] == "SCHEDULED"
         
         # Verify audio asset was created
         audio_asset = data["audioAsset"]

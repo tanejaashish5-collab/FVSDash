@@ -11,6 +11,9 @@ import SubmissionsPage from "@/pages/SubmissionsPage";
 import CalendarPage from "@/pages/CalendarPage";
 import DeliverablesPage from "@/pages/DeliverablesPage";
 import AssetsPage from "@/pages/AssetsPage";
+import AnalyticsPage from "@/pages/AnalyticsPage";
+import ROIPage from "@/pages/ROIPage";
+import BillingPage from "@/pages/BillingPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 
 function LoadingScreen() {

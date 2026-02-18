@@ -9,10 +9,31 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 - **Database**: MongoDB (multi-tenant via clientId scoping)
 - **Auth**: JWT-based with admin/client roles
 - **AI**: Multi-provider LLM (Gemini/OpenAI/Anthropic via Emergent key)
+- **Storage**: S3/S3-compatible (optional, with graceful fallback to data URLs)
 
 ## What's Been Implemented
 
-### Completed Pages (11 total)
+### Phase 13 — S3 Storage Service & Deep-Linking (Feb 18, 2026)
+
+#### S3 Storage Service
+- **Location**: `/app/backend/services/storage_service.py`
+- **Features**:
+  - Upload files to S3 or S3-compatible storage (R2, MinIO)
+  - Auto-generate unique object keys with timestamps
+  - Build public URLs for uploaded files
+  - Graceful fallback to base64 data URLs when S3 not configured
+- **Configuration**: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_BUCKET`, `AWS_REGION`
+- **Integration**: Audio and thumbnail generation now attempt S3 upload first
+
+#### Deep-Linking Navigation
+- **New Route**: `/dashboard/submissions/:submissionId` - Submission detail page
+- **SubmissionDetailPage**: Shows title, status, assets, FVS info, timestamps
+- **Calendar**: Click event → View Full Details → Submission detail page
+- **Deliverables**: Click row → Navigate to parent submission
+- **Assets**: New "View submission" button for linked assets
+- **FVS System**: "View Episode" button for completed ideas
+
+### Completed Pages (11 total + 1 detail page)
 1. **Overview** - KPIs, pipeline, schedule, activity
 2. **Submissions** - Content submission form and list
 3. **Calendar** - Month view with editable events

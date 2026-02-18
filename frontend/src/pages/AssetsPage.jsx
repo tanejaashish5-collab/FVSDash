@@ -43,6 +43,7 @@ const assetTypeCfg = {
 
 export default function AssetsPage() {
   const { authHeaders } = useAuth();
+  const navigate = useNavigate();
 
   const [assets, setAssets] = useState([]);
   const [submissions, setSubmissions] = useState([]);

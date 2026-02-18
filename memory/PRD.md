@@ -69,7 +69,17 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 | OpenAI | gpt-4o | ✅ Working |
 | Anthropic | claude-sonnet-4-5 | ✅ Working |
 
-### Video Providers (MOCKED)
+### Image Generation (Thumbnails)
+| Provider | Model | Status |
+|----------|-------|--------|
+| OpenAI | GPT-Image-1 | ✅ REAL via EMERGENT_LLM_KEY |
+
+### Audio Generation (Voice)
+| Provider | Status | Config |
+|----------|--------|--------|
+| ElevenLabs | ✅ Ready (needs API key) | Set ELEVENLABS_API_KEY |
+
+### Video Providers (MOCKED - P2)
 | Provider | Status | Behavior |
 
 ---

@@ -991,8 +991,9 @@ async def run_seed():
         "id": str(uuid.uuid4()),
         "clientId": "demo-client-1",
         "hourlyRate": 150,
+        "hoursPerEpisode": 5,
         "competitorName": "PodcastPro Media",
-        "brandVoiceDescription": "Professional yet approachable. Tech-forward with human warmth.",
+        "brandVoiceDescription": "Professional yet approachable. Tech-forward with human warmth. We speak to entrepreneurs and creators who value authenticity and actionable insights.",
         "airtableApiKey": None,
         "createdAt": now,
         "updatedAt": now

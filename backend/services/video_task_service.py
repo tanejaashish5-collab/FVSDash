@@ -1,45 +1,315 @@
-"""Video task service - multi-provider video generation."""
+"""Video task service - multi-provider video generation.
+
+Supports real integration with Google Veo and mocked providers (Runway, Kling).
+"""
+import os
 import uuid
 import hashlib
+import logging
 from datetime import datetime, timezone
+from typing import Optional, Dict, Any
+from dataclasses import dataclass
 from fastapi import HTTPException
 
 from db.mongo import video_tasks_collection, assets_collection
 
+logger = logging.getLogger(__name__)
 
-async def create_video_job(provider: str, task_data: dict) -> str:
-    """Create a video generation job with the specified provider (MOCKED)."""
-    # TODO: Integrate real video providers (Runway, Veo) here
-    if provider == "kling":
-        return f"kling-mock-{uuid.uuid4()}"
+# Mock video URLs for fallback/testing
+MOCK_VIDEO_URLS = [
+    "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+    "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+]
+
+
+@dataclass
+class VideoJobResult:
+    """Result from video job creation."""
+    job_id: str
+    provider: str
+    is_mocked: bool
+    warning: Optional[str] = None
+
+
+@dataclass
+class VideoStatusResult:
+    """Result from video status check."""
+    status: str  # PROCESSING, READY, FAILED
+    video_url: Optional[str] = None
+    is_mocked: bool = False
+    warning: Optional[str] = None
+
+
+# =============================================================================
+# GOOGLE VEO INTEGRATION (REAL)
+# =============================================================================
+
+async def create_veo_job(task_data: dict) -> VideoJobResult:
+    """
+    Create a video generation job with Google Veo.
+    
+    Uses google-genai SDK with VEO_API_KEY from environment.
+    Falls back to mock if API key not configured or on error.
+    
+    Args:
+        task_data: Dict with prompt, aspectRatio, etc.
+        
+    Returns:
+        VideoJobResult with job ID and provider info
+    """
+    api_key = os.environ.get("VEO_API_KEY")
+    
+    if not api_key:
+        logger.warning("VEO_API_KEY not configured. Using mocked video generation.")
+        mock_job_id = f"veo-mock-{uuid.uuid4()}"
+        return VideoJobResult(
+            job_id=mock_job_id,
+            provider="mock_veo",
+            is_mocked=True,
+            warning="VEO_API_KEY not configured. Using mock video generation."
+        )
+    
+    try:
+        from google import genai
+        from google.genai import types
+        
+        # Initialize client with API key
+        client = genai.Client(api_key=api_key)
+        
+        # Build prompt from task data
+        prompt = task_data.get("prompt", "")
+        if task_data.get("scriptText"):
+            # If there's script text, enhance the prompt
+            prompt = f"{prompt}\n\nScript context: {task_data.get('scriptText', '')[:500]}"
+        
+        # Map aspect ratio to Veo format
+        aspect_ratio = task_data.get("aspectRatio", "16:9")
+        veo_aspect = "16:9" if aspect_ratio == "16:9" else "9:16"
+        
+        logger.info(f"Submitting Veo video generation: prompt='{prompt[:100]}...', aspect={veo_aspect}")
+        
+        # Submit video generation job
+        # NOTE: Using latest available Veo model
+        operation = client.models.generate_videos(
+            model="veo-2.0-generate-001",  # Use available Veo model
+            prompt=prompt,
+            config=types.GenerateVideosConfig(
+                aspect_ratio=veo_aspect,
+                number_of_videos=1,
+            ),
+        )
+        
+        # Return the operation name as our job ID
+        operation_name = operation.name if hasattr(operation, 'name') else str(uuid.uuid4())
+        
+        logger.info(f"Veo job submitted successfully: {operation_name}")
+        
+        return VideoJobResult(
+            job_id=operation_name,
+            provider="veo",
+            is_mocked=False
+        )
+        
+    except ImportError as e:
+        logger.error(f"google-genai SDK not installed: {e}")
+        mock_job_id = f"veo-mock-{uuid.uuid4()}"
+        return VideoJobResult(
+            job_id=mock_job_id,
+            provider="mock_veo",
+            is_mocked=True,
+            warning="Google GenAI SDK not available. Using mock video generation."
+        )
+    except Exception as e:
+        logger.error(f"Veo video generation failed: {e}")
+        mock_job_id = f"veo-mock-{uuid.uuid4()}"
+        return VideoJobResult(
+            job_id=mock_job_id,
+            provider="mock_veo",
+            is_mocked=True,
+            warning=f"Veo generation failed: {str(e)}. Using mock video."
+        )
+
+
+async def check_veo_job(job_id: str) -> VideoStatusResult:
+    """
+    Check status of a Google Veo video generation job.
+    
+    Args:
+        job_id: The operation name/ID from Veo
+        
+    Returns:
+        VideoStatusResult with status and video URL if ready
+    """
+    api_key = os.environ.get("VEO_API_KEY")
+    
+    # If it's a mock job, simulate completion
+    if job_id.startswith("veo-mock-") or not api_key:
+        hash_val = int(hashlib.md5(job_id.encode()).hexdigest()[:8], 16)
+        # Simulate 33% completion rate on each poll
+        if hash_val % 3 == 0:
+            mock_url = MOCK_VIDEO_URLS[hash_val % len(MOCK_VIDEO_URLS)]
+            return VideoStatusResult(
+                status="READY",
+                video_url=mock_url,
+                is_mocked=True,
+                warning="Using mock video (VEO_API_KEY not configured)"
+            )
+        else:
+            return VideoStatusResult(
+                status="PROCESSING",
+                is_mocked=True
+            )
+    
+    try:
+        from google import genai
+        
+        client = genai.Client(api_key=api_key)
+        
+        # Get operation status
+        operation = client.operations.get(job_id)
+        
+        if operation.done:
+            # Job completed - check for video
+            if hasattr(operation, 'response') and operation.response:
+                if hasattr(operation.response, 'generated_videos') and operation.response.generated_videos:
+                    video = operation.response.generated_videos[0]
+                    video_url = None
+                    
+                    # Extract video URL from response
+                    if hasattr(video, 'video'):
+                        if hasattr(video.video, 'uri'):
+                            video_url = video.video.uri
+                        elif hasattr(video.video, 'url'):
+                            video_url = video.video.url
+                    
+                    if video_url:
+                        logger.info(f"Veo video ready: {video_url[:100]}...")
+                        # TODO: P2 - Upload video to first-party storage (S3/GCS) 
+                        # and return permanent URL instead of provider URL
+                        return VideoStatusResult(
+                            status="READY",
+                            video_url=video_url,
+                            is_mocked=False
+                        )
+                
+            # Operation done but no video - treat as failed
+            logger.warning(f"Veo operation completed but no video in response: {job_id}")
+            return VideoStatusResult(
+                status="FAILED",
+                is_mocked=False,
+                warning="Video generation completed but no video data returned"
+            )
+        else:
+            # Still processing
+            logger.info(f"Veo job still processing: {job_id}")
+            return VideoStatusResult(
+                status="PROCESSING",
+                is_mocked=False
+            )
+            
+    except Exception as e:
+        logger.error(f"Failed to check Veo job status: {e}")
+        # On error, fall back to mock behavior
+        hash_val = int(hashlib.md5(job_id.encode()).hexdigest()[:8], 16)
+        if hash_val % 3 == 0:
+            mock_url = MOCK_VIDEO_URLS[hash_val % len(MOCK_VIDEO_URLS)]
+            return VideoStatusResult(
+                status="READY",
+                video_url=mock_url,
+                is_mocked=True,
+                warning=f"Failed to check Veo status: {str(e)}. Using mock video."
+            )
+        return VideoStatusResult(
+            status="PROCESSING",
+            is_mocked=True,
+            warning=f"Veo status check failed: {str(e)}"
+        )
+
+
+# =============================================================================
+# PROVIDER ROUTING
+# =============================================================================
+
+async def create_video_job(provider: str, task_data: dict) -> VideoJobResult:
+    """
+    Create a video generation job with the specified provider.
+    
+    Supports:
+    - veo: Google Veo (REAL with VEO_API_KEY, or mocked fallback)
+    - runway: MOCKED
+    - kling: MOCKED
+    
+    Args:
+        provider: Video provider name
+        task_data: Dict with prompt, mode, scriptText, aspectRatio
+        
+    Returns:
+        VideoJobResult with job ID and metadata
+    """
+    if provider == "veo":
+        return await create_veo_job(task_data)
+    elif provider == "kling":
+        # Kling remains mocked - TODO: P2 integrate real API
+        return VideoJobResult(
+            job_id=f"kling-mock-{uuid.uuid4()}",
+            provider="mock_kling",
+            is_mocked=True,
+            warning="Kling integration is mocked (P2)"
+        )
     elif provider == "runway":
-        return f"runway-mock-{uuid.uuid4()}"
-    elif provider == "veo":
-        return f"veo-mock-{uuid.uuid4()}"
+        # Runway remains mocked - TODO: P2 integrate real API
+        return VideoJobResult(
+            job_id=f"runway-mock-{uuid.uuid4()}",
+            provider="mock_runway",
+            is_mocked=True,
+            warning="Runway integration is mocked (P2)"
+        )
     else:
         raise HTTPException(status_code=400, detail=f"Unknown video provider: {provider}")
 
 
-async def check_video_job(provider: str, job_id: str) -> dict:
-    """Check status of a video generation job (MOCKED)."""
-    # TODO: Integrate real provider status checks here
-    hash_val = int(hashlib.md5(job_id.encode()).hexdigest()[:8], 16)
+async def check_video_job(provider: str, job_id: str) -> VideoStatusResult:
+    """
+    Check status of a video generation job.
     
-    if provider == "kling":
-        return {
-            "status": "READY",
-            "videoUrl": "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
-        }
-    elif provider in ["runway", "veo"]:
+    Routes to appropriate provider implementation.
+    
+    Args:
+        provider: Video provider name
+        job_id: Provider-specific job ID
+        
+    Returns:
+        VideoStatusResult with status and video URL if ready
+    """
+    if provider == "veo":
+        return await check_veo_job(job_id)
+    elif provider == "kling":
+        # Kling mock - always ready
+        return VideoStatusResult(
+            status="READY",
+            video_url=MOCK_VIDEO_URLS[0],
+            is_mocked=True
+        )
+    elif provider == "runway":
+        # Runway mock - simulated processing
+        hash_val = int(hashlib.md5(job_id.encode()).hexdigest()[:8], 16)
         if hash_val % 3 == 0:
-            return {
-                "status": "READY", 
-                "videoUrl": "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4"
-            }
-        else:
-            return {"status": "PROCESSING", "videoUrl": None}
+            return VideoStatusResult(
+                status="READY",
+                video_url=MOCK_VIDEO_URLS[1],
+                is_mocked=True
+            )
+        return VideoStatusResult(
+            status="PROCESSING",
+            is_mocked=True
+        )
     
-    return {"status": "FAILED", "videoUrl": None}
+    return VideoStatusResult(
+        status="FAILED",
+        is_mocked=True,
+        warning=f"Unknown provider: {provider}"
+    )
 
 
 async def create_video_task(client_id: str, data: dict) -> dict:

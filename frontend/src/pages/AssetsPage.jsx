@@ -368,18 +368,24 @@ export default function AssetsPage() {
                               Mark Final
                             </Button>
                           )}
-                          {/* Open asset in new tab */}
+                          {/* Preview button - opens modal for thumbnails, new tab for others */}
                           {asset.url && (
-                            <a
-                              href={asset.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="h-7 w-7 flex items-center justify-center rounded hover:bg-white/5 text-zinc-500 hover:text-indigo-400 transition-colors"
-                              data-testid={`open-url-${asset.id}`}
-                              title="Open asset file"
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handlePreview(asset)}
+                              className="h-7 w-7 text-zinc-500 hover:text-indigo-400 hover:bg-white/5"
+                              data-testid={`preview-${asset.id}`}
+                              title={asset.type === 'Thumbnail' ? 'Preview image' : 'Open in new tab'}
                             >
-                              <ExternalLink className="h-3.5 w-3.5" />
-                            </a>
+                              {asset.type === 'Thumbnail' ? (
+                                <ZoomIn className="h-3.5 w-3.5" />
+                              ) : asset.type === 'Video' ? (
+                                <Play className="h-3.5 w-3.5" />
+                              ) : (
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              )}
+                            </Button>
                           )}
                           {/* Deep-link to view the parent submission if available */}
                           {asset.submissionId && (
@@ -404,6 +410,60 @@ export default function AssetsPage() {
           )}
         </CardContent>
       </Card>
+      
+      {/* Thumbnail Preview Modal */}
+      <Dialog open={!!previewAsset} onOpenChange={(open) => !open && setPreviewAsset(null)}>
+        <DialogContent className="bg-[#0B1120] border-[#1F2933] max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-white">{previewAsset?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4">
+            {previewAsset?.url && (
+              <img 
+                src={previewAsset.url} 
+                alt={previewAsset?.name}
+                className="max-w-full max-h-[60vh] rounded-lg object-contain"
+              />
+            )}
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className={assetTypeCfg.Thumbnail}>
+                {previewAsset?.type}
+              </Badge>
+              <Badge variant="outline" className={statusCfg[previewAsset?.status]?.bg + ' ' + statusCfg[previewAsset?.status]?.text}>
+                {previewAsset?.status}
+              </Badge>
+              {previewAsset?.episodeTitle && (
+                <span className="text-xs text-zinc-400">• {previewAsset.episodeTitle}</span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(previewAsset?.url, '_blank')}
+                className="text-xs"
+              >
+                <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                Open Full Size
+              </Button>
+              {previewAsset?.submissionId && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setPreviewAsset(null);
+                    navigate(`/dashboard/submissions/${previewAsset.submissionId}`);
+                  }}
+                  className="text-xs"
+                >
+                  <Eye className="h-3.5 w-3.5 mr-1" />
+                  View Submission
+                </Button>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

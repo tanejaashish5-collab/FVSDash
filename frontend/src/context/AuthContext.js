@@ -100,6 +100,24 @@ export function AuthProvider({ children }) {
   const isImpersonating = user?.role === 'admin' && impersonatedClientId !== null;
 
   const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+  
+  // Helper to get API params including impersonation if active
+  const getApiParams = useCallback((additionalParams = {}) => {
+    const params = { ...additionalParams };
+    if (user?.role === 'admin' && impersonatedClientId) {
+      params.impersonateClientId = impersonatedClientId;
+    }
+    return params;
+  }, [user, impersonatedClientId]);
+
+  // Helper to build URL with impersonation param
+  const buildApiUrl = useCallback((baseUrl) => {
+    if (user?.role === 'admin' && impersonatedClientId) {
+      const separator = baseUrl.includes('?') ? '&' : '?';
+      return `${baseUrl}${separator}impersonateClientId=${impersonatedClientId}`;
+    }
+    return baseUrl;
+  }, [user, impersonatedClientId]);
 
   return (
     <AuthContext.Provider value={{ 
@@ -116,7 +134,9 @@ export function AuthProvider({ children }) {
       startImpersonation,
       stopImpersonation,
       isImpersonating,
-      effectiveClientId
+      effectiveClientId,
+      getApiParams,
+      buildApiUrl
     }}>
       {children}
     </AuthContext.Provider>

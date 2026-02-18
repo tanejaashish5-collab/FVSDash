@@ -711,6 +711,158 @@ async def get_billing(user: dict = Depends(get_current_user)):
     query = {"clientId": client_id} if client_id else {}
     return await db.billing_records.find(query, {"_id": 0}).to_list(100)
 
+
+# ==================== SETTINGS PAGE ROUTES ====================
+
+@api_router.get("/settings")
+async def get_settings(user: dict = Depends(get_current_user)):
+    """
+    Returns settings for the current client including ClientSettings and Client info.
+    """
+    client_id = get_client_id_from_user(user)
+    if not client_id:
+        return {}
+    
+    # Get client settings
+    settings = await db.client_settings.find_one({"clientId": client_id}, {"_id": 0})
+    
+    # Get client info for contact details
+    client_info = await db.clients.find_one({"id": client_id}, {"_id": 0})
+    
+    return {
+        "hourlyRate": settings.get("hourlyRate", 100) if settings else 100,
+        "hoursPerEpisode": settings.get("hoursPerEpisode", 5) if settings else 5,
+        "brandVoiceDescription": settings.get("brandVoiceDescription", "") if settings else "",
+        "primaryContactName": client_info.get("primaryContactName", "") if client_info else "",
+        "primaryContactEmail": client_info.get("primaryContactEmail", "") if client_info else "",
+        "clientName": client_info.get("name", "") if client_info else "",
+    }
+
+@api_router.put("/settings")
+async def update_settings(data: SettingsUpdate, user: dict = Depends(get_current_user)):
+    """
+    Updates settings for the current client.
+    """
+    client_id = get_client_id_from_user(user)
+    if not client_id:
+        raise HTTPException(status_code=400, detail="No client associated with user")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Validate hourly rate
+    if data.hourlyRate is not None and data.hourlyRate < 0:
+        raise HTTPException(status_code=400, detail="Hourly rate must be non-negative")
+    
+    # Validate hours per episode
+    if data.hoursPerEpisode is not None and data.hoursPerEpisode <= 0:
+        raise HTTPException(status_code=400, detail="Hours per episode must be positive")
+    
+    # Update ClientSettings
+    settings_update = {"updatedAt": now}
+    if data.hourlyRate is not None:
+        settings_update["hourlyRate"] = data.hourlyRate
+    if data.hoursPerEpisode is not None:
+        settings_update["hoursPerEpisode"] = data.hoursPerEpisode
+    if data.brandVoiceDescription is not None:
+        settings_update["brandVoiceDescription"] = data.brandVoiceDescription
+    
+    # Upsert client settings
+    await db.client_settings.update_one(
+        {"clientId": client_id},
+        {"$set": settings_update, "$setOnInsert": {"id": str(uuid.uuid4()), "clientId": client_id, "createdAt": now}},
+        upsert=True
+    )
+    
+    # Update Client contact details if provided
+    client_update = {"updatedAt": now}
+    if data.primaryContactName is not None:
+        client_update["primaryContactName"] = data.primaryContactName
+    if data.primaryContactEmail is not None:
+        client_update["primaryContactEmail"] = data.primaryContactEmail
+    
+    if len(client_update) > 1:  # More than just updatedAt
+        await db.clients.update_one({"id": client_id}, {"$set": client_update})
+    
+    return {"message": "Settings saved successfully"}
+
+
+# ==================== HELP & SUPPORT ROUTES ====================
+
+@api_router.get("/help/articles")
+async def get_help_articles_list():
+    """Returns all help articles (no client scoping - public content)."""
+    return await db.help_articles.find({}, {"_id": 0}).sort("createdAt", -1).to_list(100)
+
+@api_router.get("/help/support")
+async def get_support_requests_list(user: dict = Depends(get_current_user)):
+    """Returns support requests for the current client (most recent first)."""
+    client_id = get_client_id_from_user(user)
+    query = {"clientId": client_id} if client_id else {}
+    return await db.support_requests.find(query, {"_id": 0}).sort("createdAt", -1).to_list(100)
+
+@api_router.post("/help/support")
+async def create_support_request(data: SupportRequestCreate, user: dict = Depends(get_current_user)):
+    """Creates a new support request for the current client."""
+    client_id = get_client_id_from_user(user)
+    now = datetime.now(timezone.utc).isoformat()
+    
+    request = {
+        "id": str(uuid.uuid4()),
+        "clientId": client_id,
+        "userEmail": user.get("email", ""),
+        "subject": data.subject,
+        "message": data.message,
+        "status": "Open",
+        "createdAt": now,
+        "updatedAt": now
+    }
+    
+    await db.support_requests.insert_one(request)
+    del request["_id"] if "_id" in request else None
+    
+    return {"message": "Support request submitted successfully", "request": request}
+
+
+# ==================== BLOG ROUTES ====================
+
+@api_router.get("/blog/posts")
+async def get_blog_posts(tag: Optional[str] = None, search: Optional[str] = None):
+    """
+    Returns blog posts with optional filtering by tag or search query.
+    """
+    query = {}
+    
+    if tag:
+        query["tags"] = tag
+    
+    posts = await db.blog_posts.find(query, {"_id": 0}).sort("publishedAt", -1).to_list(100)
+    
+    # Filter by search if provided
+    if search:
+        search_lower = search.lower()
+        posts = [p for p in posts if search_lower in p.get("title", "").lower() or search_lower in p.get("excerpt", "").lower()]
+    
+    return posts
+
+@api_router.get("/blog/posts/{slug}")
+async def get_blog_post_by_slug(slug: str):
+    """Returns a single blog post by slug."""
+    post = await db.blog_posts.find_one({"slug": slug}, {"_id": 0})
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    return post
+
+@api_router.get("/blog/tags")
+async def get_blog_tags():
+    """Returns all unique blog post tags."""
+    posts = await db.blog_posts.find({}, {"_id": 0, "tags": 1}).to_list(1000)
+    all_tags = set()
+    for post in posts:
+        for tag in post.get("tags", []):
+            all_tags.add(tag)
+    return sorted(list(all_tags))
+
+
 @api_router.get("/client-settings")
 async def get_client_settings(user: dict = Depends(get_current_user)):
     client_id = get_client_id_from_user(user)

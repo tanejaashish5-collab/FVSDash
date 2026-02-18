@@ -50,6 +50,7 @@ const activityIcons = {
 
 export default function FvsSystemPage() {
   const { authHeaders } = useAuth();
+  const navigate = useNavigate();
   
   // State
   const [config, setConfig] = useState({ automationLevel: 'manual' });

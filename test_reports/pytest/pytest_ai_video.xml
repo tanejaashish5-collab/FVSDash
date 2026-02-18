@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="22" time="232.352" timestamp="2026-02-18T06:30:36.657068+00:00" hostname="agent-env-68f7bef6-7c33-41ee-a02e-944f1c976650"><testcase classname="backend.tests.test_ai_video_labs.TestAICapabilities" name="test_capabilities_returns_llm_providers" time="0.155" /><testcase classname="backend.tests.test_ai_video_labs.TestAICapabilities" name="test_capabilities_returns_video_providers" time="0.098" /><testcase classname="backend.tests.test_ai_video_labs.TestAIGenerate" name="test_generate_requires_auth" time="0.132" /><testcase classname="backend.tests.test_ai_video_labs.TestAIGenerate" name="test_generate_research_gemini" time="28.134" /><testcase classname="backend.tests.test_ai_video_labs.TestAIGenerate" name="test_generate_outline_openai" time="10.934" /><testcase classname="backend.tests.test_ai_video_labs.TestAIGenerate" name="test_generate_script_anthropic" time="60.132"><failure message="requests.exceptions.ReadTimeout: HTTPSConnectionPool(host='voicestudio-app-2.preview.emergentagent.com', port=443): Read timed out. (read timeout=60)">/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:534: in _make_request
+    response = conn.getresponse()
+               ^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/urllib3/connection.py:571: in getresponse
+    httplib_response = super().getresponse()
+                       ^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/http/client.py:1395: in getresponse
+    response.begin()
+/usr/local/lib/python3.11/http/client.py:325: in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/http/client.py:286: in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/socket.py:718: in readinto
+    return self._sock.recv_into(b)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/ssl.py:1314: in recv_into
+    return self.read(nbytes, buffer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/ssl.py:1166: in read
+    return self._sslobj.read(len, buffer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TimeoutError: The read operation timed out
+
+The above exception was the direct cause of the following exception:
+/root/.venv/lib/python3.11/site-packages/requests/adapters.py:644: in send
+    resp = conn.urlopen(
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:841: in urlopen
+    retries = retries.increment(
+/root/.venv/lib/python3.11/site-packages/urllib3/util/retry.py:490: in increment
+    raise reraise(type(error), error, _stacktrace)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/urllib3/util/util.py:39: in reraise
+    raise value
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:787: in urlopen
+    response = self._make_request(
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:536: in _make_request
+    self._raise_timeout(err=e, url=url, timeout_value=read_timeout)
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:367: in _raise_timeout
+    raise ReadTimeoutError(
+E   urllib3.exceptions.ReadTimeoutError: HTTPSConnectionPool(host='voicestudio-app-2.preview.emergentagent.com', port=443): Read timed out. (read timeout=60)
+
+During handling of the above exception, another exception occurred:
+backend/tests/test_ai_video_labs.py:120: in test_generate_script_anthropic
+    response = requests.post(f"{BASE_URL}/api/ai/generate", json={
+/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:589: in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:703: in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/adapters.py:690: in send
+    raise ReadTimeout(e, request=request)
+E   requests.exceptions.ReadTimeout: HTTPSConnectionPool(host='voicestudio-app-2.preview.emergentagent.com', port=443): Read timed out. (read timeout=60)</failure></testcase><testcase classname="backend.tests.test_ai_video_labs.TestAIGenerate" name="test_generate_youtube_package" time="60.136"><failure message="requests.exceptions.ReadTimeout: HTTPSConnectionPool(host='voicestudio-app-2.preview.emergentagent.com', port=443): Read timed out. (read timeout=60)">/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:534: in _make_request
+    response = conn.getresponse()
+               ^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/urllib3/connection.py:571: in getresponse
+    httplib_response = super().getresponse()
+                       ^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/http/client.py:1395: in getresponse
+    response.begin()
+/usr/local/lib/python3.11/http/client.py:325: in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/http/client.py:286: in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/socket.py:718: in readinto
+    return self._sock.recv_into(b)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/ssl.py:1314: in recv_into
+    return self.read(nbytes, buffer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/ssl.py:1166: in read
+    return self._sslobj.read(len, buffer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TimeoutError: The read operation timed out
+
+The above exception was the direct cause of the following exception:
+/root/.venv/lib/python3.11/site-packages/requests/adapters.py:644: in send
+    resp = conn.urlopen(
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:841: in urlopen
+    retries = retries.increment(
+/root/.venv/lib/python3.11/site-packages/urllib3/util/retry.py:490: in increment
+    raise reraise(type(error), error, _stacktrace)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/urllib3/util/util.py:39: in reraise
+    raise value
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:787: in urlopen
+    response = self._make_request(
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:536: in _make_request
+    self._raise_timeout(err=e, url=url, timeout_value=read_timeout)
+/root/.venv/lib/python3.11/site-packages/urllib3/connectionpool.py:367: in _raise_timeout
+    raise ReadTimeoutError(
+E   urllib3.exceptions.ReadTimeoutError: HTTPSConnectionPool(host='voicestudio-app-2.preview.emergentagent.com', port=443): Read timed out. (read timeout=60)
+
+During handling of the above exception, another exception occurred:
+backend/tests/test_ai_video_labs.py:139: in test_generate_youtube_package
+    response = requests.post(f"{BASE_URL}/api/ai/generate", json={
+/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:589: in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:703: in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/adapters.py:690: in send
+    raise ReadTimeout(e, request=request)
+E   requests.exceptions.ReadTimeout: HTTPSConnectionPool(host='voicestudio-app-2.preview.emergentagent.com', port=443): Read timed out. (read timeout=60)</failure></testcase><testcase classname="backend.tests.test_ai_video_labs.TestAIGenerate" name="test_generate_invalid_provider" time="60.210"><failure message="assert 520 == 400&#10; +  where 520 = &lt;Response [520]&gt;.status_code">backend/tests/test_ai_video_labs.py:162: in test_generate_invalid_provider
+    assert response.status_code == 400
+E   assert 520 == 400
+E    +  where 520 = &lt;Response [520]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_ai_video_labs.TestAIGenerate" name="test_generate_invalid_task" time="9.879" /><testcase classname="backend.tests.test_ai_video_labs.TestVideoTasks" name="test_video_tasks_list_requires_auth" time="0.150" /><testcase classname="backend.tests.test_ai_video_labs.TestVideoTasks" name="test_video_tasks_create_requires_auth" time="0.113" /><testcase classname="backend.tests.test_ai_video_labs.TestVideoTasks" name="test_video_tasks_list" time="0.140" /><testcase classname="backend.tests.test_ai_video_labs.TestVideoTasks" name="test_video_tasks_create_kling" time="0.114" /><testcase classname="backend.tests.test_ai_video_labs.TestVideoTasks" name="test_video_tasks_create_runway" time="0.104" /><testcase classname="backend.tests.test_ai_video_labs.TestVideoTasks" name="test_video_tasks_create_veo" time="0.111" /><testcase classname="backend.tests.test_ai_video_labs.TestVideoTasks" name="test_video_tasks_get_by_id" time="0.207" /><testcase classname="backend.tests.test_ai_video_labs.TestVideoTasks" name="test_video_tasks_kling_returns_ready_with_url" time="0.242" /><testcase classname="backend.tests.test_ai_video_labs.TestVideoTasks" name="test_video_tasks_save_asset" time="0.201" /><testcase classname="backend.tests.test_ai_video_labs.TestVideoTasks" name="test_video_tasks_modes" time="0.343" /><testcase classname="backend.tests.test_ai_video_labs.TestVideoTasks" name="test_video_tasks_with_submission_link" time="0.237" /><testcase classname="backend.tests.test_ai_video_labs.TestVideoTasksValidation" name="test_video_tasks_invalid_provider" time="0.102" /><testcase classname="backend.tests.test_ai_video_labs.TestVideoTasksValidation" name="test_video_tasks_missing_prompt" time="0.107" /></testsuite></testsuites>

@@ -378,7 +378,10 @@ async def create_video_task(client_id: str, data: dict) -> dict:
 
 
 async def get_video_task(client_id: str, task_id: str) -> dict:
-    """Get a video task and refresh its status from the provider."""
+    """Get a video task and refresh its status from the provider.
+    
+    Polls the provider for status updates if task is still processing.
+    """
     db = video_tasks_collection()
     query = {"id": task_id}
     if client_id:
@@ -390,17 +393,31 @@ async def get_video_task(client_id: str, task_id: str) -> dict:
     
     # Check status with provider if still processing
     if task.get("status") == "PROCESSING":
-        provider_status = await check_video_job(task.get("provider"), task.get("providerJobId"))
+        status_result = await check_video_job(
+            task.get("provider"), 
+            task.get("providerJobId")
+        )
         
-        if provider_status["status"] != task["status"]:
+        # Update task if status changed
+        if status_result.status != task["status"]:
             now = datetime.now(timezone.utc).isoformat()
             update = {
-                "status": provider_status["status"],
-                "videoUrl": provider_status.get("videoUrl"),
+                "status": status_result.status,
+                "videoUrl": status_result.video_url,
+                "isMocked": status_result.is_mocked,
                 "updatedAt": now
             }
+            
+            # Append any warnings
+            if status_result.warning:
+                existing_warnings = task.get("warnings") or []
+                if status_result.warning not in existing_warnings:
+                    update["warnings"] = existing_warnings + [status_result.warning]
+            
             await db.update_one({"id": task_id}, {"$set": update})
             task.update(update)
+            
+            logger.info(f"Video task {task_id} status updated: {status_result.status}")
     
     return task
 

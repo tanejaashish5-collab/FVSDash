@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Brain, Sparkles, Zap, Play, X, Check, Loader2, RefreshCw,
   Lightbulb, TrendingUp, Clock, Activity, Settings, Radio,
-  FileText, Video, Image, Music, ChevronRight, AlertCircle
+  FileText, Video, Image, Music, ChevronRight, AlertCircle, Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';

@@ -325,8 +325,8 @@ class TestFvsProduceEpisode:
         
         # Verify script was created
         script = data["script"]
-        assert "scriptText" in script
-        assert len(script["scriptText"]) > 0
+        assert "text" in script
+        assert len(script["text"]) > 0
         
         return submission["id"], [audio_asset["id"], video_asset["id"], thumbnail_asset["id"]]
     

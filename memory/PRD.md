@@ -77,10 +77,77 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 ### Audio Generation (Voice)
 | Provider | Status | Config |
 |----------|--------|--------|
-| ElevenLabs | ✅ Ready (needs API key) | Set ELEVENLABS_API_KEY |
+| ElevenLabs | ✅ READY (graceful fallback) | Set ELEVENLABS_API_KEY, ELEVENLABS_VOICE_ID |
 
-### Video Providers (MOCKED - P2)
-| Provider | Status | Behavior |
+### Video Providers
+| Provider | Status | Config |
+|----------|--------|--------|
+| Veo | ✅ READY (graceful fallback) | Set VEO_API_KEY for real generation |
+| Runway | 🔶 Mocked (P2) | Returns PROCESSING, simulates completion |
+| Kling | 🔶 Mocked (P2) | Returns READY immediately with sample video |
+
+---
+
+## Phase 12 — Real Media Integrations (Feb 18, 2026)
+
+### Google Veo Video Generation (NEW)
+Implemented real Google Veo video generation with graceful fallback:
+
+#### Implementation Details:
+- **Location**: `/app/backend/services/video_task_service.py`
+- **Functions**: `create_veo_job()`, `check_veo_job()`
+- **SDK**: `google-genai` SDK
+- **Model**: `veo-2.0-generate-001`
+- **Config**: `VEO_API_KEY` from environment
+
+#### Response Structure:
+```python
+{
+    "id": "task-uuid",
+    "provider": "veo",
+    "actualProvider": "veo" | "mock_veo",  # Tracks real vs fallback
+    "isMocked": bool,
+    "warnings": ["...", ...] | null,
+    "status": "PROCESSING" | "READY" | "FAILED",
+    "videoUrl": "https://..." | null
+}
+```
+
+### ElevenLabs Audio Generation (Enhanced)
+ElevenLabs TTS integration already existed, now enhanced with proper status tracking:
+
+#### Implementation Details:
+- **Location**: `/app/backend/services/media_service.py`
+- **Function**: `generate_voice_for_script()`
+- **SDK**: `elevenlabs` Python SDK
+- **Model**: `eleven_multilingual_v2`
+- **Config**: `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID` from environment
+
+#### Graceful Fallback Pattern:
+When API keys are missing or calls fail:
+1. Log warning with specific reason
+2. Return mock URL from provider-hosted sample
+3. Set `isMocked: true` in response
+4. Add warning to `warnings` array
+5. User flow completes successfully
+
+### .env Configuration
+```bash
+# Required for thumbnail generation (already working)
+EMERGENT_LLM_KEY=your_key_here
+
+# Optional for voice generation (graceful fallback)
+ELEVENLABS_API_KEY=your_elevenlabs_key_here
+ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM  # Optional, defaults to Rachel
+
+# Optional for video generation (graceful fallback)
+VEO_API_KEY=your_google_ai_api_key_here
+```
+
+### Test Results (Feb 18, 2026):
+- Backend: 9/9 integration tests passed (100%)
+- Frontend: Video Lab and FVS System working correctly
+- Graceful fallbacks verified for missing API keys
 
 ---
 

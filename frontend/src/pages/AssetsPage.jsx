@@ -75,6 +75,9 @@ export default function AssetsPage() {
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Preview modal state
+  const [previewAsset, setPreviewAsset] = useState(null);
 
   const fetchAssets = useCallback(() => {
     setLoading(true);
@@ -114,6 +117,17 @@ export default function AssetsPage() {
       ));
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to update link');
+    }
+  };
+  
+  // Handle preview click - thumbnails show modal, others open in new tab
+  const handlePreview = (asset) => {
+    if (asset.type === 'Thumbnail' && asset.url) {
+      setPreviewAsset(asset);
+    } else if (asset.url) {
+      window.open(asset.url, '_blank');
+    } else {
+      toast.info('No preview available');
     }
   };
 

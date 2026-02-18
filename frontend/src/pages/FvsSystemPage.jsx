@@ -449,8 +449,19 @@ export default function FvsSystemPage() {
                                 {idea.status === 'in_progress' && (
                                   <span className="text-[10px] text-violet-400">Processing...</span>
                                 )}
+                                {/* Deep-link to view the produced submission when idea is completed */}
                                 {idea.status === 'completed' && (
-                                  <span className="text-[10px] text-emerald-400">Done</span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => idea.producedSubmissionId && navigate(`/dashboard/submissions/${idea.producedSubmissionId}`)}
+                                    disabled={!idea.producedSubmissionId}
+                                    className="h-7 px-2 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                                    data-testid={`view-episode-btn-${idea.id}`}
+                                  >
+                                    <Eye className="h-3 w-3 mr-1" />
+                                    View Episode
+                                  </Button>
                                 )}
                               </TableCell>
                             </TableRow>

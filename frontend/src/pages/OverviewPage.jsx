@@ -133,23 +133,23 @@ function PipelineColumn({ status, submissions, onStatusChange }) {
 }
 
 export default function OverviewPage() {
-  const { authHeaders, user } = useAuth();
+  const { authHeaders, user, buildApiUrl, isImpersonating, impersonatedClientName } = useAuth();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(() => {
-    axios.get(`${API}/dashboard/overview`, { headers: authHeaders })
+    axios.get(buildApiUrl(`${API}/dashboard/overview`), { headers: authHeaders })
       .then(res => setData(res.data))
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [authHeaders]);
+  }, [authHeaders, buildApiUrl]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleStatusChange = async (submissionId, newStatus) => {
     try {
-      await axios.patch(`${API}/submissions/${submissionId}/status`, { status: newStatus }, { headers: authHeaders });
+      await axios.patch(buildApiUrl(`${API}/submissions/${submissionId}/status`), { status: newStatus }, { headers: authHeaders });
       toast.success(`Moved to ${newStatus}`);
       fetchData();
     } catch (err) {

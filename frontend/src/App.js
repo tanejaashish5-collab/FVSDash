@@ -56,9 +56,9 @@ function AppRoutes() {
         <Route path="/dashboard" element={<Navigate to="/dashboard/overview" replace />} />
         <Route path="/dashboard/overview" element={<OverviewPage />} />
         <Route path="/dashboard/submissions" element={<SubmissionsPage />} />
-        <Route path="/dashboard/calendar" element={<PlaceholderPage title="Calendar" />} />
-        <Route path="/dashboard/deliverables" element={<PlaceholderPage title="Deliverables" />} />
-        <Route path="/dashboard/assets" element={<PlaceholderPage title="Assets" />} />
+        <Route path="/dashboard/calendar" element={<CalendarPage />} />
+        <Route path="/dashboard/deliverables" element={<DeliverablesPage />} />
+        <Route path="/dashboard/assets" element={<AssetsPage />} />
         <Route path="/dashboard/blog" element={<PlaceholderPage title="Blog" />} />
         <Route path="/dashboard/strategy" element={<PlaceholderPage title="Strategy Lab" />} />
         <Route path="/dashboard/video-lab" element={<PlaceholderPage title="AI Video Lab" />} />

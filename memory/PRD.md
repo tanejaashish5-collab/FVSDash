@@ -93,15 +93,19 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 - [x] All 11 dashboard pages
 - [x] Strategy Lab (multi-LLM)
 - [x] Video Lab (multi-provider, mocked)
+- [x] FVS System - Brain & Orchestrator (Feb 18, 2026)
 
 ### P1 — Remaining
 - [ ] Admin panel (client management, impersonation)
 - [ ] Real video provider integration (Runway, Veo API)
+- [ ] Refactor server.py into modular structure (routers/, models/, services/)
 
 ### P2 — Integrations
 - [ ] Stripe billing (replace placeholder)
 - [ ] Google Drive file upload
 - [ ] Airtable integration
+- [ ] Real ElevenLabs voice generation
+- [ ] Real DALL-E thumbnail generation
 
 ## Test Credentials
 - **Client**: alex@company.com / client123
@@ -109,3 +113,46 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 
 ## Test Reports
 - `/app/test_reports/iteration_7.json` - Strategy Lab & Video Lab tests
+- `/app/test_reports/iteration_8.json` - FVS System tests (100% pass rate)
+
+---
+
+## Phase 8 — FVS System (Feb 18, 2026)
+
+### FVS System (`/dashboard/system`)
+The FVS (ForgeVoice System) is an autonomous "brain + orchestrator" for content creation.
+
+#### Features Implemented:
+- **Automation Controls**: Manual / Semi-Auto / Full Auto (Shorts) modes
+- **Brain Snapshot**: Shows learned patterns from client's analytics
+- **Idea Proposal**: Uses LLM to generate content ideas based on analytics + trends
+- **Episode Production**: Orchestrates full episode creation (script → audio → video → thumbnail)
+- **Activity Log**: Shows recent FVS operations
+- **Stats Summary**: Proposed / In Progress / Completed / Total Actions counts
+
+#### Backend Endpoints:
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/fvs/config` | GET/PUT | Get/Set automation level |
+| `/api/fvs/brain-snapshot` | GET | Get latest learned patterns |
+| `/api/fvs/ideas` | GET | List proposed ideas |
+| `/api/fvs/ideas/{id}/status` | PATCH | Update idea status (reject) |
+| `/api/fvs/activity` | GET | Get activity log |
+| `/api/fvs/propose-ideas` | POST | Generate new ideas via LLM |
+| `/api/fvs/produce-episode` | POST | Produce full episode from idea |
+
+#### Database Collections:
+- `fvs_config` - Automation settings per client
+- `fvs_brain_snapshots` - Learned patterns
+- `fvs_ideas` - Proposed content ideas
+- `fvs_activity` - Operation logs
+- `fvs_scripts` - Generated scripts
+
+#### MOCKED Components:
+- Audio generation (simulates ElevenLabs)
+- Video generation (uses Kling mock)
+- Thumbnail generation (simulates DALL-E)
+
+#### REAL Components:
+- LLM calls for idea generation (Gemini via emergentintegrations)
+- LLM calls for script generation (Gemini via emergentintegrations)

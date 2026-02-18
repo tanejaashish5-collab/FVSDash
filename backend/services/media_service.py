@@ -385,11 +385,3 @@ def get_storage_config() -> Dict[str, Any]:
     """
     from services.storage_service import get_storage_config as _get_config
     return _get_config()
-    Returns:
-        Dict with storage provider info and status
-    """
-    return {
-        "provider": "none",  # TODO: "s3" or "google_drive"
-        "configured": False,
-        "note": "P2: First-party storage not yet implemented. Using provider-hosted URLs."
-    }

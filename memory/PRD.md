@@ -40,7 +40,7 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 - **Create Submission**: Modal to create submission from generated content
 
 #### Video Lab (`/dashboard/video-lab`)
-- **Multi-Provider Support**: Runway, Veo, Kling (all MOCKED)
+- **Multi-Provider Support**: Runway (MOCKED), Veo (REAL with VEO_API_KEY, fallback to mock), Kling (MOCKED)
 - **Generation Modes**:
   - Script → Video: Generate from text prompt
   - Audio → Video: Sync visuals to audio asset

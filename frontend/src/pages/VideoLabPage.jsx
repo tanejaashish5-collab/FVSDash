@@ -365,12 +365,12 @@ export default function VideoLabPage() {
               {/* Link to submission */}
               <div className="space-y-2">
                 <Label className="text-xs font-medium text-zinc-400">Link to Submission (optional)</Label>
-                <Select value={selectedSubmission} onValueChange={setSelectedSubmission}>
+                <Select value={selectedSubmission || "none"} onValueChange={(v) => setSelectedSubmission(v === "none" ? "" : v)}>
                   <SelectTrigger className="h-9 bg-zinc-950 border-zinc-800 text-white">
                     <SelectValue placeholder="None" />
                   </SelectTrigger>
                   <SelectContent className="bg-[#0B1120] border-[#1F2933]">
-                    <SelectItem value="" className="text-zinc-500">None</SelectItem>
+                    <SelectItem value="none" className="text-zinc-500">None</SelectItem>
                     {submissions.map(s => (
                       <SelectItem key={s.id} value={s.id} className="text-zinc-300">{s.title}</SelectItem>
                     ))}

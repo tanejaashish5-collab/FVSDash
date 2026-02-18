@@ -312,6 +312,7 @@ export default function AssetsPage() {
                               Mark Final
                             </Button>
                           )}
+                          {/* Open asset in new tab */}
                           {asset.url && (
                             <a
                               href={asset.url}
@@ -319,9 +320,23 @@ export default function AssetsPage() {
                               rel="noreferrer"
                               className="h-7 w-7 flex items-center justify-center rounded hover:bg-white/5 text-zinc-500 hover:text-indigo-400 transition-colors"
                               data-testid={`open-url-${asset.id}`}
+                              title="Open asset file"
                             >
                               <ExternalLink className="h-3.5 w-3.5" />
                             </a>
+                          )}
+                          {/* Deep-link to view the parent submission if available */}
+                          {asset.submissionId && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => navigate(`/dashboard/submissions/${asset.submissionId}`)}
+                              className="h-7 w-7 text-zinc-500 hover:text-indigo-400 hover:bg-white/5"
+                              data-testid={`view-submission-${asset.id}`}
+                              title="View linked submission"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
                           )}
                         </div>
                       </TableCell>

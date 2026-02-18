@@ -9,6 +9,14 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('fv_token'));
   const [loading, setLoading] = useState(true);
+  
+  // Impersonation state (admin only)
+  const [impersonatedClientId, setImpersonatedClientId] = useState(
+    localStorage.getItem('fv_impersonated_client_id')
+  );
+  const [impersonatedClientName, setImpersonatedClientName] = useState(
+    localStorage.getItem('fv_impersonated_client_name')
+  );
 
   useEffect(() => {
     if (token) {
@@ -18,7 +26,11 @@ export function AuthProvider({ children }) {
         .then(res => setUser(res.data))
         .catch(() => {
           localStorage.removeItem('fv_token');
+          localStorage.removeItem('fv_impersonated_client_id');
+          localStorage.removeItem('fv_impersonated_client_name');
           setToken(null);
+          setImpersonatedClientId(null);
+          setImpersonatedClientName(null);
         })
         .finally(() => setLoading(false));
     } else {
@@ -30,8 +42,13 @@ export function AuthProvider({ children }) {
     const res = await axios.post(`${API}/auth/login`, { email, password });
     const { token: newToken, user: userData } = res.data;
     localStorage.setItem('fv_token', newToken);
+    // Clear any impersonation state on new login
+    localStorage.removeItem('fv_impersonated_client_id');
+    localStorage.removeItem('fv_impersonated_client_name');
     setToken(newToken);
     setUser(userData);
+    setImpersonatedClientId(null);
+    setImpersonatedClientName(null);
     return userData;
   };
 
@@ -46,14 +63,61 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(() => {
     localStorage.removeItem('fv_token');
+    localStorage.removeItem('fv_impersonated_client_id');
+    localStorage.removeItem('fv_impersonated_client_name');
     setToken(null);
     setUser(null);
+    setImpersonatedClientId(null);
+    setImpersonatedClientName(null);
   }, []);
+
+  // Impersonation functions (admin only)
+  const startImpersonation = useCallback((clientId, clientName) => {
+    if (user?.role !== 'admin') {
+      console.warn('Only admins can impersonate clients');
+      return;
+    }
+    localStorage.setItem('fv_impersonated_client_id', clientId);
+    localStorage.setItem('fv_impersonated_client_name', clientName);
+    setImpersonatedClientId(clientId);
+    setImpersonatedClientName(clientName);
+  }, [user]);
+
+  const stopImpersonation = useCallback(() => {
+    localStorage.removeItem('fv_impersonated_client_id');
+    localStorage.removeItem('fv_impersonated_client_name');
+    setImpersonatedClientId(null);
+    setImpersonatedClientName(null);
+  }, []);
+
+  // Determine the effective client ID for data fetching
+  // If admin is impersonating, use impersonated client ID
+  // Otherwise use the user's own client ID
+  const effectiveClientId = (user?.role === 'admin' && impersonatedClientId) 
+    ? impersonatedClientId 
+    : user?.clientId;
+
+  const isImpersonating = user?.role === 'admin' && impersonatedClientId !== null;
 
   const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, signup, logout, authHeaders }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      token, 
+      loading, 
+      login, 
+      signup, 
+      logout, 
+      authHeaders,
+      // Impersonation
+      impersonatedClientId,
+      impersonatedClientName,
+      startImpersonation,
+      stopImpersonation,
+      isImpersonating,
+      effectiveClientId
+    }}>
       {children}
     </AuthContext.Provider>
   );

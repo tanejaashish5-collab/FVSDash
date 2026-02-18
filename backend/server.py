@@ -896,10 +896,10 @@ async def get_client_settings(user: dict = Depends(get_current_user)):
     return settings or {}
 
 @api_router.get("/video-tasks")
-async def get_video_tasks(user: dict = Depends(get_current_user)):
+async def get_video_tasks_list(user: dict = Depends(get_current_user)):
     client_id = get_client_id_from_user(user)
     query = {"clientId": client_id} if client_id else {}
-    return await db.video_tasks.find(query, {"_id": 0}).to_list(100)
+    return await db.video_tasks.find(query, {"_id": 0}).sort("createdAt", -1).to_list(100)
 
 @api_router.get("/help-articles")
 async def get_help_articles():
@@ -910,6 +910,469 @@ async def get_support_requests(user: dict = Depends(get_current_user)):
     client_id = get_client_id_from_user(user)
     query = {"clientId": client_id} if client_id else {}
     return await db.support_requests.find(query, {"_id": 0}).to_list(100)
+
+
+# ==================== AI ROUTER - MULTI-LLM SUPPORT ====================
+
+# Provider configuration from environment
+LLM_PROVIDERS = {
+    "gemini": {
+        "model": "gemini-2.5-flash",
+        "enabled": True  # Always enabled with Emergent key
+    },
+    "openai": {
+        "model": "gpt-4o",
+        "enabled": True
+    },
+    "anthropic": {
+        "model": "claude-sonnet-4-5-20250929",
+        "enabled": True
+    }
+}
+
+VIDEO_PROVIDERS = {
+    "runway": {"enabled": False, "mock": True},  # Mocked for now
+    "veo": {"enabled": False, "mock": True},
+    "kling": {"enabled": True, "mock": True}  # Always mocked
+}
+
+async def call_llm(provider: str, task: str, input_data: dict) -> dict:
+    """Universal LLM caller using emergentintegrations library."""
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail=f"LLM API key not configured")
+    
+    provider_config = LLM_PROVIDERS.get(provider)
+    if not provider_config:
+        raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}")
+    
+    # Build the prompt based on task
+    topic = input_data.get("topic", "")
+    audience = input_data.get("audience", "")
+    tone = input_data.get("tone", "")
+    goal = input_data.get("goal", "")
+    existing_content = input_data.get("existingContent", "")
+    
+    system_message = f"""You are an expert podcast content strategist and writer. 
+Your target audience is: {audience or 'general podcast listeners'}
+Tone/Brand voice: {tone or 'Professional and engaging'}
+Content goal: {goal or 'Educate and inform'}"""
+
+    prompts = {
+        "research": f"""Research the following topic for a podcast episode. Provide comprehensive background information, key facts, statistics, expert opinions, and interesting angles to explore.
+
+Topic: {topic}
+
+Provide a detailed research summary that will help create compelling podcast content. Include:
+- Key facts and statistics
+- Expert perspectives and quotes to potentially include
+- Interesting angles and subtopics
+- Potential controversy or debate points
+- Related trends or news""",
+
+        "outline": f"""Create a detailed podcast episode outline for the following topic.
+
+Topic: {topic}
+{f'Research context: {existing_content[:2000]}' if existing_content else ''}
+
+Provide a structured outline with:
+- Introduction hook
+- 4-6 main sections with key talking points
+- Transition ideas between sections
+- Conclusion and call-to-action
+
+Format as a numbered list of sections with bullet points for each.""",
+
+        "script": f"""Write a complete podcast script for the following topic.
+
+Topic: {topic}
+{f'Outline to follow: {existing_content[:3000]}' if existing_content else ''}
+
+Write a conversational, engaging script that:
+- Opens with a compelling hook
+- Flows naturally between topics
+- Includes specific examples and stories
+- Has clear transitions
+- Ends with a strong call-to-action
+
+Write in a natural, conversational tone suitable for audio.""",
+
+        "title": f"""Generate 5 compelling title ideas for a podcast episode about:
+
+Topic: {topic}
+{f'Script/Content: {existing_content[:1000]}' if existing_content else ''}
+
+Create titles that are:
+- Attention-grabbing and click-worthy
+- SEO-friendly
+- Clear about the value/topic
+- Under 60 characters each
+
+Return just the 5 titles, one per line.""",
+
+        "description": f"""Write a compelling YouTube/podcast description for this episode:
+
+Topic: {topic}
+{f'Script/Content: {existing_content[:2000]}' if existing_content else ''}
+
+Create a description that:
+- Hooks viewers in the first line
+- Summarizes key takeaways
+- Includes timestamps placeholder
+- Has a call-to-action
+- Is SEO-optimized
+- Is 150-300 words""",
+
+        "tags": f"""Generate relevant tags/keywords for a podcast episode about:
+
+Topic: {topic}
+{f'Content: {existing_content[:1000]}' if existing_content else ''}
+
+Provide 10-15 relevant tags for YouTube/podcast platforms. Include:
+- Primary topic keywords
+- Related subtopics
+- Audience-relevant terms
+- Trending related terms
+
+Return as comma-separated list.""",
+
+        "chapters": f"""Create YouTube chapter timestamps for this podcast content:
+
+Topic: {topic}
+{f'Script/Content: {existing_content[:3000]}' if existing_content else ''}
+
+Create 6-10 chapters with timestamps. Format:
+00:00 - Introduction
+02:30 - [Section Title]
+...
+
+Make chapter titles descriptive and engaging.""",
+
+        "youtube_package": f"""Create a complete YouTube package for this podcast episode:
+
+Topic: {topic}
+{f'Script/Content: {existing_content[:2000]}' if existing_content else ''}
+
+Provide:
+1. TITLE IDEAS (5 options)
+2. DESCRIPTION (SEO-optimized, 150-300 words)
+3. TAGS (10-15 comma-separated)
+4. CHAPTERS (6-10 with timestamps)
+
+Format each section clearly with headers."""
+    }
+    
+    prompt = prompts.get(task)
+    if not prompt:
+        raise HTTPException(status_code=400, detail=f"Unknown task: {task}")
+    
+    try:
+        session_id = f"strategy-{uuid.uuid4()}"
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=session_id,
+            system_message=system_message
+        ).with_model(provider, provider_config["model"])
+        
+        user_message = UserMessage(text=prompt)
+        response = await chat.send_message(user_message)
+        
+        # Parse response based on task
+        return parse_llm_response(task, response)
+        
+    except Exception as e:
+        logger.error(f"LLM call error: {e}")
+        raise HTTPException(status_code=500, detail=f"AI generation failed: {str(e)}")
+
+def parse_llm_response(task: str, response: str) -> dict:
+    """Parse LLM response into structured format based on task."""
+    if task == "research":
+        return {"researchSummary": response}
+    elif task == "outline":
+        # Split into sections
+        lines = [l.strip() for l in response.split('\n') if l.strip()]
+        return {"outlineSections": lines}
+    elif task == "script":
+        return {"scriptText": response}
+    elif task == "title":
+        titles = [l.strip() for l in response.split('\n') if l.strip() and not l.startswith('#')]
+        return {"titleIdeas": titles[:5]}
+    elif task == "description":
+        return {"descriptionText": response}
+    elif task == "tags":
+        # Parse comma-separated tags
+        tags = [t.strip() for t in response.replace('\n', ',').split(',') if t.strip()]
+        return {"tags": tags[:15]}
+    elif task == "chapters":
+        # Parse chapter lines
+        chapters = []
+        for line in response.split('\n'):
+            line = line.strip()
+            if line and (' - ' in line or ':' in line):
+                parts = line.split(' - ', 1) if ' - ' in line else line.split(': ', 1)
+                if len(parts) == 2:
+                    chapters.append({"timestamp": parts[0].strip(), "title": parts[1].strip()})
+        return {"chapters": chapters[:12]}
+    elif task == "youtube_package":
+        # Parse combined response
+        result = {"titleIdeas": [], "descriptionText": "", "tags": [], "chapters": []}
+        current_section = None
+        current_content = []
+        
+        for line in response.split('\n'):
+            line_lower = line.lower().strip()
+            if 'title' in line_lower and ('ideas' in line_lower or '#' in line):
+                if current_section:
+                    _process_section(result, current_section, current_content)
+                current_section = 'titles'
+                current_content = []
+            elif 'description' in line_lower and ('#' in line or line_lower.startswith('description')):
+                if current_section:
+                    _process_section(result, current_section, current_content)
+                current_section = 'description'
+                current_content = []
+            elif 'tag' in line_lower and ('#' in line or line_lower.startswith('tag')):
+                if current_section:
+                    _process_section(result, current_section, current_content)
+                current_section = 'tags'
+                current_content = []
+            elif 'chapter' in line_lower and ('#' in line or line_lower.startswith('chapter')):
+                if current_section:
+                    _process_section(result, current_section, current_content)
+                current_section = 'chapters'
+                current_content = []
+            elif line.strip():
+                current_content.append(line)
+        
+        if current_section:
+            _process_section(result, current_section, current_content)
+        
+        return result
+    return {"raw": response}
+
+def _process_section(result: dict, section: str, content: list):
+    """Helper to process YouTube package sections."""
+    text = '\n'.join(content)
+    if section == 'titles':
+        titles = [l.strip().lstrip('0123456789.-) ') for l in content if l.strip() and not l.startswith('#')]
+        result["titleIdeas"] = titles[:5]
+    elif section == 'description':
+        result["descriptionText"] = text
+    elif section == 'tags':
+        tags = [t.strip() for t in text.replace('\n', ',').split(',') if t.strip()]
+        result["tags"] = tags[:15]
+    elif section == 'chapters':
+        chapters = []
+        for line in content:
+            line = line.strip()
+            if ' - ' in line or ': ' in line:
+                parts = line.split(' - ', 1) if ' - ' in line else line.split(': ', 1)
+                if len(parts) == 2:
+                    chapters.append({"timestamp": parts[0].strip(), "title": parts[1].strip()})
+        result["chapters"] = chapters[:12]
+
+
+@api_router.get("/ai/capabilities")
+async def get_ai_capabilities():
+    """Returns enabled AI providers based on configuration."""
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    
+    llm_providers = []
+    if api_key:
+        llm_providers = ["gemini", "openai", "anthropic"]
+    
+    video_providers = []
+    for name, config in VIDEO_PROVIDERS.items():
+        if config.get("enabled") or config.get("mock"):
+            video_providers.append(name)
+    
+    return {
+        "llmProviders": llm_providers,
+        "videoProviders": video_providers
+    }
+
+
+@api_router.post("/ai/generate")
+async def ai_generate(data: AIGenerateRequest, user: dict = Depends(get_current_user)):
+    """Universal AI generation endpoint supporting multiple LLM providers."""
+    valid_providers = ["gemini", "openai", "anthropic"]
+    valid_tasks = ["research", "outline", "script", "title", "description", "tags", "chapters", "youtube_package"]
+    
+    if data.provider not in valid_providers:
+        raise HTTPException(status_code=400, detail=f"Invalid provider. Must be one of: {valid_providers}")
+    
+    if data.task not in valid_tasks:
+        raise HTTPException(status_code=400, detail=f"Invalid task. Must be one of: {valid_tasks}")
+    
+    result = await call_llm(data.provider, data.task, data.input)
+    return result
+
+
+# ==================== VIDEO TASK ROUTER - MULTI-PROVIDER SUPPORT ====================
+
+async def create_video_job(provider: str, task_data: dict) -> str:
+    """Create a video generation job with the specified provider."""
+    if provider == "kling":
+        # Mock implementation - returns fake job ID
+        return f"kling-mock-{uuid.uuid4()}"
+    elif provider == "runway":
+        # Mock for now - would integrate with Runway API
+        return f"runway-mock-{uuid.uuid4()}"
+    elif provider == "veo":
+        # Mock for now - would integrate with Veo API
+        return f"veo-mock-{uuid.uuid4()}"
+    else:
+        raise HTTPException(status_code=400, detail=f"Unknown video provider: {provider}")
+
+async def check_video_job(provider: str, job_id: str) -> dict:
+    """Check status of a video generation job."""
+    # All providers are currently mocked
+    # Simulate completion after ~10 seconds based on job creation
+    import hashlib
+    # Use job_id hash to determine if "ready"
+    hash_val = int(hashlib.md5(job_id.encode()).hexdigest()[:8], 16)
+    
+    if provider == "kling":
+        # Kling mock always returns ready with placeholder
+        return {
+            "status": "READY",
+            "videoUrl": "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+        }
+    elif provider in ["runway", "veo"]:
+        # Simulate processing
+        if hash_val % 3 == 0:
+            return {
+                "status": "READY", 
+                "videoUrl": "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4"
+            }
+        else:
+            return {"status": "PROCESSING", "videoUrl": None}
+    
+    return {"status": "FAILED", "videoUrl": None}
+
+
+@api_router.post("/video-tasks")
+async def create_video_task(data: VideoTaskCreate, user: dict = Depends(get_current_user)):
+    """Create a new video generation task."""
+    client_id = get_client_id_from_user(user)
+    
+    valid_providers = ["runway", "veo", "kling"]
+    valid_modes = ["script", "audio", "remix"]
+    valid_aspects = ["16:9", "9:16", "1:1"]
+    valid_profiles = ["youtube_long", "shorts", "reel"]
+    
+    if data.provider not in valid_providers:
+        raise HTTPException(status_code=400, detail=f"Invalid provider. Must be one of: {valid_providers}")
+    if data.mode not in valid_modes:
+        raise HTTPException(status_code=400, detail=f"Invalid mode. Must be one of: {valid_modes}")
+    if data.aspectRatio not in valid_aspects:
+        raise HTTPException(status_code=400, detail=f"Invalid aspect ratio. Must be one of: {valid_aspects}")
+    if data.outputProfile not in valid_profiles:
+        raise HTTPException(status_code=400, detail=f"Invalid output profile. Must be one of: {valid_profiles}")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Create job with provider
+    provider_job_id = await create_video_job(data.provider, {
+        "prompt": data.prompt,
+        "mode": data.mode,
+        "scriptText": data.scriptText,
+        "aspectRatio": data.aspectRatio
+    })
+    
+    task = {
+        "id": str(uuid.uuid4()),
+        "clientId": client_id,
+        "provider": data.provider,
+        "providerJobId": provider_job_id,
+        "prompt": data.prompt,
+        "mode": data.mode,
+        "scriptText": data.scriptText,
+        "audioAssetId": data.audioAssetId,
+        "sourceAssetId": data.sourceAssetId,
+        "aspectRatio": data.aspectRatio,
+        "outputProfile": data.outputProfile,
+        "submissionId": data.submissionId,
+        "status": "PROCESSING",
+        "videoUrl": None,
+        "createdAt": now,
+        "updatedAt": now
+    }
+    
+    await db.video_tasks.insert_one(task)
+    if "_id" in task:
+        del task["_id"]
+    
+    return task
+
+
+@api_router.get("/video-tasks/{task_id}")
+async def get_video_task(task_id: str, user: dict = Depends(get_current_user)):
+    """Get a video task and refresh its status from the provider."""
+    client_id = get_client_id_from_user(user)
+    query = {"id": task_id}
+    if client_id:
+        query["clientId"] = client_id
+    
+    task = await db.video_tasks.find_one(query, {"_id": 0})
+    if not task:
+        raise HTTPException(status_code=404, detail="Video task not found")
+    
+    # Check status with provider if still processing
+    if task.get("status") == "PROCESSING":
+        provider_status = await check_video_job(task.get("provider"), task.get("providerJobId"))
+        
+        if provider_status["status"] != task["status"]:
+            now = datetime.now(timezone.utc).isoformat()
+            update = {
+                "status": provider_status["status"],
+                "videoUrl": provider_status.get("videoUrl"),
+                "updatedAt": now
+            }
+            await db.video_tasks.update_one({"id": task_id}, {"$set": update})
+            task.update(update)
+    
+    return task
+
+
+@api_router.post("/video-tasks/{task_id}/save-asset")
+async def save_video_as_asset(task_id: str, user: dict = Depends(get_current_user)):
+    """Save a completed video task as an asset."""
+    client_id = get_client_id_from_user(user)
+    query = {"id": task_id}
+    if client_id:
+        query["clientId"] = client_id
+    
+    task = await db.video_tasks.find_one(query, {"_id": 0})
+    if not task:
+        raise HTTPException(status_code=404, detail="Video task not found")
+    
+    if task.get("status") != "READY" or not task.get("videoUrl"):
+        raise HTTPException(status_code=400, detail="Video is not ready yet")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Create asset from video
+    asset = {
+        "id": str(uuid.uuid4()),
+        "clientId": client_id,
+        "submissionId": task.get("submissionId"),
+        "name": f"AI Video - {task.get('prompt', 'Untitled')[:50]}",
+        "type": "Video",
+        "url": task.get("videoUrl"),
+        "status": "Draft",
+        "sourceVideoTaskId": task_id,
+        "createdAt": now,
+        "updatedAt": now
+    }
+    
+    await db.assets.insert_one(asset)
+    if "_id" in asset:
+        del asset["_id"]
+    
+    return {"message": "Video saved as asset", "asset": asset}
 
 
 # ==================== SEED DATA ====================

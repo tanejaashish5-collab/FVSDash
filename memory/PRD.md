@@ -41,12 +41,71 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 - Expanded seed: 10 submissions, 8 assets, 30 days analytics, 4 video tasks
 - PATCH /api/submissions/{id}/status endpoint
 
+### Phase 3 — Submissions Page (Feb 17, 2026)
+- Submit New Content form with all fields
+- Source file URL input
+- Episode title, guest, description
+- Content type and priority dropdowns
+- Release date picker
+- Confirmation checkbox
+- Filterable submissions list table
+- Detail sheet panel
+- Inline status editing via dropdown
+
+### Phase 4 — Calendar, Deliverables, Assets Pages (Feb 18, 2026)
+#### Calendar Page (`/dashboard/calendar`)
+- Full month calendar view with navigation (prev/next month)
+- Submissions displayed on release dates as clickable events
+- Content type badges (Podcast, Short, Blog, Webinar)
+- Status indicator dots
+- Filters: Content Type, Status
+- Detail panel (Sheet) with:
+  - Title, guest, description (read-only)
+  - Editable status buttons
+  - Editable release date picker
+  - "Open in Submissions" link
+
+#### Deliverables Page (`/dashboard/deliverables`)
+- Joined view of Assets + Submissions
+- Table columns: Episode, Deliverable, Type, Status, Content Type, Release Date
+- Filters: Deliverable Type, Status, Content Type
+- Search by episode title or asset name
+- Inline status editing (Draft/Final)
+- Episode name links to Submissions page
+- External link to asset URL
+
+#### Assets Page (`/dashboard/assets`)
+- Browse-only asset library (no upload)
+- Table with colored type icons
+- Type badges (Video, Audio, Thumbnail, Transcript)
+- Filters: Type, Status
+- Search by asset name or linked episode
+- Inline status editing (Draft/Final)
+- "Mark Final" quick action for Draft assets
+- Link/unlink to episode dropdown
+- External link to asset URL
+
+#### New Backend Endpoints
+- `GET /api/calendar?year=&month=` - Calendar submissions
+- `GET /api/deliverables` - Joined assets+submissions view
+- `GET /api/assets/library` - Enriched assets with episode titles
+- `PATCH /api/assets/{id}/status` - Update asset status
+- `PATCH /api/assets/{id}/submission` - Link/unlink asset to submission
+- `PATCH /api/submissions/{id}` - Update submission status/release date
+- `GET /api/submissions/list` - Minimal submission list for dropdowns
+
+#### Enhanced Seed Data
+- 14 assets total (previously 5)
+- Assets linked to 4 different submissions
+- 3 unlinked brand/general assets
+
 ## Prioritized Backlog
 
-### P0 — Core Pages
-- [ ] Submissions page (CRUD form, filters, detail view)
-- [ ] Calendar page (visual calendar with scheduled releases)
-- [ ] Assets page (file management, upload links)
+### P0 — Completed
+- [x] Submissions page (CRUD form, filters, detail view)
+- [x] Calendar page (visual calendar with scheduled releases)
+- [x] Assets page (file management)
+- [x] Deliverables page (deliverables tracking)
 
 ### P1 — Feature Pages
 - [ ] Analytics page (charts, date range filters)
@@ -58,7 +117,6 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 - [ ] Strategy Lab (AI-powered content strategy)
 - [ ] AI Video Lab (video generation tasks)
 - [ ] Blog page (content management)
-- [ ] Deliverables page (deliverable tracking)
 - [ ] Help / Support page (articles + support requests)
 - [ ] Admin panel (client management, impersonation)
 
@@ -66,4 +124,15 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 - [ ] Stripe billing integration
 - [ ] AI Video generation (veo-3)
 - [ ] Airtable integration
+- [ ] Google Drive integration for file upload
 - [ ] Real activity log table (replace derived activity)
+
+## Test Credentials
+- **Client**: alex@company.com / client123
+- **Admin**: admin@forgevoice.com / admin123
+
+## Test Reports
+- `/app/test_reports/iteration_1.json` - Phase 2 tests
+- `/app/test_reports/iteration_2.json` - Phase 3 tests  
+- `/app/test_reports/iteration_3.json` - Phase 3 regression
+- `/app/test_reports/iteration_4.json` - Phase 4 tests (Calendar, Deliverables, Assets)

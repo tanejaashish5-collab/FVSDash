@@ -71,6 +71,16 @@ class SubmissionCreate(BaseModel):
     releaseDate: Optional[str] = None
     sourceFileUrl: Optional[str] = None
 
+class SubmissionUpdate(BaseModel):
+    status: Optional[str] = None
+    releaseDate: Optional[str] = None
+
+class AssetStatusUpdate(BaseModel):
+    status: str
+
+class AssetSubmissionUpdate(BaseModel):
+    submissionId: Optional[str] = None
+
 
 # ==================== AUTH HELPERS ====================
 

@@ -247,6 +247,7 @@ export default function AssetsPage() {
                   const sc = statusCfg[asset.status] || statusCfg.Draft;
                   const tc = assetTypeCfg[asset.type] || assetTypeCfg.Other;
                   const TypeIcon = assetTypeIcons[asset.type] || FileBox;
+                  const showPreviewThumb = asset.type === 'Thumbnail' && isImageUrl(asset.url);
                   
                   return (
                     <TableRow
@@ -255,11 +256,30 @@ export default function AssetsPage() {
                       data-testid={`asset-row-${asset.id}`}
                     >
                       <TableCell>
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className={`h-8 w-8 rounded flex items-center justify-center shrink-0 ${tc.split(' ')[0]}`}>
-                            <TypeIcon className={`h-4 w-4 ${tc.split(' ')[1]}`} />
-                          </div>
-                          <span className="text-sm text-white font-medium truncate max-w-[200px]">{asset.name}</span>
+                        <div className="flex items-center gap-3 min-w-0">
+                          {/* Show thumbnail preview for image assets */}
+                          {showPreviewThumb ? (
+                            <button 
+                              onClick={() => handlePreview(asset)}
+                              className="relative h-10 w-16 rounded overflow-hidden flex-shrink-0 group cursor-pointer border border-zinc-700 hover:border-pink-500/50 transition-colors"
+                              data-testid={`thumb-preview-${asset.id}`}
+                            >
+                              <img 
+                                src={asset.url} 
+                                alt={asset.name}
+                                className="h-full w-full object-cover"
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                              />
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <ZoomIn className="h-4 w-4 text-white" />
+                              </div>
+                            </button>
+                          ) : (
+                            <div className={`h-10 w-10 rounded flex items-center justify-center shrink-0 ${tc.split(' ')[0]}`}>
+                              <TypeIcon className={`h-4 w-4 ${tc.split(' ')[1]}`} />
+                            </div>
+                          )}
+                          <span className="text-sm text-white font-medium truncate max-w-[180px]">{asset.name}</span>
                         </div>
                       </TableCell>
                       <TableCell>

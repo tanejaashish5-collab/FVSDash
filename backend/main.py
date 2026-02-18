@@ -13,7 +13,7 @@ import logging
 from routers import (
     auth, dashboard, submissions, assets, calendar,
     deliverables, analytics, roi, billing, settings,
-    help, blog, ai, video_tasks, fvs
+    help, blog, ai, video_tasks, fvs, admin
 )
 
 # Import database utilities
@@ -48,6 +48,7 @@ api_router.include_router(blog.router)
 api_router.include_router(ai.router)
 api_router.include_router(video_tasks.router)
 api_router.include_router(fvs.router)
+api_router.include_router(admin.router)
 
 # Include API router in app
 app.include_router(api_router)

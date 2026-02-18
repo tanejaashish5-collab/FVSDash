@@ -110,6 +110,22 @@ class VideoTaskCreate(BaseModel):
     submissionId: Optional[str] = None
 
 
+# FVS System Models
+class FvsProposeIdeasRequest(BaseModel):
+    format: str = "short"  # "short" | "long"
+    range: str = "30d"  # "30d" | "90d"
+
+class FvsProduceEpisodeRequest(BaseModel):
+    ideaId: str
+    mode: str = "full_auto_short"  # "manual" | "semi_auto" | "full_auto_short"
+
+class FvsIdeaStatusUpdate(BaseModel):
+    status: str  # "proposed" | "approved" | "rejected" | "in_progress" | "completed"
+
+class FvsAutomationUpdate(BaseModel):
+    automationLevel: str  # "manual" | "semi_auto" | "full_auto_short"
+
+
 # ==================== AUTH HELPERS ====================
 
 def hash_password(password: str) -> str:

@@ -313,7 +313,10 @@ async def check_video_job(provider: str, job_id: str) -> VideoStatusResult:
 
 
 async def create_video_task(client_id: str, data: dict) -> dict:
-    """Create a new video generation task."""
+    """Create a new video generation task.
+    
+    Supports real Veo integration and mocked providers with graceful fallbacks.
+    """
     valid_providers = ["runway", "veo", "kling"]
     valid_modes = ["script", "audio", "remix"]
     valid_aspects = ["16:9", "9:16", "1:1"]
@@ -329,19 +332,25 @@ async def create_video_task(client_id: str, data: dict) -> dict:
         raise HTTPException(status_code=400, detail=f"Invalid output profile. Must be one of: {valid_profiles}")
     
     now = datetime.now(timezone.utc).isoformat()
+    warnings = []
     
-    provider_job_id = await create_video_job(data["provider"], {
+    # Create video job with provider
+    job_result = await create_video_job(data["provider"], {
         "prompt": data["prompt"],
         "mode": data["mode"],
         "scriptText": data.get("scriptText"),
         "aspectRatio": data.get("aspectRatio", "16:9")
     })
     
+    if job_result.warning:
+        warnings.append(job_result.warning)
+    
     task = {
         "id": str(uuid.uuid4()),
         "clientId": client_id,
         "provider": data["provider"],
-        "providerJobId": provider_job_id,
+        "providerJobId": job_result.job_id,
+        "actualProvider": job_result.provider,  # Track actual provider used (may be mock)
         "prompt": data["prompt"],
         "mode": data["mode"],
         "scriptText": data.get("scriptText"),
@@ -352,6 +361,8 @@ async def create_video_task(client_id: str, data: dict) -> dict:
         "submissionId": data.get("submissionId"),
         "status": "PROCESSING",
         "videoUrl": None,
+        "isMocked": job_result.is_mocked,
+        "warnings": warnings if warnings else None,
         "createdAt": now,
         "updatedAt": now
     }
@@ -360,6 +371,8 @@ async def create_video_task(client_id: str, data: dict) -> dict:
     await db.insert_one(task)
     if "_id" in task:
         del task["_id"]
+    
+    logger.info(f"Created video task: provider={data['provider']}, mocked={job_result.is_mocked}")
     
     return task
 

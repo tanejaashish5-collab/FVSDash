@@ -335,6 +335,19 @@ ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM  # Optional, defaults to Rachel
 - [ ] Google Drive file upload / First-party storage (S3/GCS)
 - [ ] Airtable integration
 
+## Demo Data Configuration
+The application uses a light demo dataset for performance and clarity:
+- **Submissions**: 5 (one per pipeline status)
+- **Assets**: ~15 (2-3 per submission + standalone brand assets)
+- **Video Tasks**: 6-8 (2 per provider max)
+- **FVS Ideas**: 10-15 (mix of proposed/completed)
+- **Analytics**: 45 days of snapshots
+- **Blog Posts**: 5 (all preserved)
+- **Help Articles**: 5 (all preserved)
+
+### Cleanup Script
+Run `/app/backend/scripts/cleanup_demo_data.py` to reset to light dataset.
+
 ## Test Credentials
 - **Client**: alex@company.com / client123
 - **Admin**: admin@forgevoice.com / admin123
@@ -342,6 +355,7 @@ ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM  # Optional, defaults to Rachel
 ## Test Reports
 - `/app/test_reports/iteration_7.json` - Strategy Lab & Video Lab tests
 - `/app/test_reports/iteration_8.json` - FVS System tests (100% pass rate)
+- `/app/test_reports/iteration_12.json` - Veo & ElevenLabs integration tests
 
 ---
 

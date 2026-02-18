@@ -103,7 +103,7 @@ export default function Sidebar() {
             <Separator className="my-2 mx-4 bg-zinc-800" />
             <NavSection
               title="Admin"
-              items={[{ label: 'Admin Panel', path: '/admin', icon: ShieldCheck }]}
+              items={[{ label: 'Admin Panel', path: '/dashboard/admin', icon: ShieldCheck }]}
               currentPath={currentPath}
             />
           </>

@@ -809,17 +809,22 @@ async def run_seed():
     await db.assets.insert_many(assets)
 
     analytics = []
-    for i in range(14):
-        d = datetime.now(timezone.utc) - timedelta(days=13 - i)
+    for i in range(90):
+        d = datetime.now(timezone.utc) - timedelta(days=89 - i)
+        # Vary data based on day of week and trends
+        base_downloads = 100 + (i * 2)  # Gradual growth
+        base_views = 500 + (i * 5)
+        weekend_boost = 1.3 if d.weekday() >= 5 else 1.0
+        
         analytics.append({
             "id": str(uuid.uuid4()),
             "clientId": "demo-client-1",
             "date": d.strftime("%Y-%m-%d"),
-            "downloads": random.randint(50, 300),
-            "views": random.randint(200, 1500),
+            "downloads": int(random.randint(int(base_downloads * 0.7), int(base_downloads * 1.3)) * weekend_boost),
+            "views": int(random.randint(int(base_views * 0.7), int(base_views * 1.3)) * weekend_boost),
             "subscribersGained": random.randint(5, 50),
-            "episodesPublished": random.randint(0, 2),
-            "roiEstimate": round(random.uniform(500, 3000), 2)
+            "episodesPublished": 1 if random.random() < 0.15 else 0,  # ~15% chance per day
+            "roiEstimate": round(random.uniform(800, 2500) * (1 + i/100), 2)  # Growing ROI
         })
     await db.analytics_snapshots.insert_many(analytics)
 

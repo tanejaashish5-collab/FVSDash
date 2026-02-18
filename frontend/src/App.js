@@ -14,6 +14,9 @@ import AssetsPage from "@/pages/AssetsPage";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import ROIPage from "@/pages/ROIPage";
 import BillingPage from "@/pages/BillingPage";
+import SettingsPage from "@/pages/SettingsPage";
+import HelpPage from "@/pages/HelpPage";
+import BlogPage from "@/pages/BlogPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 
 function LoadingScreen() {

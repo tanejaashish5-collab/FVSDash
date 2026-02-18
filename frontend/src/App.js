@@ -77,9 +77,7 @@ function AppRoutes() {
         <Route path="/dashboard/billing" element={<BillingPage />} />
         <Route path="/dashboard/settings" element={<SettingsPage />} />
         <Route path="/dashboard/help" element={<HelpPage />} />
-
-        {/* Admin route inside layout */}
-        <Route path="/admin" element={<AdminGuard><AdminPage /></AdminGuard>} />
+        <Route path="/dashboard/admin" element={<AdminGuard><AdminPage /></AdminGuard>} />
       </Route>
 
       {/* Catch-all redirect */}

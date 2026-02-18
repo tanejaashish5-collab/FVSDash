@@ -508,11 +508,191 @@ async def get_assets(user: dict = Depends(get_current_user)):
     query = {"clientId": client_id} if client_id else {}
     return await db.assets.find(query, {"_id": 0}).to_list(1000)
 
-@api_router.get("/analytics")
-async def get_analytics(user: dict = Depends(get_current_user)):
+
+# ==================== ANALYTICS PAGE ROUTES ====================
+
+@api_router.get("/analytics/dashboard")
+async def get_analytics_dashboard(
+    user: dict = Depends(get_current_user),
+    range: Optional[str] = "30d",
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None
+):
+    """
+    Returns analytics data for the dashboard with date range filtering.
+    range: 7d, 30d, 90d, 365d
+    from_date, to_date: ISO date strings for custom range (override range param)
+    """
     client_id = get_client_id_from_user(user)
     query = {"clientId": client_id} if client_id else {}
-    return await db.analytics_snapshots.find(query, {"_id": 0}).sort("date", -1).to_list(100)
+    
+    # Determine date range
+    today = datetime.now(timezone.utc).date()
+    if from_date and to_date:
+        start_date = from_date
+        end_date = to_date
+    else:
+        range_days = {"7d": 7, "30d": 30, "90d": 90, "365d": 365}.get(range, 30)
+        start_date = (today - timedelta(days=range_days)).isoformat()
+        end_date = today.isoformat()
+    
+    query["date"] = {"$gte": start_date, "$lte": end_date}
+    
+    snapshots = await db.analytics_snapshots.find(query, {"_id": 0}).sort("date", 1).to_list(1000)
+    
+    # Calculate summary KPIs
+    total_downloads = sum(s.get("downloads", 0) for s in snapshots)
+    total_views = sum(s.get("views", 0) for s in snapshots)
+    total_episodes = sum(s.get("episodesPublished", 0) for s in snapshots)
+    total_roi = sum(s.get("roiEstimate", 0) for s in snapshots)
+    total_subscribers = sum(s.get("subscribersGained", 0) for s in snapshots)
+    avg_roi_per_episode = round(total_roi / total_episodes, 2) if total_episodes > 0 else 0
+    
+    return {
+        "snapshots": snapshots,
+        "summary": {
+            "totalDownloads": total_downloads,
+            "totalViews": total_views,
+            "totalEpisodes": total_episodes,
+            "totalROI": round(total_roi, 2),
+            "totalSubscribers": total_subscribers,
+            "avgRoiPerEpisode": avg_roi_per_episode,
+        },
+        "range": {
+            "from": start_date,
+            "to": end_date,
+            "preset": range if not (from_date and to_date) else "custom"
+        }
+    }
+
+
+# ==================== ROI CENTER ROUTES ====================
+
+@api_router.get("/roi/dashboard")
+async def get_roi_dashboard(
+    user: dict = Depends(get_current_user),
+    range: Optional[str] = "30d"
+):
+    """
+    Returns ROI calculations based on AnalyticsSnapshot + ClientSettings.
+    Simple ROI model:
+    - hoursPerEpisode = 5 (configurable later)
+    - costPerEpisode = hoursPerEpisode * hourlyRate
+    - totalCost = costPerEpisode * totalEpisodesPublished
+    - roiMultiple = totalROI / totalCost
+    """
+    client_id = get_client_id_from_user(user)
+    
+    # Get client settings for hourly rate
+    settings = await db.client_settings.find_one({"clientId": client_id}, {"_id": 0}) if client_id else None
+    hourly_rate = settings.get("hourlyRate", 100) if settings else 100
+    hours_per_episode = 5  # Configurable later
+    
+    # Get analytics data for the range
+    today = datetime.now(timezone.utc).date()
+    range_days = {"7d": 7, "30d": 30, "90d": 90, "365d": 365}.get(range, 30)
+    start_date = (today - timedelta(days=range_days)).isoformat()
+    end_date = today.isoformat()
+    
+    query = {"clientId": client_id} if client_id else {}
+    query["date"] = {"$gte": start_date, "$lte": end_date}
+    
+    snapshots = await db.analytics_snapshots.find(query, {"_id": 0}).to_list(1000)
+    
+    # Calculate totals
+    total_episodes = sum(s.get("episodesPublished", 0) for s in snapshots)
+    total_roi = sum(s.get("roiEstimate", 0) for s in snapshots)
+    total_downloads = sum(s.get("downloads", 0) for s in snapshots)
+    total_views = sum(s.get("views", 0) for s in snapshots)
+    
+    # ROI calculations
+    cost_per_episode = hours_per_episode * hourly_rate
+    total_cost = cost_per_episode * total_episodes
+    roi_multiple = round(total_roi / total_cost, 2) if total_cost > 0 else 0
+    net_profit = total_roi - total_cost
+    
+    return {
+        "totalCost": round(total_cost, 2),
+        "totalROI": round(total_roi, 2),
+        "roiMultiple": roi_multiple,
+        "netProfit": round(net_profit, 2),
+        "episodesPublished": total_episodes,
+        "hoursPerEpisode": hours_per_episode,
+        "hourlyRate": hourly_rate,
+        "costPerEpisode": cost_per_episode,
+        "totalDownloads": total_downloads,
+        "totalViews": total_views,
+        "range": {
+            "from": start_date,
+            "to": end_date,
+            "preset": range,
+            "days": range_days
+        }
+    }
+
+
+# ==================== BILLING PAGE ROUTES ====================
+
+@api_router.get("/billing/dashboard")
+async def get_billing_dashboard(user: dict = Depends(get_current_user)):
+    """
+    Returns billing information for the current client.
+    Includes plan details, status, and Stripe placeholder info.
+    """
+    client_id = get_client_id_from_user(user)
+    
+    # Get billing record
+    billing = await db.billing_records.find_one({"clientId": client_id}, {"_id": 0}) if client_id else None
+    
+    # Get client info for additional context
+    client_info = await db.clients.find_one({"id": client_id}, {"_id": 0}) if client_id else None
+    
+    # Define plan features (hardcoded for now)
+    plan_features = {
+        "Starter": {
+            "price": 99,
+            "features": [
+                "Up to 4 episodes per month",
+                "Basic editing",
+                "Standard thumbnails",
+                "Email support"
+            ]
+        },
+        "Pro": {
+            "price": 299,
+            "features": [
+                "Up to 12 episodes per month",
+                "Advanced editing & mixing",
+                "Custom thumbnails & graphics",
+                "Priority support",
+                "Analytics dashboard",
+                "ROI tracking"
+            ]
+        },
+        "Enterprise": {
+            "price": 799,
+            "features": [
+                "Unlimited episodes",
+                "Full production suite",
+                "Dedicated account manager",
+                "Custom integrations",
+                "White-label options",
+                "24/7 support"
+            ]
+        }
+    }
+    
+    current_plan = billing.get("currentPlan", "Pro") if billing else "Pro"
+    
+    return {
+        "billing": billing,
+        "client": client_info,
+        "currentPlan": current_plan,
+        "planDetails": plan_features.get(current_plan, plan_features["Pro"]),
+        "allPlans": plan_features,
+        "stripeConnected": bool(billing and billing.get("stripeCustomerId"))
+    }
+
 
 @api_router.get("/clients")
 async def get_clients(user: dict = Depends(require_admin)):

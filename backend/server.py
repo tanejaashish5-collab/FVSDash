@@ -318,6 +318,190 @@ async def update_submission_status(submission_id: str, data: StatusUpdate, user:
         raise HTTPException(status_code=404, detail="Submission not found")
     return {"message": f"Status updated to {data.status}", "status": data.status}
 
+@api_router.patch("/submissions/{submission_id}")
+async def update_submission(submission_id: str, data: SubmissionUpdate, user: dict = Depends(get_current_user)):
+    client_id = get_client_id_from_user(user)
+    query = {"id": submission_id}
+    if client_id:
+        query["clientId"] = client_id
+    
+    update_fields = {}
+    if data.status:
+        valid_statuses = ["INTAKE", "EDITING", "DESIGN", "SCHEDULED", "PUBLISHED"]
+        if data.status not in valid_statuses:
+            raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
+        update_fields["status"] = data.status
+    if data.releaseDate is not None:
+        update_fields["releaseDate"] = data.releaseDate if data.releaseDate else None
+    
+    if not update_fields:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    
+    update_fields["updatedAt"] = datetime.now(timezone.utc).isoformat()
+    result = await db.submissions.update_one(query, {"$set": update_fields})
+    if result.modified_count == 0:
+        existing = await db.submissions.find_one(query, {"_id": 0})
+        if not existing:
+            raise HTTPException(status_code=404, detail="Submission not found")
+    
+    updated = await db.submissions.find_one(query, {"_id": 0})
+    return updated
+
+
+# ==================== CALENDAR ROUTES ====================
+
+@api_router.get("/calendar")
+async def get_calendar(user: dict = Depends(get_current_user), year: Optional[int] = None, month: Optional[int] = None):
+    client_id = get_client_id_from_user(user)
+    query = {"clientId": client_id} if client_id else {}
+    
+    # Default to current month if not specified
+    now = datetime.now(timezone.utc)
+    target_year = year or now.year
+    target_month = month or now.month
+    
+    # Calculate the first and last day of the month
+    first_day = f"{target_year}-{target_month:02d}-01"
+    if target_month == 12:
+        last_day = f"{target_year + 1}-01-01"
+    else:
+        last_day = f"{target_year}-{target_month + 1:02d}-01"
+    
+    query["releaseDate"] = {"$gte": first_day, "$lt": last_day}
+    
+    submissions = await db.submissions.find(query, {"_id": 0}).to_list(1000)
+    return {
+        "year": target_year,
+        "month": target_month,
+        "submissions": submissions
+    }
+
+
+# ==================== DELIVERABLES ROUTES ====================
+
+@api_router.get("/deliverables")
+async def get_deliverables(user: dict = Depends(get_current_user)):
+    client_id = get_client_id_from_user(user)
+    query = {"clientId": client_id} if client_id else {}
+    
+    assets = await db.assets.find(query, {"_id": 0}).to_list(1000)
+    
+    # Get all submission IDs referenced by assets
+    submission_ids = list(set(a.get("submissionId") for a in assets if a.get("submissionId")))
+    
+    # Fetch all relevant submissions in one query
+    submissions_map = {}
+    if submission_ids:
+        submissions = await db.submissions.find(
+            {"id": {"$in": submission_ids}}, 
+            {"_id": 0, "id": 1, "title": 1, "contentType": 1, "releaseDate": 1}
+        ).to_list(1000)
+        submissions_map = {s["id"]: s for s in submissions}
+    
+    # Build the deliverables response
+    deliverables = []
+    for asset in assets:
+        sub = submissions_map.get(asset.get("submissionId"), {})
+        deliverables.append({
+            "assetId": asset["id"],
+            "deliverableName": asset["name"],
+            "deliverableType": asset["type"],
+            "deliverableStatus": asset["status"],
+            "url": asset.get("url"),
+            "submissionId": asset.get("submissionId"),
+            "episodeTitle": sub.get("title", "Unlinked"),
+            "contentType": sub.get("contentType", "—"),
+            "releaseDate": sub.get("releaseDate"),
+            "createdAt": asset.get("createdAt"),
+        })
+    
+    return deliverables
+
+
+# ==================== ASSETS ROUTES (ENHANCED) ====================
+
+@api_router.get("/assets/library")
+async def get_assets_library(user: dict = Depends(get_current_user)):
+    client_id = get_client_id_from_user(user)
+    query = {"clientId": client_id} if client_id else {}
+    
+    assets = await db.assets.find(query, {"_id": 0}).to_list(1000)
+    
+    # Get all submission IDs referenced by assets
+    submission_ids = list(set(a.get("submissionId") for a in assets if a.get("submissionId")))
+    
+    # Fetch all relevant submissions
+    submissions_map = {}
+    if submission_ids:
+        submissions = await db.submissions.find(
+            {"id": {"$in": submission_ids}}, 
+            {"_id": 0, "id": 1, "title": 1}
+        ).to_list(1000)
+        submissions_map = {s["id"]: s for s in submissions}
+    
+    # Enrich assets with episode titles
+    enriched_assets = []
+    for asset in assets:
+        sub = submissions_map.get(asset.get("submissionId"), {})
+        enriched_assets.append({
+            **asset,
+            "episodeTitle": sub.get("title") if asset.get("submissionId") else None
+        })
+    
+    return enriched_assets
+
+@api_router.patch("/assets/{asset_id}/status")
+async def update_asset_status(asset_id: str, data: AssetStatusUpdate, user: dict = Depends(get_current_user)):
+    client_id = get_client_id_from_user(user)
+    query = {"id": asset_id}
+    if client_id:
+        query["clientId"] = client_id
+    
+    valid_statuses = ["Draft", "Final"]
+    if data.status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    result = await db.assets.update_one(query, {"$set": {"status": data.status, "updatedAt": now}})
+    if result.modified_count == 0:
+        existing = await db.assets.find_one(query, {"_id": 0})
+        if not existing:
+            raise HTTPException(status_code=404, detail="Asset not found")
+    
+    return {"message": f"Asset status updated to {data.status}", "status": data.status}
+
+@api_router.patch("/assets/{asset_id}/submission")
+async def update_asset_submission(asset_id: str, data: AssetSubmissionUpdate, user: dict = Depends(get_current_user)):
+    client_id = get_client_id_from_user(user)
+    query = {"id": asset_id}
+    if client_id:
+        query["clientId"] = client_id
+    
+    # Validate submission exists and belongs to same client
+    if data.submissionId:
+        sub_query = {"id": data.submissionId}
+        if client_id:
+            sub_query["clientId"] = client_id
+        submission = await db.submissions.find_one(sub_query, {"_id": 0})
+        if not submission:
+            raise HTTPException(status_code=404, detail="Submission not found or access denied")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    result = await db.assets.update_one(query, {"$set": {"submissionId": data.submissionId, "updatedAt": now}})
+    if result.modified_count == 0:
+        existing = await db.assets.find_one(query, {"_id": 0})
+        if not existing:
+            raise HTTPException(status_code=404, detail="Asset not found")
+    
+    return {"message": "Asset submission updated", "submissionId": data.submissionId}
+
+@api_router.get("/submissions/list")
+async def get_submissions_list(user: dict = Depends(get_current_user)):
+    """Returns a minimal list of submissions for dropdown/linking purposes"""
+    client_id = get_client_id_from_user(user)
+    query = {"clientId": client_id} if client_id else {}
+    return await db.submissions.find(query, {"_id": 0, "id": 1, "title": 1, "contentType": 1}).to_list(1000)
+
 @api_router.get("/assets")
 async def get_assets(user: dict = Depends(get_current_user)):
     client_id = get_client_id_from_user(user)

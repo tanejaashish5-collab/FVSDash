@@ -65,14 +65,14 @@ function AppRoutes() {
         <Route path="/dashboard/calendar" element={<CalendarPage />} />
         <Route path="/dashboard/deliverables" element={<DeliverablesPage />} />
         <Route path="/dashboard/assets" element={<AssetsPage />} />
-        <Route path="/dashboard/blog" element={<PlaceholderPage title="Blog" />} />
+        <Route path="/dashboard/blog" element={<BlogPage />} />
         <Route path="/dashboard/strategy" element={<PlaceholderPage title="Strategy Lab" />} />
         <Route path="/dashboard/video-lab" element={<PlaceholderPage title="AI Video Lab" />} />
         <Route path="/dashboard/analytics" element={<AnalyticsPage />} />
         <Route path="/dashboard/roi" element={<ROIPage />} />
         <Route path="/dashboard/billing" element={<BillingPage />} />
-        <Route path="/dashboard/settings" element={<PlaceholderPage title="Settings" />} />
-        <Route path="/dashboard/help" element={<PlaceholderPage title="Help / Support" />} />
+        <Route path="/dashboard/settings" element={<SettingsPage />} />
+        <Route path="/dashboard/help" element={<HelpPage />} />
 
         {/* Admin route inside layout */}
         <Route path="/admin" element={<AdminGuard><AdminPage /></AdminGuard>} />

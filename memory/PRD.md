@@ -13,6 +13,24 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 
 ## What's Been Implemented
 
+### Phase 14 — Demo Data Cleanup & Asset Visibility (Feb 18, 2026)
+
+#### Exact 5 Episode Demo Dataset
+- **Submissions**: Exactly 5 complete demo episodes
+- **Assets**: 15 total (5 audio + 5 video + 5 thumbnail, all linked to episodes)
+- **Deliverables**: 15 total (3 per episode, all linked)
+- **No orphaned/unlinked data** - clean testing environment
+
+#### Enhanced Assets Page
+- **Thumbnail Previews**: Inline image thumbnails with zoom-on-hover
+- **Preview Modal**: Click thumbnail to view full-size image
+- **Type Icons**: Audio (blue), Video (purple), Thumbnail (pink)
+- **Action Buttons**: Preview, Open Full Size, View Submission
+
+#### Cleanup Infrastructure
+- Updated `/app/backend/seed.py` - creates exactly 5 complete episodes
+- Updated `/app/backend/scripts/cleanup_demo_data.py` - enforces strict dataset
+
 ### Phase 13 — S3 Storage Service & Deep-Linking (Feb 18, 2026)
 
 #### S3 Storage Service

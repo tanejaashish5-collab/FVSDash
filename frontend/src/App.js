@@ -79,6 +79,8 @@ function AppRoutes() {
         <Route path="/dashboard/settings" element={<SettingsPage />} />
         <Route path="/dashboard/help" element={<HelpPage />} />
         <Route path="/dashboard/admin" element={<AdminGuard><AdminPage /></AdminGuard>} />
+        {/* Deep-link route for viewing a specific submission */}
+        <Route path="/dashboard/submissions/:submissionId" element={<SubmissionDetailPage />} />
       </Route>
 
       {/* Catch-all redirect */}

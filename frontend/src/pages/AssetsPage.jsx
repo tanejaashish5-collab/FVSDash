@@ -1,15 +1,16 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { 
   Search, FolderOpen, ChevronDown, ExternalLink, MoreHorizontal,
-  FileVideo, FileAudio, FileImage, FileText as FileTextIcon, FileBox, Link as LinkIcon
+  FileVideo, FileAudio, FileImage, FileText as FileTextIcon, FileBox, Link as LinkIcon, Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';

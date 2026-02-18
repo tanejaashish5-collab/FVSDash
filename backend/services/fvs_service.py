@@ -5,7 +5,7 @@ import random
 import logging
 import json
 from datetime import datetime, timezone, timedelta
-from typing import Optional
+from typing import Optional, List
 from fastapi import HTTPException
 
 from db.mongo import (
@@ -13,6 +13,10 @@ from db.mongo import (
     fvs_activity_collection, fvs_config_collection, fvs_scripts_collection,
     analytics_snapshots_collection, client_settings_collection,
     submissions_collection, assets_collection, video_tasks_collection
+)
+from services.media_service import (
+    generate_voice_for_script, generate_thumbnail,
+    AudioGenerationResult, ThumbnailGenerationResult
 )
 
 logger = logging.getLogger(__name__)
@@ -213,42 +217,32 @@ async def propose_ideas(client_id: str, format: str, range: str) -> dict:
         raise HTTPException(status_code=500, detail=f"Failed to propose ideas: {str(e)}")
 
 
-async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
-    """FVS Orchestrator: Produce a full episode from an approved idea."""
-    if not client_id:
-        raise HTTPException(status_code=400, detail="Client ID required")
+# =============================================================================
+# PRODUCTION PIPELINE STEPS (Refactored)
+# =============================================================================
+
+async def generate_script_for_idea(idea: dict, brand_voice: str) -> dict:
+    """
+    Step 1: Generate script from idea using LLM.
     
+    Args:
+        idea: The FVS idea dict
+        brand_voice: Client's brand voice description
+        
+    Returns:
+        Script dict with id, text, provider, etc.
+    """
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
     now = datetime.now(timezone.utc).isoformat()
     
-    ideas_db = fvs_ideas_collection()
-    settings_db = client_settings_collection()
-    submissions_db = submissions_collection()
-    scripts_db = fvs_scripts_collection()
-    assets_db = assets_collection()
-    video_tasks_db = video_tasks_collection()
-    activity_db = fvs_activity_collection()
+    script_text = ""
+    provider = "mock"
     
     try:
-        idea = await ideas_db.find_one({"id": idea_id, "clientId": client_id}, {"_id": 0})
-        if not idea:
-            raise HTTPException(status_code=404, detail="Idea not found")
-        
-        await ideas_db.update_one(
-            {"id": idea_id},
-            {"$set": {"status": "in_progress", "updatedAt": now}}
-        )
-        
-        settings = await settings_db.find_one({"clientId": client_id}, {"_id": 0})
-        brand_voice = settings.get("brandVoiceDescription", "Professional and engaging") if settings else "Professional and engaging"
-        
-        # Step 1: Generate script using LLM
-        script_text = ""
-        try:
-            from emergentintegrations.llm.chat import LlmChat, UserMessage
-            api_key = os.environ.get("EMERGENT_LLM_KEY")
-            
-            if api_key:
-                script_prompt = f"""Write a {idea.get('format', 'short')}-form script for this episode:
+        if api_key:
+            script_prompt = f"""Write a {idea.get('format', 'short')}-form script for this episode:
 
 Topic: {idea.get('topic')}
 Hypothesis/Angle: {idea.get('hypothesis')}
@@ -262,29 +256,45 @@ Write an engaging, conversational script that:
 
 Write the full script text only, no stage directions or timestamps."""
 
-                chat = LlmChat(
-                    api_key=api_key,
-                    session_id=f"fvs-script-{uuid.uuid4()}",
-                    system_message="You are an expert scriptwriter for podcasts and video content."
-                ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-                
-                script_text = await chat.send_message(UserMessage(text=script_prompt))
-            else:
-                script_text = f"[Auto-generated script for: {idea.get('topic')}]\n\nHey everyone! Today we're talking about {idea.get('topic')}.\n\n{idea.get('hypothesis')}\n\nLet's dive in...\n\n[Main content would go here]\n\nThat's it for today! Don't forget to like and subscribe."
-        except Exception as e:
-            logger.error(f"Script generation error: {e}")
-            script_text = f"[Auto-generated script for: {idea.get('topic')}]\n\n{idea.get('hypothesis')}"
-        
-        # Step 2: Generate YouTube metadata
-        title = idea.get("topic", "Untitled Episode")
-        description = idea.get("hypothesis", "")
-        tags = ["podcast", "content", idea.get("format", "short")]
-        
-        try:
-            api_key = os.environ.get("EMERGENT_LLM_KEY")
-            if api_key:
-                from emergentintegrations.llm.chat import LlmChat, UserMessage
-                metadata_prompt = f"""Generate YouTube metadata for this episode:
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"fvs-script-{uuid.uuid4()}",
+                system_message="You are an expert scriptwriter for podcasts and video content."
+            ).with_model("anthropic", "claude-sonnet-4-5-20250929")
+            
+            script_text = await chat.send_message(UserMessage(text=script_prompt))
+            provider = "anthropic"
+        else:
+            script_text = f"[Auto-generated script for: {idea.get('topic')}]\n\nHey everyone! Today we're talking about {idea.get('topic')}.\n\n{idea.get('hypothesis')}\n\nLet's dive in...\n\n[Main content would go here]\n\nThat's it for today! Don't forget to like and subscribe."
+            
+    except Exception as e:
+        logger.error(f"Script generation error: {e}")
+        script_text = f"[Auto-generated script for: {idea.get('topic')}]\n\n{idea.get('hypothesis')}"
+    
+    return {
+        "id": str(uuid.uuid4()),
+        "text": script_text,
+        "provider": provider,
+        "fvsIdeaId": idea.get("id"),
+        "createdAt": now
+    }
+
+
+async def generate_metadata_for_episode(idea: dict, script_text: str) -> dict:
+    """
+    Step 2: Generate YouTube metadata (title, description, tags) using LLM.
+    """
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    
+    title = idea.get("topic", "Untitled Episode")
+    description = idea.get("hypothesis", "")
+    tags = ["podcast", "content", idea.get("format", "short")]
+    
+    try:
+        if api_key:
+            metadata_prompt = f"""Generate YouTube metadata for this episode:
 
 Topic: {idea.get('topic')}
 Script excerpt: {script_text[:500]}
@@ -299,25 +309,116 @@ TITLE: [title here]
 DESCRIPTION: [description here]
 TAGS: [tag1, tag2, tag3, ...]"""
 
-                chat = LlmChat(
-                    api_key=api_key,
-                    session_id=f"fvs-metadata-{uuid.uuid4()}",
-                    system_message="You are a YouTube SEO expert."
-                ).with_model("gemini", "gemini-2.5-flash")
-                
-                metadata_response = await chat.send_message(UserMessage(text=metadata_prompt))
-                
-                for line in metadata_response.split('\n'):
-                    if line.startswith('TITLE:'):
-                        title = line.replace('TITLE:', '').strip()
-                    elif line.startswith('DESCRIPTION:'):
-                        description = line.replace('DESCRIPTION:', '').strip()
-                    elif line.startswith('TAGS:'):
-                        tags = [t.strip() for t in line.replace('TAGS:', '').split(',')]
-        except Exception as e:
-            logger.error(f"Metadata generation error: {e}")
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=f"fvs-metadata-{uuid.uuid4()}",
+                system_message="You are a YouTube SEO expert."
+            ).with_model("gemini", "gemini-2.5-flash")
+            
+            metadata_response = await chat.send_message(UserMessage(text=metadata_prompt))
+            
+            for line in metadata_response.split('\n'):
+                if line.startswith('TITLE:'):
+                    title = line.replace('TITLE:', '').strip()
+                elif line.startswith('DESCRIPTION:'):
+                    description = line.replace('DESCRIPTION:', '').strip()
+                elif line.startswith('TAGS:'):
+                    tags = [t.strip() for t in line.replace('TAGS:', '').split(',')]
+    except Exception as e:
+        logger.error(f"Metadata generation error: {e}")
+    
+    return {"title": title, "description": description, "tags": tags}
+
+
+async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
+    """
+    FVS Orchestrator: Produce a full episode from an approved idea.
+    
+    Pipeline Steps:
+    1. Generate script using LLM
+    2. Generate YouTube metadata using LLM
+    3. Generate audio using ElevenLabs (REAL)
+    4. Generate thumbnail using OpenAI GPT-Image-1 (REAL)
+    5. Create video task (MOCKED - P2)
+    6. Create Submission and Assets
+    
+    Returns same response structure as before for backwards compatibility.
+    """
+    if not client_id:
+        raise HTTPException(status_code=400, detail="Client ID required")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    warnings: List[str] = []
+    
+    ideas_db = fvs_ideas_collection()
+    settings_db = client_settings_collection()
+    submissions_db = submissions_collection()
+    scripts_db = fvs_scripts_collection()
+    assets_db = assets_collection()
+    video_tasks_db = video_tasks_collection()
+    activity_db = fvs_activity_collection()
+    
+    try:
+        # Fetch idea
+        idea = await ideas_db.find_one({"id": idea_id, "clientId": client_id}, {"_id": 0})
+        if not idea:
+            raise HTTPException(status_code=404, detail="Idea not found")
         
-        # Step 3: Create Submission
+        await ideas_db.update_one(
+            {"id": idea_id},
+            {"$set": {"status": "in_progress", "updatedAt": now}}
+        )
+        
+        # Get client settings
+        settings = await settings_db.find_one({"clientId": client_id}, {"_id": 0})
+        brand_voice = settings.get("brandVoiceDescription", "Professional and engaging") if settings else "Professional and engaging"
+        
+        # =================================================================
+        # STEP 1: Generate Script
+        # =================================================================
+        logger.info(f"FVS Step 1: Generating script for idea '{idea.get('topic')}'")
+        script_data = await generate_script_for_idea(idea, brand_voice)
+        script_text = script_data["text"]
+        
+        # =================================================================
+        # STEP 2: Generate Metadata
+        # =================================================================
+        logger.info("FVS Step 2: Generating YouTube metadata")
+        metadata = await generate_metadata_for_episode(idea, script_text)
+        title = metadata["title"]
+        description = metadata["description"]
+        tags = metadata["tags"]
+        
+        # =================================================================
+        # STEP 3: Generate Audio (ElevenLabs - REAL)
+        # =================================================================
+        logger.info("FVS Step 3: Generating audio via ElevenLabs")
+        audio_result: AudioGenerationResult = await generate_voice_for_script(script_text)
+        
+        if audio_result.warning:
+            warnings.append(audio_result.warning)
+            logger.warning(f"Audio generation warning: {audio_result.warning}")
+        
+        # =================================================================
+        # STEP 4: Generate Thumbnail (OpenAI - REAL)
+        # =================================================================
+        logger.info("FVS Step 4: Generating thumbnail via OpenAI")
+        thumbnail_result: ThumbnailGenerationResult = await generate_thumbnail(
+            topic=idea.get("topic", ""),
+            brand_voice=brand_voice,
+            title=title,
+            format=idea.get("format", "short"),
+            provider="openai"
+        )
+        
+        if thumbnail_result.warning:
+            warnings.append(thumbnail_result.warning)
+            logger.warning(f"Thumbnail generation warning: {thumbnail_result.warning}")
+        
+        # =================================================================
+        # STEP 5: Create Submission
+        # =================================================================
+        logger.info("FVS Step 5: Creating Submission")
         release_date = (datetime.now(timezone.utc) + timedelta(days=3)).strftime("%Y-%m-%d")
         submission = {
             "id": str(uuid.uuid4()),
@@ -340,32 +441,37 @@ TAGS: [tag1, tag2, tag3, ...]"""
         if "_id" in submission:
             del submission["_id"]
         
-        # Step 4: Create Script entity
+        # =================================================================
+        # STEP 6: Create Script Entity
+        # =================================================================
         script = {
-            "id": str(uuid.uuid4()),
+            "id": script_data["id"],
             "clientId": client_id,
             "submissionId": submission_id,
             "fvsIdeaId": idea_id,
-            "provider": "anthropic",
+            "provider": script_data["provider"],
             "text": script_text,
-            "createdAt": now
+            "createdAt": script_data["createdAt"]
         }
         await scripts_db.insert_one(script)
         if "_id" in script:
             del script["_id"]
         
-        # Step 5: Create mocked Audio Asset (simulating ElevenLabs)
-        # TODO: Integrate real ElevenLabs here
+        # =================================================================
+        # STEP 7: Create Audio Asset (ElevenLabs - REAL)
+        # =================================================================
         audio_asset = {
             "id": str(uuid.uuid4()),
             "clientId": client_id,
             "submissionId": submission_id,
             "name": f"FVS Audio - {title[:40]}",
             "type": "Audio",
-            "url": "https://storage.googleapis.com/fvs-mock/audio-placeholder.mp3",
+            "url": audio_result.url,
             "status": "Final",
-            "provider": "mock_elevenlabs",
+            "provider": audio_result.provider,
             "fvsGenerated": True,
+            "isMocked": audio_result.is_mocked,
+            "durationSeconds": audio_result.duration_seconds,
             "createdAt": now,
             "updatedAt": now
         }
@@ -373,8 +479,10 @@ TAGS: [tag1, tag2, tag3, ...]"""
         if "_id" in audio_asset:
             del audio_asset["_id"]
         
-        # Step 6: Create Video Task (using existing mocked infrastructure)
-        # TODO: Integrate real video providers here
+        # =================================================================
+        # STEP 8: Create Video Task (MOCKED - video providers P2)
+        # =================================================================
+        # TODO: P2 - Integrate real video providers (Runway, Veo, etc.)
         video_prompt = f"Create a {idea.get('format', 'short')}-form video for: {title}"
         provider_job_id = f"fvs-kling-{uuid.uuid4()}"
         
@@ -394,6 +502,7 @@ TAGS: [tag1, tag2, tag3, ...]"""
             "status": "READY",
             "videoUrl": "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
             "fvsGenerated": True,
+            "isMocked": True,  # Video is still mocked
             "createdAt": now,
             "updatedAt": now
         }
@@ -401,7 +510,9 @@ TAGS: [tag1, tag2, tag3, ...]"""
         if "_id" in video_task:
             del video_task["_id"]
         
-        # Step 7: Create Video Asset from completed task
+        # =================================================================
+        # STEP 9: Create Video Asset (from mocked video task)
+        # =================================================================
         video_asset = {
             "id": str(uuid.uuid4()),
             "clientId": client_id,
@@ -413,6 +524,7 @@ TAGS: [tag1, tag2, tag3, ...]"""
             "provider": "kling",
             "sourceVideoTaskId": video_task["id"],
             "fvsGenerated": True,
+            "isMocked": True,
             "createdAt": now,
             "updatedAt": now
         }
@@ -420,19 +532,21 @@ TAGS: [tag1, tag2, tag3, ...]"""
         if "_id" in video_asset:
             del video_asset["_id"]
         
-        # Step 8: Create mocked Thumbnail Asset
-        # TODO: Integrate real DALL-E here
+        # =================================================================
+        # STEP 10: Create Thumbnail Asset (OpenAI - REAL)
+        # =================================================================
         thumbnail_asset = {
             "id": str(uuid.uuid4()),
             "clientId": client_id,
             "submissionId": submission_id,
             "name": f"FVS Thumbnail - {title[:40]}",
             "type": "Thumbnail",
-            "url": "https://via.placeholder.com/1280x720/6366F1/FFFFFF?text=FVS+Generated",
+            "url": thumbnail_result.url,
             "status": "Draft",
-            "provider": "mock_dalle",
+            "provider": thumbnail_result.provider,
             "fvsGenerated": True,
-            "thumbnailPrompt": f"Engaging YouTube thumbnail for: {title}",
+            "isMocked": thumbnail_result.is_mocked,
+            "thumbnailPrompt": thumbnail_result.prompt_used,
             "createdAt": now,
             "updatedAt": now
         }
@@ -440,7 +554,9 @@ TAGS: [tag1, tag2, tag3, ...]"""
         if "_id" in thumbnail_asset:
             del thumbnail_asset["_id"]
         
-        # Step 9: Mark idea as completed and update submission status
+        # =================================================================
+        # STEP 11: Finalize - Update idea and submission status
+        # =================================================================
         await ideas_db.update_one(
             {"id": idea_id},
             {"$set": {"status": "completed", "submissionId": submission_id, "updatedAt": now}}
@@ -461,7 +577,11 @@ TAGS: [tag1, tag2, tag3, ...]"""
             "metadata": {
                 "ideaId": idea_id,
                 "submissionId": submission_id,
-                "videoTaskId": video_task["id"]
+                "videoTaskId": video_task["id"],
+                "audioProvider": audio_result.provider,
+                "thumbnailProvider": thumbnail_result.provider,
+                "audioMocked": audio_result.is_mocked,
+                "thumbnailMocked": thumbnail_result.is_mocked
             },
             "createdAt": now
         }
@@ -471,8 +591,11 @@ TAGS: [tag1, tag2, tag3, ...]"""
         idea["submissionId"] = submission_id
         
         logger.info(f"FVS produced episode '{title}' for client {client_id}")
+        logger.info(f"  - Audio: {audio_result.provider} (mocked={audio_result.is_mocked})")
+        logger.info(f"  - Thumbnail: {thumbnail_result.provider} (mocked={thumbnail_result.is_mocked})")
         
-        return {
+        # Build response (backwards compatible structure)
+        response = {
             "success": True,
             "submission": submission,
             "script": script,
@@ -482,6 +605,12 @@ TAGS: [tag1, tag2, tag3, ...]"""
             "thumbnailAsset": thumbnail_asset,
             "idea": idea
         }
+        
+        # Add warnings if any occurred
+        if warnings:
+            response["warnings"] = warnings
+        
+        return response
         
     except HTTPException:
         raise

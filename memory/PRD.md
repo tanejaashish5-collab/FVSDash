@@ -183,6 +183,57 @@ Full admin panel for client management and impersonation.
 - `/app/frontend/src/components/ImpersonationBanner.jsx` - Yellow banner component
 
 #### Test Results:
+
+---
+
+## Phase 11 — Real Media Generation (Feb 18, 2026)
+
+### FVS Media Integration
+Replaced mocked audio/thumbnail generation with real provider integrations.
+
+#### Thumbnail Generation (REAL)
+- **Provider**: OpenAI GPT-Image-1 via EMERGENT_LLM_KEY
+- **Prompt Building**: Derived from idea topic + brand voice + episode title
+- **Output**: Base64 data URL (~2.4MB PNG)
+- **Fallback**: Placeholder image if EMERGENT_LLM_KEY missing
+
+#### Audio Generation (Ready for API Key)
+- **Provider**: ElevenLabs Text-to-Speech
+- **Config**: Set `ELEVENLABS_API_KEY` in .env
+- **Voice ID**: Configurable via `ELEVENLABS_VOICE_ID` (default: Rachel)
+- **Fallback**: Placeholder audio URL if API key missing
+- **Response**: Includes `warnings` array when fallback triggered
+
+#### New Service Architecture
+```
+services/media_service.py:
+├── generate_voice_for_script()     # ElevenLabs TTS
+├── generate_thumbnail()            # OpenAI GPT-Image-1 (abstracted)
+├── build_thumbnail_prompt()        # Prompt engineering
+├── AudioGenerationResult           # Dataclass with url, provider, is_mocked
+└── ThumbnailGenerationResult       # Dataclass with url, provider, is_mocked
+```
+
+#### .env Configuration
+```bash
+# Required for thumbnail generation (via emergentintegrations)
+EMERGENT_LLM_KEY=your_key_here
+
+# Optional for voice generation
+ELEVENLABS_API_KEY=your_elevenlabs_key_here
+ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM  # Optional, defaults to Rachel
+```
+
+#### Assets Now Track Provider Info
+- `provider`: String identifying the service (e.g., "openai_gpt_image_1", "elevenlabs")
+- `isMocked`: Boolean indicating if fallback was used
+- Response includes `warnings` array when any integration falls back
+
+#### TODO: P2 Storage
+- Currently using provider-hosted URLs or base64 data URLs
+- Implement `upload_to_storage()` for S3/Google Drive persistence
+
+
 - Backend: 14/14 tests passed (100%)
 - Frontend: All admin features working correctly
 

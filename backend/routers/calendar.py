@@ -1,5 +1,5 @@
 """Calendar routes."""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -10,8 +10,13 @@ router = APIRouter(tags=["calendar"])
 
 
 @router.get("/calendar")
-async def get_calendar(user: dict = Depends(get_current_user), year: Optional[int] = None, month: Optional[int] = None):
-    client_id = get_client_id_from_user(user)
+async def get_calendar(
+    user: dict = Depends(get_current_user), 
+    year: Optional[int] = None, 
+    month: Optional[int] = None,
+    impersonateClientId: Optional[str] = Query(None)
+):
+    client_id = get_client_id_from_user(user, impersonateClientId)
     db = submissions_collection()
     query = {"clientId": client_id} if client_id else {}
     

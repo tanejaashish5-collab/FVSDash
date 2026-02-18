@@ -1,5 +1,5 @@
 """Assets routes."""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -11,16 +11,22 @@ router = APIRouter(tags=["assets"])
 
 
 @router.get("/assets")
-async def get_assets(user: dict = Depends(get_current_user)):
-    client_id = get_client_id_from_user(user)
+async def get_assets(
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    client_id = get_client_id_from_user(user, impersonateClientId)
     db = assets_collection()
     query = {"clientId": client_id} if client_id else {}
     return await db.find(query, {"_id": 0}).to_list(1000)
 
 
 @router.get("/assets/library")
-async def get_assets_library(user: dict = Depends(get_current_user)):
-    client_id = get_client_id_from_user(user)
+async def get_assets_library(
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    client_id = get_client_id_from_user(user, impersonateClientId)
     assets_db = assets_collection()
     submissions_db = submissions_collection()
     query = {"clientId": client_id} if client_id else {}
@@ -49,8 +55,13 @@ async def get_assets_library(user: dict = Depends(get_current_user)):
 
 
 @router.patch("/assets/{asset_id}/status")
-async def update_asset_status(asset_id: str, data: AssetStatusUpdate, user: dict = Depends(get_current_user)):
-    client_id = get_client_id_from_user(user)
+async def update_asset_status(
+    asset_id: str, 
+    data: AssetStatusUpdate, 
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    client_id = get_client_id_from_user(user, impersonateClientId)
     db = assets_collection()
     query = {"id": asset_id}
     if client_id:
@@ -71,8 +82,13 @@ async def update_asset_status(asset_id: str, data: AssetStatusUpdate, user: dict
 
 
 @router.patch("/assets/{asset_id}/submission")
-async def update_asset_submission(asset_id: str, data: AssetSubmissionUpdate, user: dict = Depends(get_current_user)):
-    client_id = get_client_id_from_user(user)
+async def update_asset_submission(
+    asset_id: str, 
+    data: AssetSubmissionUpdate, 
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    client_id = get_client_id_from_user(user, impersonateClientId)
     assets_db = assets_collection()
     submissions_db = submissions_collection()
     query = {"id": asset_id}

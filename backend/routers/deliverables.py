@@ -1,5 +1,6 @@
 """Deliverables routes."""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
+from typing import Optional
 
 from services.auth_service import get_current_user, get_client_id_from_user
 from db.mongo import assets_collection, submissions_collection
@@ -8,8 +9,11 @@ router = APIRouter(tags=["deliverables"])
 
 
 @router.get("/deliverables")
-async def get_deliverables(user: dict = Depends(get_current_user)):
-    client_id = get_client_id_from_user(user)
+async def get_deliverables(
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    client_id = get_client_id_from_user(user, impersonateClientId)
     assets_db = assets_collection()
     submissions_db = submissions_collection()
     query = {"clientId": client_id} if client_id else {}

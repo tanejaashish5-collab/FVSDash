@@ -152,11 +152,25 @@ async def run_seed():
         "updatedAt": now
     })
 
-    # Create video tasks
+    # Create video tasks (minimal - users create more via Video Lab)
     video_db = video_tasks_collection()
     await video_db.insert_many([
-        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "prompt": "Create a 30-second intro animation for podcast", "model": "veo-3", "status": "READY", "videoUrl": "https://example.com/video1.mp4", "createdAt": now, "updatedAt": now},
-        {"id": str(uuid.uuid4()), "clientId": "demo-client-1", "prompt": "Generate audiogram visualization", "model": "veo-3", "status": "PROCESSING", "videoUrl": None, "createdAt": now, "updatedAt": now},
+        {
+            "id": str(uuid.uuid4()),
+            "clientId": "demo-client-1",
+            "provider": "veo",
+            "providerJobId": "demo-veo-001",
+            "actualProvider": "mock_veo",
+            "prompt": "Create intro animation for podcast channel",
+            "mode": "script",
+            "aspectRatio": "16:9",
+            "outputProfile": "youtube_long",
+            "status": "READY",
+            "videoUrl": "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+            "isMocked": True,
+            "createdAt": now,
+            "updatedAt": now
+        },
     ])
 
     # Create help articles

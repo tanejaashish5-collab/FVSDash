@@ -368,15 +368,16 @@ export default function CalendarPage() {
 
               <Separator className="bg-[#1F2933] my-5" />
 
-              {/* Open in Submissions link */}
+              {/* Deep-link to Submission details page */}
+              {/* Clicking opens the canonical submission detail view with full context */}
               <Button
-                onClick={() => navigate(`/dashboard/submissions?id=${selected.id}`)}
+                onClick={() => navigate(`/dashboard/submissions/${selected.id}`)}
                 variant="outline"
-                data-testid="open-in-submissions"
-                className="w-full justify-center gap-2 bg-zinc-950 border-zinc-800 hover:bg-zinc-900 hover:border-indigo-500/30 text-zinc-300 h-9 text-xs"
+                data-testid="view-submission-details"
+                className="w-full justify-center gap-2 bg-indigo-500/10 border-indigo-500/30 hover:bg-indigo-500/20 text-indigo-300 h-9 text-xs"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
-                Open in Submissions
+                View Full Details
               </Button>
 
               {updating && (

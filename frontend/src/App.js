@@ -65,9 +65,9 @@ function AppRoutes() {
         <Route path="/dashboard/blog" element={<PlaceholderPage title="Blog" />} />
         <Route path="/dashboard/strategy" element={<PlaceholderPage title="Strategy Lab" />} />
         <Route path="/dashboard/video-lab" element={<PlaceholderPage title="AI Video Lab" />} />
-        <Route path="/dashboard/analytics" element={<PlaceholderPage title="Analytics" />} />
-        <Route path="/dashboard/roi" element={<PlaceholderPage title="ROI Center" />} />
-        <Route path="/dashboard/billing" element={<PlaceholderPage title="Billing" />} />
+        <Route path="/dashboard/analytics" element={<AnalyticsPage />} />
+        <Route path="/dashboard/roi" element={<ROIPage />} />
+        <Route path="/dashboard/billing" element={<BillingPage />} />
         <Route path="/dashboard/settings" element={<PlaceholderPage title="Settings" />} />
         <Route path="/dashboard/help" element={<PlaceholderPage title="Help / Support" />} />
 

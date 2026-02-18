@@ -81,6 +81,17 @@ class AssetStatusUpdate(BaseModel):
 class AssetSubmissionUpdate(BaseModel):
     submissionId: Optional[str] = None
 
+class SettingsUpdate(BaseModel):
+    hourlyRate: Optional[float] = None
+    hoursPerEpisode: Optional[float] = None
+    brandVoiceDescription: Optional[str] = None
+    primaryContactName: Optional[str] = None
+    primaryContactEmail: Optional[str] = None
+
+class SupportRequestCreate(BaseModel):
+    subject: str
+    message: str
+
 
 # ==================== AUTH HELPERS ====================
 

@@ -83,7 +83,7 @@ export default function AssetsPage() {
     setLoading(true);
     Promise.all([
       axios.get(`${API}/assets/library`, { headers: authHeaders }),
-      axios.get(`${API}/submissions/list`, { headers: authHeaders }),
+      axios.get(`${API}/submissions`, { headers: authHeaders }),
     ])
       .then(([assetsRes, subsRes]) => {
         setAssets(assetsRes.data || []);

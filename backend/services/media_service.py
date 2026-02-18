@@ -306,18 +306,33 @@ async def _generate_thumbnail_openai(
         if not images or len(images) == 0:
             raise ValueError("No image was generated")
         
-        # Convert to base64 data URL
-        # TODO: P2 - Upload to first-party storage (S3/Google Drive) and return permanent URL
-        image_b64 = base64.b64encode(images[0]).decode()
-        image_url = f"data:image/png;base64,{image_b64}"
+        image_data = images[0]
         
-        logger.info(f"Generated thumbnail via OpenAI GPT-Image-1 ({len(images[0])} bytes)")
+        # Try to upload to S3 if configured
+        s3_url, storage_provider = await _try_upload_to_s3(
+            image_data,
+            "image/png",
+            f"thumbnails/gpt-image/{uuid.uuid4()}"
+        )
+        
+        if s3_url:
+            image_url = s3_url
+            logger.info(f"Thumbnail uploaded to S3: {len(image_data)} bytes")
+        else:
+            # Fall back to base64 data URL
+            image_b64 = base64.b64encode(image_data).decode()
+            image_url = f"data:image/png;base64,{image_b64}"
+            storage_provider = "data_url"
+            logger.info(f"Thumbnail stored as data URL: {len(image_data)} bytes")
+        
+        logger.info(f"Generated thumbnail via OpenAI GPT-Image-1 ({len(image_data)} bytes)")
         
         return ThumbnailGenerationResult(
             url=image_url,
             provider="openai_gpt_image_1",
             is_mocked=False,
-            prompt_used=prompt[:500]  # Store truncated prompt for debugging
+            prompt_used=prompt[:500],
+            storage_provider=storage_provider
         )
         
     except Exception as e:

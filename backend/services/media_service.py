@@ -142,10 +142,22 @@ async def generate_voice_for_script(
         if not audio_data:
             raise ValueError("No audio data received from ElevenLabs")
         
-        # Convert to base64 data URL for now
-        # TODO: P2 - Upload to first-party storage (S3/Google Drive) and return permanent URL
-        audio_b64 = base64.b64encode(audio_data).decode()
-        audio_url = f"data:audio/mpeg;base64,{audio_b64}"
+        # Try to upload to S3 if configured
+        s3_url, storage_provider = await _try_upload_to_s3(
+            audio_data,
+            "audio/mpeg",
+            f"audio/elevenlabs/{uuid.uuid4()}"
+        )
+        
+        if s3_url:
+            audio_url = s3_url
+            logger.info(f"Audio uploaded to S3: {len(audio_data)} bytes")
+        else:
+            # Fall back to base64 data URL
+            audio_b64 = base64.b64encode(audio_data).decode()
+            audio_url = f"data:audio/mpeg;base64,{audio_b64}"
+            storage_provider = "data_url"
+            logger.info(f"Audio stored as data URL: {len(audio_data)} bytes")
         
         # Estimate duration (rough: ~150 words per minute, ~5 chars per word)
         estimated_duration = (len(truncated_text) / 5) / 150 * 60
@@ -156,7 +168,8 @@ async def generate_voice_for_script(
             url=audio_url,
             provider="elevenlabs",
             is_mocked=False,
-            duration_seconds=estimated_duration
+            duration_seconds=estimated_duration,
+            storage_provider=storage_provider
         )
         
     except Exception as e:

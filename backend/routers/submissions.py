@@ -28,6 +28,24 @@ async def get_submissions(
     return await db.find(query, {"_id": 0}).sort("createdAt", -1).to_list(1000)
 
 
+@router.get("/submissions/{submission_id}")
+async def get_submission(
+    submission_id: str,
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    """Get a single submission by ID for deep-linking."""
+    client_id = get_client_id_from_user(user, impersonateClientId)
+    db = submissions_collection()
+    query = {"id": submission_id}
+    if client_id:
+        query["clientId"] = client_id
+    submission = await db.find_one(query, {"_id": 0})
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    return submission
+
+
 @router.post("/submissions")
 async def create_submission(
     data: SubmissionCreate, 

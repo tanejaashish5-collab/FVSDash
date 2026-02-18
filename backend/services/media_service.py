@@ -2,6 +2,11 @@
 Media generation services for FVS System.
 Provides abstracted interfaces for audio (voice) and image (thumbnail) generation.
 Supports graceful fallbacks to mocked URLs when API keys are missing or errors occur.
+
+Storage Integration:
+    - If S3 is configured (via AWS_* env vars), generated media is uploaded to S3.
+    - If S3 is not configured, media is returned as base64 data URLs or provider URLs.
+    - See services/storage_service.py for S3 configuration details.
 """
 import os
 import uuid
@@ -28,6 +33,7 @@ class AudioGenerationResult:
     is_mocked: bool
     warning: Optional[str] = None
     duration_seconds: Optional[float] = None
+    storage_provider: Optional[str] = None  # "s3", "data_url", or "provider_url"
 
 
 @dataclass
@@ -38,6 +44,32 @@ class ThumbnailGenerationResult:
     is_mocked: bool
     warning: Optional[str] = None
     prompt_used: Optional[str] = None
+    storage_provider: Optional[str] = None  # "s3", "data_url", or "provider_url"
+
+
+async def _try_upload_to_s3(
+    data: bytes,
+    content_type: str,
+    path_hint: str
+) -> tuple[Optional[str], Optional[str]]:
+    """
+    Try to upload data to S3 if configured.
+    
+    Returns:
+        Tuple of (url, storage_provider) or (None, None) if S3 not available
+    """
+    try:
+        from services.storage_service import upload_file, StorageNotConfiguredError
+        
+        url = await upload_file(data, content_type, path_hint)
+        return url, "s3"
+    except ImportError:
+        logger.debug("storage_service not available")
+        return None, None
+    except Exception as e:
+        # StorageNotConfiguredError or StorageUploadError
+        logger.warning(f"S3 upload skipped: {e}")
+        return None, None
 
 
 # =============================================================================

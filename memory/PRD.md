@@ -4,7 +4,7 @@
 Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a full-stack multi-tenant production dashboard for podcast/content agencies with JWT auth, role-based access (admin/client), and AI-powered content creation tools.
 
 ## Architecture
-- **Frontend**: React 19 + Tailwind CSS + shadcn/ui + Recharts + lucide-react + Framer Motion
+- **Frontend**: React 19 + Tailwind CSS + shadcn/ui + Recharts + lucide-react + Framer Motion + @dnd-kit
 - **Backend**: FastAPI + Motor (async MongoDB) + PyJWT + emergentintegrations + APScheduler
 - **Database**: MongoDB (multi-tenant via clientId scoping)
 - **Auth**: JWT-based with admin/client roles
@@ -16,8 +16,56 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 - **Spotlight Tour**: Guided onboarding tour with SVG mask spotlight
 - **Universal Tooltips**: Contextual help system with glassmorphic tooltips
 - **Silk Animations**: Premium page transitions and micro-interactions via Framer Motion
+- **Mastermind Calendar**: Drag-and-drop strategic scheduling workbench
 
 ## What's Been Implemented
+
+### Phase 25 — Mastermind Calendar: Strategic Command Center (Sprint 6) (Dec 19, 2025)
+
+**Summary**: Transformed the static Calendar into a high-intelligence, drag-and-drop strategic workbench with AI-driven gap analysis.
+
+#### Two-Pane Layout
+- **Left (75%)**: Interactive Month Grid (Drop Zone) with droppable day cells
+- **Right (25%)**: Content Pipeline sidebar (Draggable Source) showing unscheduled content
+
+#### DnD Implementation (@dnd-kit)
+- `DraggablePipelineCard`: Pipeline items with drag handles (GripVertical icon)
+- `DraggableCalendarEvent`: Calendar events that can be dragged to reschedule
+- `DroppableDay`: Day cells that accept dropped content
+- `DragOverlay`: Visual feedback during drag operations
+- Optimistic UI updates on drop
+
+#### Multi-Fidelity Views
+- **Month View**: Calendar grid with weekday headers
+- **Agenda View**: Vertical list grouped by date with status badges
+- **Upcoming View**: Next 14 days with "Today" highlighting
+
+#### AI Suggest Engine (`/api/calendar/suggest`)
+- Detects "Content Deserts" (gaps > 48 hours)
+- Cross-references pipeline content
+- Renders "Ghost Pills" (dashed amber border, Sparkles icon) in suggested slots
+- Click to auto-schedule recommended content
+
+#### Cadence Watermarks
+- Monday/Wednesday: "SHORTS DAY"
+- Tuesday/Thursday: "PODCAST DAY"
+- Friday: "BLOG DAY"
+- Watermarks pulse when compatible content is being dragged
+
+#### Backend Endpoints Created
+- `GET /api/calendar/pipeline`: Unscheduled submissions (INTAKE/EDITING)
+- `GET /api/calendar/suggest`: AI gap analysis suggestions
+- `PATCH /api/calendar/schedule/{id}?date=YYYY-MM-DD`: Schedule content
+- `PATCH /api/calendar/unschedule/{id}`: Move back to pipeline
+
+#### Files Modified/Created
+- `CalendarPage.jsx`: Complete rebuild with DndContext and all components
+- `calendar.py`: 4 new endpoints for pipeline, suggest, schedule, unschedule
+
+**Test Results (Dec 19, 2025)**:
+- Backend: 100% (17/17 tests passed)
+- Frontend: 100% (all UI elements and interactions working)
+- Test report: `/app/test_reports/iteration_30.json`
 
 ### Phase 24 — Silk Update: Page Animations & Transitions (Sprint 5) (Dec 19, 2025)
 

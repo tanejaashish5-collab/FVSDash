@@ -11,12 +11,47 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { 
   Settings, User, Palette, Brain, Globe, Sparkles, 
-  Save, Loader2, Plus, X, Tag
+  Save, Loader2, Plus, X, Tag, Send, Youtube, Instagram,
+  CheckCircle2, XCircle, Link2, Unlink
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+// TikTok icon component
+const TikTokIcon = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+  </svg>
+);
+
+const platformCfg = {
+  youtube_shorts: { 
+    label: 'YouTube Shorts', 
+    icon: Youtube, 
+    color: 'text-red-400', 
+    bg: 'bg-red-500/10',
+    border: 'border-red-500/20',
+    description: 'Post short-form videos to YouTube'
+  },
+  tiktok: { 
+    label: 'TikTok', 
+    icon: TikTokIcon, 
+    color: 'text-pink-400', 
+    bg: 'bg-pink-500/10',
+    border: 'border-pink-500/20',
+    description: 'Share videos on TikTok'
+  },
+  instagram_reels: { 
+    label: 'Instagram Reels', 
+    icon: Instagram, 
+    color: 'text-purple-400', 
+    bg: 'bg-purple-500/10',
+    border: 'border-purple-500/20',
+    description: 'Publish Reels to Instagram'
+  },
+};
 
 export default function SettingsPage() {
   const { user, authHeaders } = useAuth();

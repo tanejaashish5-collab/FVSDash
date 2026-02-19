@@ -199,6 +199,110 @@ export default function SubmissionsPage() {
     }
   };
 
+  // Select primary thumbnail
+  const handleSelectThumbnail = async (assetId) => {
+    if (selectingThumbnail || !selected) return;
+    if (selected.primaryThumbnailAssetId === assetId) {
+      toast.info('This is already the primary thumbnail');
+      return;
+    }
+    
+    setSelectingThumbnail(assetId);
+    try {
+      await axios.patch(`${API}/submissions/${selected.id}/primary-thumbnail`, { assetId }, { headers: authHeaders });
+      setSelected(prev => ({ ...prev, primaryThumbnailAssetId: assetId }));
+      setThumbnails(prev => prev.map(t => ({ ...t, isPrimaryThumbnail: t.id === assetId })));
+      toast.success('Primary thumbnail updated!');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to update thumbnail');
+    } finally {
+      setSelectingThumbnail(null);
+    }
+  };
+
+  // Post Now
+  const handlePostNow = async (platform) => {
+    if (!selected) return;
+    setPostingPlatform(platform);
+    try {
+      const res = await axios.post(`${API}/publishing-tasks/create-and-post`, {
+        submissionId: selected.id,
+        platform
+      }, { headers: authHeaders });
+      
+      setPublishingTasks(prev => {
+        const existing = prev.findIndex(t => t.platform === platform);
+        if (existing >= 0) {
+          const updated = [...prev];
+          updated[existing] = res.data;
+          return updated;
+        }
+        return [...prev, res.data];
+      });
+      
+      toast.success(`Posted to ${platformCfg[platform]?.label}!`);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to post');
+    } finally {
+      setPostingPlatform(null);
+    }
+  };
+
+  // Schedule
+  const handleSchedule = async (platform) => {
+    if (!selected || !scheduleDate) {
+      toast.error('Please select a date');
+      return;
+    }
+    
+    setPostingPlatform(platform);
+    try {
+      const scheduledAt = new Date(scheduleDate);
+      const [hours, minutes] = scheduleTime.split(':');
+      scheduledAt.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      
+      const res = await axios.post(`${API}/publishing-tasks`, {
+        submissionId: selected.id,
+        platform,
+        scheduledAt: scheduledAt.toISOString()
+      }, { headers: authHeaders });
+      
+      setPublishingTasks(prev => {
+        const existing = prev.findIndex(t => t.platform === platform);
+        if (existing >= 0) {
+          const updated = [...prev];
+          updated[existing] = res.data;
+          return updated;
+        }
+        return [...prev, res.data];
+      });
+      
+      setSchedulingPlatform(null);
+      setScheduleDate(null);
+      toast.success(`Scheduled for ${platformCfg[platform]?.label}!`);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to schedule');
+    } finally {
+      setPostingPlatform(null);
+    }
+  };
+
+  // Cancel task
+  const handleCancelTask = async (taskId) => {
+    try {
+      await axios.delete(`${API}/publishing-tasks/${taskId}`, { headers: authHeaders });
+      setPublishingTasks(prev => prev.filter(t => t.id !== taskId));
+      toast.success('Scheduled post cancelled');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to cancel');
+    }
+  };
+
+  const formatScheduledDate = (iso) => {
+    if (!iso) return '';
+    return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+
   const inputCls = "bg-zinc-950 border-zinc-800 text-white placeholder:text-zinc-600 focus:border-indigo-500/50 focus:ring-indigo-500/20 text-sm";
 
   return (

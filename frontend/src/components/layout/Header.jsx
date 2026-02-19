@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
@@ -17,6 +18,10 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { Search, Bell, LogOut, Settings, User } from 'lucide-react';
+import NotificationPanel from '@/components/NotificationPanel';
+import axios from 'axios';
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const pathLabels = {
   '/dashboard/overview': 'Overview',

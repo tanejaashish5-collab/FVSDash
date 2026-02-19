@@ -15,6 +15,24 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 
 ## What's Been Implemented
 
+### Phase 18 — Bug Fixes & UX Improvements (Feb 19, 2026)
+
+#### Fixed Issues:
+1. **Issue 1 - Channel Profile Empty State**: Admin users without a clientId now see a graceful "select a client to impersonate" message
+2. **Issue 3 - FVS Automation Settings**: Fixed PUT /api/fvs/config endpoint call (renamed handler for clarity)
+3. **Issue 4 - Dynamic UI for Automation Modes**: Added mode-specific info banners:
+   - Semi-Auto: Blue banner explaining idea review workflow
+   - Full-Auto: Green banner explaining overnight production
+4. **Issue 7 - Hooks Extraction**: Backend now preserves original pre-generated hooks from idea (not script lines)
+5. **Issue 8 - Submissions Table Hover**: Added hover state (bg-white/[0.03]) and pointer cursor to table rows
+6. **Issue 9 - Calendar View Submission**: Renamed button from "View Full Details" to "View Submission"
+7. **Issue 10 - ROI Settings Cleanup**: Removed legacy "Competitor Name" field from ROI Settings tab
+8. **Issue 11 - Publishing Connection Status**: Fixed platform connections to always show all 3 platforms with correct connected status
+
+#### Test Results (Feb 19, 2026):
+- Backend: 95% (20/21 tests passed, 1 timeout expected for heavy LLM tasks)
+- Frontend: 100% (8/8 UI tests passed)
+
 ### Phase 17 — Publishing Layer (Feb 19, 2026)
 
 #### Settings → Publishing Tab

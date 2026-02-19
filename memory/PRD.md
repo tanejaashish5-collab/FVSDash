@@ -90,6 +90,41 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 - Backend: 100% (7/7 tests passed)
 - Frontend: 100% (all UI tests passed)
 
+### Phase 19.3 — Strategy Lab Session History & Persistence (Feb 19, 2026)
+
+#### Backend Changes:
+- Added `StrategySession` model to MongoDB:
+  - `id`, `user_id`, `submission_id` (nullable), `topic`, `target_audience`, `tone`, `goal`, `ai_model`
+  - `research_output`, `outline_output`, `script_output`, `metadata_output` (all nullable Text)
+  - `title` (auto-generated from topic, first 60 chars), `created_at`, `updated_at`
+- New endpoints:
+  - `GET /api/strategy/sessions` - list user's sessions (50 max, ordered by updated_at DESC)
+  - `POST /api/strategy/sessions` - create new session
+  - `GET /api/strategy/sessions/{id}` - get full session (403 if not owner)
+  - `PATCH /api/strategy/sessions/{id}` - partial update outputs
+  - `DELETE /api/strategy/sessions/{id}` - delete session
+
+#### Frontend Changes (StrategyPage.jsx):
+- History Sidebar (240px, collapsible):
+  - Toggle button in header + vertical bar on left edge when collapsed
+  - "New Session" button at top
+  - Session list showing title, AI model badge, relative time
+  - Click session to load, trash icon to delete
+- Auto-save Integration:
+  - `ensureSession()` creates session on first generate if none active
+  - `saveOutputToSession()` saves outputs after each generation
+  - Outline stored as JSON array, metadata as JSON object
+- Session indicator: "Session: [title]" shown below page title
+- Query param: `?submissionId=xxx` pre-fills topic from submission title
+
+#### Frontend Changes (SubmissionsPage.jsx):
+- Added "Open in Strategy Lab" button in submission detail panel
+- Navigates to `/dashboard/strategy?submissionId={id}`
+
+#### Test Results (Feb 19, 2026):
+- Backend: 100% (7/7 tests passed)
+- Frontend: 100% (all UI tests passed)
+
 ### Phase 18 — Bug Fixes & UX Improvements (Feb 19, 2026)
 
 #### Fixed Issues:

@@ -42,9 +42,37 @@ const pathLabels = {
 
 export default function Header() {
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user, logout, authHeaders } = useAuth();
   const pageTitle = pathLabels[location.pathname] || 'Dashboard';
   const isDashboard = location.pathname.startsWith('/dashboard');
+  
+  // Notification state
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Fetch unread count on mount and periodically
+  const fetchUnreadCount = useCallback(async () => {
+    if (!authHeaders.Authorization) return;
+    try {
+      const res = await axios.get(`${API}/notifications/unread-count`, { headers: authHeaders });
+      setUnreadCount(res.data.count);
+    } catch (err) {
+      console.error('Failed to fetch unread count:', err);
+    }
+  }, [authHeaders]);
+
+  useEffect(() => {
+    fetchUnreadCount();
+    // Poll every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [fetchUnreadCount]);
+
+  // Refetch when panel closes (in case notifications were read)
+  const handleCloseNotifications = useCallback(() => {
+    setShowNotifications(false);
+    fetchUnreadCount();
+  }, [fetchUnreadCount]);
 
   return (
     <header

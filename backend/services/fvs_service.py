@@ -884,7 +884,7 @@ async def generate_script_for_idea_endpoint(client_id: str, idea_id: str) -> dic
     
     # Generate hooks (opening lines) - first 2-3 sentences of the script
     script_text = script_data.get("text", "")
-    lines = [l.strip() for l in script_text.split('\n') if l.strip()]
+    lines = [line.strip() for line in script_text.split('\n') if line.strip()]
     hooks = lines[:3] if len(lines) >= 3 else lines
     
     return {

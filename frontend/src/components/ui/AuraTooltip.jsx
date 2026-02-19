@@ -142,7 +142,7 @@ export function AuraTooltip({ content, position = 'top', maxWidth = 260, childre
           onMouseLeave={hideTooltip}
           onFocus={showTooltip}
           onBlur={hideTooltip}
-          className="inline-flex items-center justify-center cursor-help"
+          className="inline-flex items-center justify-center cursor-help tooltip-icon-rotate"
           tabIndex={0}
           role="button"
           aria-label="Help"

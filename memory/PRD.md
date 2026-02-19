@@ -20,6 +20,39 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 
 ### Phase 23 — Universal Tooltips (Sprint 4) (Feb 19, 2026)
 
+#### Sprint 4 Gap Fill — Tooltip Expansion (Dec 19, 2025)
+
+**Summary**: Expanded AuraTooltip coverage from 19 elements across 7 pages to **46 tooltips across 11 pages**.
+
+**Newly Updated Pages**:
+- `CalendarPage.jsx`: Page title (calendarView), Release Date label (addToCalendar) — 2 tooltips
+- `DeliverablesPage.jsx`: Page title (deliverableStatus), Type column (deliverableType), Status column (markComplete), Release column (dueDate) — 4 tooltips
+- `BlogPage.jsx`: Page title (generateWithAi), Blog titles (blogTitle), Excerpts (excerpt) — 11 tooltips (3 per card × 3 cards + 2 header)
+- `VideoLabPage.jsx`: Provider label (videoProvider), Prompt/Description label (scriptInput), Script Text label (sceneBreakdown), Audio Asset label (generateVoiceover) — 4 tooltips
+- `AnalyticsPage.jsx`: Page header description (views30d), KPI cards with tooltips (views30d, watchTime, ctr, revenue) — 5 tooltips
+- `ROIPage.jsx`: Page title (roiCalculation), KPI cards (totalInvestment, totalReturn, paybackPeriod), Cost Assumptions section (costPerVideo), ROI Breakdown section (revenuePerVideo) — 6 tooltips
+- `BillingPage.jsx`: Page title (currentPlan), Current Subscription (currentPlan), Next billing (nextBillingDate), Update Payment (paymentMethod), Change Plan (upgradePlan), Available Plans (usageThisMonth) — 6 tooltips
+
+**Tooltip Coverage Summary**:
+| Page | Tooltip Count |
+|------|---------------|
+| OverviewPage | 5 |
+| SubmissionsPage | 2 |
+| CalendarPage | 2 |
+| DeliverablesPage | 4 |
+| BlogPage | 11 |
+| VideoLabPage | 4 |
+| AnalyticsPage | 5 |
+| ROIPage | 6 |
+| BillingPage | 6 |
+| PublishingDashboardPage | 1 |
+| SettingsPage | 2 |
+| **Total** | **46** |
+
+**Test Results (Dec 19, 2025)**:
+- Frontend: 100% (11/11 pages with tooltips working)
+- Test report: `/app/test_reports/iteration_28.json`
+
 #### AuraTooltip Component (`/app/frontend/src/components/ui/AuraTooltip.jsx`):
 - **Glassmorphic Styling**: `backdrop-blur-md`, `bg-[rgba(20,20,25,0.95)]`, `border-white/10`
 - **Trigger Icon**: 12px HelpCircle icon, `text-amber-400/40` at rest, `text-amber-400` on hover

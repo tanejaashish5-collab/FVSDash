@@ -221,18 +221,22 @@ async def propose_ideas(client_id: str, format: str, range: str) -> dict:
 # PRODUCTION PIPELINE STEPS (Refactored)
 # =============================================================================
 
-async def generate_script_for_idea(idea: dict, brand_voice: str) -> dict:
+async def generate_script_for_idea(idea: dict, brand_voice: str, channel_profile: dict = None) -> dict:
     """
     Step 1: Generate script from idea using LLM.
     
+    Uses Channel Profile settings for language style, tone, and brand context.
+    
     Args:
         idea: The FVS idea dict
-        brand_voice: Client's brand voice description
+        brand_voice: Client's brand voice description (legacy, now in profile)
+        channel_profile: Channel Profile dict with languageStyle, tone, etc.
         
     Returns:
         Script dict with id, text, provider, etc.
     """
     from emergentintegrations.llm.chat import LlmChat, UserMessage
+    from services.channel_profile_service import get_script_instructions
     
     api_key = os.environ.get("EMERGENT_LLM_KEY")
     now = datetime.now(timezone.utc).isoformat()
@@ -240,26 +244,37 @@ async def generate_script_for_idea(idea: dict, brand_voice: str) -> dict:
     script_text = ""
     provider = "mock"
     
+    # Get script instructions from channel profile
+    if channel_profile:
+        script_instructions = get_script_instructions(channel_profile)
+        effective_brand_voice = channel_profile.get("brandDescription", brand_voice)
+    else:
+        script_instructions = "Write in clear, conversational English."
+        effective_brand_voice = brand_voice
+    
     try:
         if api_key:
+            format_desc = "60-90 second vertical video script" if idea.get('format') == 'short' else "15-30 minute podcast episode"
+            
             script_prompt = f"""Write a {idea.get('format', 'short')}-form script for this episode:
 
 Topic: {idea.get('topic')}
 Hypothesis/Angle: {idea.get('hypothesis')}
-Brand Voice: {brand_voice}
-Format: {"60-90 second vertical video script" if idea.get('format') == 'short' else "15-30 minute podcast episode"}
+Format: {format_desc}
 
-Write an engaging, conversational script that:
-- Opens with a strong hook
-- Delivers clear value
+{script_instructions}
+
+Write an engaging script that:
+- Opens with a strong hook that grabs attention in the first 3 seconds
+- Delivers clear value with punchy, memorable lines
 - Has a memorable closing/CTA
 
-Write the full script text only, no stage directions or timestamps."""
+Write the full script text only. No stage directions or timestamps unless performance cues are specified above."""
 
             chat = LlmChat(
                 api_key=api_key,
                 session_id=f"fvs-script-{uuid.uuid4()}",
-                system_message="You are an expert scriptwriter for podcasts and video content."
+                system_message="You are an expert scriptwriter. Follow the language and style instructions exactly."
             ).with_model("anthropic", "claude-sonnet-4-5-20250929")
             
             script_text = await chat.send_message(UserMessage(text=script_prompt))
@@ -276,6 +291,7 @@ Write the full script text only, no stage directions or timestamps."""
         "text": script_text,
         "provider": provider,
         "fvsIdeaId": idea.get("id"),
+        "languageStyle": channel_profile.get("languageStyle", "english") if channel_profile else "english",
         "createdAt": now
     }
 

@@ -167,6 +167,47 @@ export default function SubmissionDetailPage() {
     }
   };
 
+  const handleSelectPrimaryThumbnail = async (assetId) => {
+    if (selectingThumbnail) return; // Prevent double clicks
+    
+    // Check if already primary
+    if (submission.primaryThumbnailAssetId === assetId) {
+      toast.info('This is already the primary thumbnail');
+      return;
+    }
+    
+    setSelectingThumbnail(assetId);
+    
+    try {
+      const res = await axios.patch(
+        `${API}/submissions/${submissionId}/primary-thumbnail`,
+        { assetId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      // Update local state
+      setSubmission(prev => ({
+        ...prev,
+        primaryThumbnailAssetId: assetId
+      }));
+      
+      // Update assets to reflect new primary status
+      setAssets(prev => prev.map(a => ({
+        ...a,
+        isPrimaryThumbnail: a.id === assetId
+      })));
+      
+      toast.success('Primary thumbnail updated!', {
+        description: 'This thumbnail will be used for publishing.'
+      });
+    } catch (err) {
+      console.error('Failed to set primary thumbnail:', err);
+      toast.error(err.response?.data?.detail || 'Failed to set primary thumbnail');
+    } finally {
+      setSelectingThumbnail(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]" data-testid="submission-detail-loading">

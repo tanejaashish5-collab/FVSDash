@@ -299,10 +299,12 @@ export default function SettingsPage() {
               {/* Language Style */}
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label className="text-zinc-300 flex items-center gap-2">
-                    <Globe className="h-4 w-4" />
-                    Language Style
-                  </Label>
+                  <AuraTooltip content={tooltipContent.settings.channelName} position="top">
+                    <Label className="text-zinc-300 flex items-center gap-2">
+                      <Globe className="h-4 w-4" />
+                      Language Style
+                    </Label>
+                  </AuraTooltip>
                   <Select
                     value={channelProfile?.languageStyle || 'english'}
                     onValueChange={(value) => setChannelProfile({ ...channelProfile, languageStyle: value })}
@@ -326,10 +328,12 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-zinc-300 flex items-center gap-2">
-                    <Palette className="h-4 w-4" />
-                    Thumbnail Style
-                  </Label>
+                  <AuraTooltip content={tooltipContent.settings.brandKit} position="top">
+                    <Label className="text-zinc-300 flex items-center gap-2">
+                      <Palette className="h-4 w-4" />
+                      Thumbnail Style
+                    </Label>
+                  </AuraTooltip>
                   <Select
                     value={channelProfile?.thumbnailStyle || 'modern_clean'}
                     onValueChange={(value) => setChannelProfile({ ...channelProfile, thumbnailStyle: value })}

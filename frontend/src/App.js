@@ -21,6 +21,7 @@ import BlogPage from "@/pages/BlogPage";
 import StrategyPage from "@/pages/StrategyPage";
 import VideoLabPage from "@/pages/VideoLabPage";
 import FvsSystemPage from "@/pages/FvsSystemPage";
+import StrategyIdeaDetailPage from "@/pages/StrategyIdeaDetailPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 
 function LoadingScreen() {

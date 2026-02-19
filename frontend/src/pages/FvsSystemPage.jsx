@@ -321,7 +321,7 @@ export default function FvsSystemPage() {
                 Control how autonomously FVS operates for your account.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <RadioGroup
                 value={config.automationLevel}
                 onValueChange={handleAutomationChange}
@@ -346,6 +346,35 @@ export default function FvsSystemPage() {
                   </Label>
                 ))}
               </RadioGroup>
+              
+              {/* Mode-specific info banner */}
+              {config.automationLevel === 'semi_auto' && (
+                <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                  <div className="flex items-start gap-2">
+                    <Lightbulb className="h-4 w-4 text-blue-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-medium text-blue-400">Semi-Auto Mode Active</p>
+                      <p className="text-[10px] text-blue-300/70 mt-0.5">
+                        FVS will propose ideas based on your analytics. Review and click "Produce" on any idea to create a full episode.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {config.automationLevel === 'full_auto_short' && (
+                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                  <div className="flex items-start gap-2">
+                    <Zap className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-medium text-emerald-400">Full Auto Mode Active</p>
+                      <p className="text-[10px] text-emerald-300/70 mt-0.5">
+                        FVS will automatically produce short-form episodes overnight. Check back daily to review completed content in the Submissions page.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

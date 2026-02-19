@@ -76,6 +76,7 @@ function DetailRow({ label, children }) {
 
 export default function SubmissionsPage() {
   const { authHeaders, user } = useAuth();
+  const navigate = useNavigate();
 
   // Form state
   const [title, setTitle] = useState('');
@@ -97,6 +98,19 @@ export default function SubmissionsPage() {
 
   // Detail panel
   const [selected, setSelected] = useState(null);
+  
+  // Thumbnail state
+  const [thumbnails, setThumbnails] = useState([]);
+  const [loadingThumbnails, setLoadingThumbnails] = useState(false);
+  const [selectingThumbnail, setSelectingThumbnail] = useState(null);
+  
+  // Publishing state
+  const [platformConnections, setPlatformConnections] = useState([]);
+  const [publishingTasks, setPublishingTasks] = useState([]);
+  const [postingPlatform, setPostingPlatform] = useState(null);
+  const [schedulingPlatform, setSchedulingPlatform] = useState(null);
+  const [scheduleDate, setScheduleDate] = useState(null);
+  const [scheduleTime, setScheduleTime] = useState('12:00');
 
   const fetchSubmissions = useCallback(() => {
     const params = new URLSearchParams();

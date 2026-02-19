@@ -1,0 +1,435 @@
+"""
+OAuth 2.0 routes for platform connections.
+Implements both real OAuth flow (when credentials are available) and mock flow for sandbox.
+"""
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import RedirectResponse, HTMLResponse
+from datetime import datetime, timezone, timedelta
+from typing import Optional
+import uuid
+import os
+import secrets
+import hashlib
+import base64
+import json
+
+from services.auth_service import get_current_user, get_client_id_from_user
+from db.mongo import oauth_tokens_collection, publish_jobs_collection
+
+router = APIRouter(prefix="/oauth", tags=["oauth"])
+
+# Supported platforms
+PLATFORMS = ["youtube", "tiktok", "instagram"]
+
+# Mock OAuth configuration (for sandbox environment)
+MOCK_OAUTH_ENABLED = True  # Always use mock in sandbox
+
+# Mock account data for demo
+MOCK_ACCOUNTS = {
+    "youtube": {
+        "name": "ForgeVoice Demo Channel",
+        "handle": "@forgevoice_demo",
+        "subscriberCount": "12.4K",
+        "channelId": "UC_demo_channel_123"
+    },
+    "tiktok": {
+        "name": "ForgeVoice TikTok",
+        "handle": "@forgevoice_tiktok",
+        "followerCount": "8.2K",
+        "userId": "tiktok_demo_user_456"
+    },
+    "instagram": {
+        "name": "ForgeVoice Reels",
+        "handle": "@forgevoice_reels",
+        "followerCount": "5.1K",
+        "userId": "ig_demo_user_789"
+    }
+}
+
+# Daily quota tracking (in-memory for demo, would be Redis in production)
+_daily_quota = {}
+
+
+def get_daily_quota_key():
+    """Get key for today's quota tracking."""
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+
+def get_quota_usage(client_id: str) -> dict:
+    """Get current quota usage for a client."""
+    key = f"{client_id}:{get_daily_quota_key()}"
+    used = _daily_quota.get(key, 0)
+    max_quota = 10000  # YouTube's daily quota
+    return {
+        "used": used,
+        "max": max_quota,
+        "remaining": max_quota - used,
+        "percentUsed": round((used / max_quota) * 100, 1),
+        "resetsAt": "Midnight PT"
+    }
+
+
+def consume_quota(client_id: str, units: int):
+    """Consume quota units for a client."""
+    key = f"{client_id}:{get_daily_quota_key()}"
+    _daily_quota[key] = _daily_quota.get(key, 0) + units
+
+
+# ============================================================================
+# OAuth Status Endpoints
+# ============================================================================
+
+@router.get("/status")
+async def get_oauth_status(
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    """
+    Get OAuth connection status for all platforms.
+    Returns connection status, account info, and token health.
+    """
+    client_id = get_client_id_from_user(user, impersonateClientId)
+    db = oauth_tokens_collection()
+    
+    tokens = await db.find({"clientId": client_id}, {"_id": 0}).to_list(100)
+    tokens_by_platform = {t["platform"]: t for t in tokens}
+    
+    result = {}
+    for platform in PLATFORMS:
+        token = tokens_by_platform.get(platform)
+        if token and token.get("connected"):
+            # Check token expiry
+            expires_at = token.get("expiresAt")
+            token_status = "valid"
+            if expires_at:
+                expiry_time = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+                if expiry_time < datetime.now(timezone.utc):
+                    token_status = "expired"
+                elif expiry_time < datetime.now(timezone.utc) + timedelta(hours=1):
+                    token_status = "expiring_soon"
+            
+            result[platform] = {
+                "connected": True,
+                "tokenStatus": token_status,
+                "accountName": token.get("accountName"),
+                "accountHandle": token.get("accountHandle"),
+                "accountMeta": token.get("accountMeta", {}),
+                "connectedAt": token.get("connectedAt"),
+                "expiresAt": expires_at
+            }
+        else:
+            result[platform] = {
+                "connected": False,
+                "tokenStatus": None,
+                "accountName": None,
+                "accountHandle": None,
+                "accountMeta": {},
+                "connectedAt": None,
+                "expiresAt": None
+            }
+    
+    return result
+
+
+# ============================================================================
+# OAuth Connect Flow (Mock Implementation)
+# ============================================================================
+
+@router.post("/connect/{platform}")
+async def initiate_oauth_connect(
+    platform: str,
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    """
+    Initiate OAuth 2.0 connection flow for a platform.
+    In sandbox mode, returns a mock authorization URL.
+    In production, would return real OAuth URL with PKCE challenge.
+    """
+    if platform not in PLATFORMS:
+        raise HTTPException(status_code=400, detail=f"Unsupported platform: {platform}")
+    
+    client_id = get_client_id_from_user(user, impersonateClientId)
+    
+    # Generate state and PKCE verifier
+    state = secrets.token_urlsafe(32)
+    code_verifier = secrets.token_urlsafe(64)
+    code_challenge = base64.urlsafe_b64encode(
+        hashlib.sha256(code_verifier.encode()).digest()
+    ).decode().rstrip("=")
+    
+    # Store state for callback verification (in production, use Redis with TTL)
+    db = oauth_tokens_collection()
+    await db.update_one(
+        {"clientId": client_id, "platform": platform},
+        {"$set": {
+            "oauthState": state,
+            "codeVerifier": code_verifier,
+            "oauthInitiatedAt": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    
+    # In sandbox mode, return mock auth URL that will auto-complete
+    if MOCK_OAUTH_ENABLED:
+        # Mock OAuth URL points to our callback with pre-generated code
+        mock_code = f"mock_auth_code_{secrets.token_urlsafe(16)}"
+        base_url = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001")
+        auth_url = f"{base_url}/api/oauth/callback/{platform}?code={mock_code}&state={state}"
+        
+        return {
+            "authUrl": auth_url,
+            "state": state,
+            "isMock": True,
+            "popupWidth": 600,
+            "popupHeight": 700
+        }
+    
+    # Production OAuth URLs (would need real client credentials)
+    oauth_urls = {
+        "youtube": f"https://accounts.google.com/o/oauth2/v2/auth?client_id={os.environ.get('YOUTUBE_CLIENT_ID')}&redirect_uri={os.environ.get('YOUTUBE_REDIRECT_URI')}&response_type=code&scope=https://www.googleapis.com/auth/youtube.upload%20https://www.googleapis.com/auth/youtube.readonly&state={state}&code_challenge={code_challenge}&code_challenge_method=S256&access_type=offline&prompt=consent",
+        "tiktok": f"https://www.tiktok.com/auth/authorize/?client_key={os.environ.get('TIKTOK_CLIENT_KEY')}&scope=user.info.basic,video.upload&response_type=code&redirect_uri={os.environ.get('TIKTOK_REDIRECT_URI')}&state={state}",
+        "instagram": f"https://api.instagram.com/oauth/authorize?client_id={os.environ.get('INSTAGRAM_CLIENT_ID')}&redirect_uri={os.environ.get('INSTAGRAM_REDIRECT_URI')}&scope=instagram_basic,instagram_content_publish&response_type=code&state={state}"
+    }
+    
+    return {
+        "authUrl": oauth_urls.get(platform),
+        "state": state,
+        "isMock": False,
+        "popupWidth": 600,
+        "popupHeight": 700
+    }
+
+
+@router.get("/callback/{platform}")
+async def oauth_callback(
+    platform: str,
+    code: str = Query(...),
+    state: str = Query(...),
+    error: Optional[str] = Query(None)
+):
+    """
+    Handle OAuth callback after user authorization.
+    Exchanges code for tokens and stores them securely.
+    Returns HTML that closes the popup and notifies parent window.
+    """
+    if error:
+        return HTMLResponse(content=f"""
+            <html>
+            <body>
+            <script>
+                window.opener.postMessage({{ type: 'oauth_error', platform: '{platform}', error: '{error}' }}, '*');
+                window.close();
+            </script>
+            <p>Authorization failed: {error}. This window will close automatically.</p>
+            </body>
+            </html>
+        """)
+    
+    db = oauth_tokens_collection()
+    
+    # Find the token record with matching state
+    token_record = await db.find_one({"oauthState": state, "platform": platform})
+    if not token_record:
+        return HTMLResponse(content=f"""
+            <html>
+            <body>
+            <script>
+                window.opener.postMessage({{ type: 'oauth_error', platform: '{platform}', error: 'Invalid state parameter' }}, '*');
+                window.close();
+            </script>
+            <p>Invalid state. This window will close automatically.</p>
+            </body>
+            </html>
+        """)
+    
+    client_id = token_record.get("clientId")
+    
+    # Mock token exchange
+    if MOCK_OAUTH_ENABLED or code.startswith("mock_"):
+        mock_data = MOCK_ACCOUNTS.get(platform, {})
+        now = datetime.now(timezone.utc)
+        expires_at = (now + timedelta(hours=1)).isoformat()  # Mock tokens expire in 1 hour
+        
+        await db.update_one(
+            {"clientId": client_id, "platform": platform},
+            {"$set": {
+                "connected": True,
+                "accessToken": f"mock_access_{secrets.token_urlsafe(32)}",
+                "refreshToken": f"mock_refresh_{secrets.token_urlsafe(32)}",
+                "expiresAt": expires_at,
+                "accountName": mock_data.get("name", "Demo Account"),
+                "accountHandle": mock_data.get("handle", "@demo"),
+                "accountMeta": {k: v for k, v in mock_data.items() if k not in ["name", "handle"]},
+                "connectedAt": now.isoformat(),
+                "updatedAt": now.isoformat(),
+                "oauthState": None,
+                "codeVerifier": None
+            }}
+        )
+        
+        return HTMLResponse(content=f"""
+            <html>
+            <head>
+                <style>
+                    body {{
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+                        color: white;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        height: 100vh;
+                        margin: 0;
+                    }}
+                    .success-icon {{
+                        width: 64px;
+                        height: 64px;
+                        background: rgba(34, 197, 94, 0.2);
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        margin-bottom: 16px;
+                    }}
+                    .success-icon svg {{
+                        width: 32px;
+                        height: 32px;
+                        color: #22c55e;
+                    }}
+                    h2 {{
+                        margin: 0 0 8px 0;
+                        font-size: 20px;
+                    }}
+                    p {{
+                        color: #94a3b8;
+                        font-size: 14px;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="success-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                <h2>Connected Successfully!</h2>
+                <p>You can close this window now.</p>
+                <script>
+                    window.opener.postMessage({{ 
+                        type: 'oauth_success', 
+                        platform: '{platform}',
+                        accountName: '{mock_data.get("name", "Demo Account")}',
+                        accountHandle: '{mock_data.get("handle", "@demo")}'
+                    }}, '*');
+                    setTimeout(() => window.close(), 1500);
+                </script>
+            </body>
+            </html>
+        """)
+    
+    # Production: Exchange code for tokens (would implement real OAuth here)
+    # This is a placeholder for real implementation
+    return HTMLResponse(content="<html><body>Production OAuth not implemented</body></html>")
+
+
+@router.delete("/disconnect/{platform}")
+async def disconnect_platform(
+    platform: str,
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    """
+    Disconnect a platform by revoking and deleting OAuth tokens.
+    """
+    if platform not in PLATFORMS:
+        raise HTTPException(status_code=400, detail=f"Unsupported platform: {platform}")
+    
+    client_id = get_client_id_from_user(user, impersonateClientId)
+    db = oauth_tokens_collection()
+    
+    # Find existing token
+    token = await db.find_one({"clientId": client_id, "platform": platform})
+    if not token or not token.get("connected"):
+        raise HTTPException(status_code=404, detail="Platform not connected")
+    
+    # In production, would revoke token with the platform's API here
+    
+    # Delete the token record
+    await db.delete_one({"clientId": client_id, "platform": platform})
+    
+    return {"success": True, "message": f"{platform} disconnected successfully"}
+
+
+@router.post("/refresh/{platform}")
+async def refresh_token(
+    platform: str,
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    """
+    Refresh an expiring or expired OAuth token.
+    """
+    if platform not in PLATFORMS:
+        raise HTTPException(status_code=400, detail=f"Unsupported platform: {platform}")
+    
+    client_id = get_client_id_from_user(user, impersonateClientId)
+    db = oauth_tokens_collection()
+    
+    token = await db.find_one({"clientId": client_id, "platform": platform})
+    if not token or not token.get("connected"):
+        raise HTTPException(status_code=404, detail="Platform not connected")
+    
+    # Mock token refresh
+    if MOCK_OAUTH_ENABLED:
+        now = datetime.now(timezone.utc)
+        new_expires_at = (now + timedelta(hours=1)).isoformat()
+        
+        await db.update_one(
+            {"clientId": client_id, "platform": platform},
+            {"$set": {
+                "accessToken": f"mock_access_{secrets.token_urlsafe(32)}",
+                "expiresAt": new_expires_at,
+                "updatedAt": now.isoformat()
+            }}
+        )
+        
+        return {
+            "success": True,
+            "expiresAt": new_expires_at,
+            "message": "Token refreshed successfully"
+        }
+    
+    # Production refresh would use refresh_token to get new access_token
+    raise HTTPException(status_code=501, detail="Production token refresh not implemented")
+
+
+# ============================================================================
+# Quota Management
+# ============================================================================
+
+@router.get("/quota")
+async def get_quota(
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    """
+    Get current API quota usage for the client.
+    Tracks YouTube API quota (10,000 units/day, ~1,600 per upload).
+    """
+    client_id = get_client_id_from_user(user, impersonateClientId)
+    quota = get_quota_usage(client_id)
+    
+    # Add warning level
+    if quota["percentUsed"] >= 95:
+        quota["level"] = "critical"
+        quota["message"] = "Quota nearly exhausted. Publishing disabled until reset."
+    elif quota["percentUsed"] >= 80:
+        quota["level"] = "warning"
+        quota["message"] = "Quota running low. Consider limiting uploads."
+    else:
+        quota["level"] = "normal"
+        quota["message"] = None
+    
+    return quota

@@ -441,7 +441,7 @@ export default function FvsSystemPage() {
                         <Button
                           onClick={handleProposeIdeas}
                           disabled={proposing}
-                          className="w-full h-10 bg-indigo-500 hover:bg-indigo-600 text-white"
+                          className={`aura-btn-primary w-full h-10 bg-indigo-500 hover:bg-indigo-600 text-white ${proposing ? 'animate-aura-button-glow' : ''}`}
                           data-testid="run-brain-btn"
                         >
                           {proposing ? (

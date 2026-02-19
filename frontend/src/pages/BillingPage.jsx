@@ -114,9 +114,11 @@ export default function BillingPage() {
     <div data-testid="billing-page" className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
-          Billing
-        </h1>
+        <AuraTooltip content={tooltipContent.billing.currentPlan} position="right">
+          <h1 className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
+            Billing
+          </h1>
+        </AuraTooltip>
         <p className="text-sm text-zinc-500 mt-0.5">Your subscription and payment details.</p>
       </div>
 
@@ -146,10 +148,12 @@ export default function BillingPage() {
           {/* Current Plan Card */}
           <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="current-plan-card">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-                <CreditCard className="h-4 w-4 text-zinc-400" />
-                Current Subscription
-              </CardTitle>
+              <AuraTooltip content={tooltipContent.billing.currentPlan} position="right">
+                <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                  <CreditCard className="h-4 w-4 text-zinc-400" />
+                  Current Subscription
+                </CardTitle>
+              </AuraTooltip>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -173,32 +177,38 @@ export default function BillingPage() {
                   {data.billing?.nextBillingDate && (
                     <div className="flex items-center gap-2 text-xs text-zinc-500">
                       <Calendar className="h-3.5 w-3.5" />
-                      <span>Next billing: {formatDate(data.billing.nextBillingDate)}</span>
+                      <AuraTooltip content={tooltipContent.billing.nextBillingDate} position="top">
+                        <span>Next billing: {formatDate(data.billing.nextBillingDate)}</span>
+                      </AuraTooltip>
                     </div>
                   )}
                 </div>
 
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleStripeAction('Update payment method')}
-                    className="h-8 text-xs bg-zinc-950 border-zinc-800 hover:border-indigo-500/30 text-zinc-300"
-                    data-testid="update-payment-btn"
-                  >
-                    <CreditCard className="h-3.5 w-3.5 mr-1.5" />
-                    Update Payment
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleStripeAction('Change plan')}
-                    className="h-8 text-xs bg-zinc-950 border-zinc-800 hover:border-indigo-500/30 text-zinc-300"
-                    data-testid="change-plan-btn"
-                  >
-                    <ArrowUpRight className="h-3.5 w-3.5 mr-1.5" />
-                    Change Plan
-                  </Button>
+                  <AuraTooltip content={tooltipContent.billing.paymentMethod} position="top">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleStripeAction('Update payment method')}
+                      className="h-8 text-xs bg-zinc-950 border-zinc-800 hover:border-indigo-500/30 text-zinc-300"
+                      data-testid="update-payment-btn"
+                    >
+                      <CreditCard className="h-3.5 w-3.5 mr-1.5" />
+                      Update Payment
+                    </Button>
+                  </AuraTooltip>
+                  <AuraTooltip content={tooltipContent.billing.upgradePlan} position="top">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleStripeAction('Change plan')}
+                      className="h-8 text-xs bg-zinc-950 border-zinc-800 hover:border-indigo-500/30 text-zinc-300"
+                      data-testid="change-plan-btn"
+                    >
+                      <ArrowUpRight className="h-3.5 w-3.5 mr-1.5" />
+                      Change Plan
+                    </Button>
+                  </AuraTooltip>
                 </div>
               </div>
 
@@ -252,9 +262,11 @@ export default function BillingPage() {
 
           {/* All Plans */}
           <div>
-            <h2 className="text-sm font-semibold text-white mb-4" style={{ fontFamily: 'Manrope, sans-serif' }}>
-              Available Plans
-            </h2>
+            <AuraTooltip content={tooltipContent.billing.usageThisMonth} position="right">
+              <h2 className="text-sm font-semibold text-white mb-4" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                Available Plans
+              </h2>
+            </AuraTooltip>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {Object.entries(data.allPlans || {}).map(([plan, details]) => (
                 <PlanCard

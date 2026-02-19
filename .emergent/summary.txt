@@ -1,108 +1,60 @@
 <analysis>**original_problem_statement:**
-The user's goal is to build out a full content lifecycle management system called ForgeVoice Studio. The work in this session focused on several large features and bug fixes:
-1.  **Strategy Idea Flow**: Implement a page to view details of a generated Strategy Idea, generate a script for it, and then create either a Submission or an AI Video Task from it.
-2.  **Quick Produce**: Add a one-click button on the Strategy Idea page to run the entire content generation pipeline (script, audio, thumbnails, video task).
-3.  **S3 & Thumbnail Selection**: Make S3 storage mandatory for all generated media and implement the backend and frontend logic for a user to select a primary thumbnail from multiple generated options.
-4.  **Publishing Layer (Mocked)**: Build the complete UI and backend for a social media publishing system. This includes a settings page for connecting accounts (mocked OAuth), a dashboard to view all publishing tasks, and a panel on the submission detail page to Post Now or Schedule content to different platforms.
-5.  **Strategy Idea Detail Panel**: Create a slide-over panel on the FVS System page to show details of a selected idea, including its generated script, and provide actions to create a submission or video task.
-6.  **Submission Detail Modal UI**: Add the previously built Thumbnail Gallery and Publishing Panel to the submission detail modal that appears on the main .
-7.  **Bug Fixes**: Address a list of 11 specific bugs and UX improvements across the application.
+The user's objective is to build a comprehensive content lifecycle management system, ForgeVoice Studio. The project is being developed in sprints.
+
+- **Sprint 4 (Gap Fill)**: Completed the universal tooltip system by adding tooltips to all remaining pages.
+- **Sprint 5 (The Silk Update)**: Implemented a full-stack animation system using Framer Motion to create a fluid, premium user experience with page transitions, component animations, and micro-interactions.
+- **Sprint 6 (The Mastermind Calendar)**: Rebuilt the calendar into a strategic, two-pane drag-and-drop workbench with a content pipeline, AI-driven gap suggestions (Ghost Pills), and multiple views.
+- **Sprint 7 (P0 — Real OAuth Publishing Layer)**: Implement a real, end-to-end OAuth 2.0 publishing pipeline for YouTube Shorts. This involves creating a Connected Accounts section in settings, a full redesign of the publishing dashboard, and backend services to handle OAuth, video uploads, status polling, and quota management. A mock OAuth flow was required for the sandbox environment.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The ForgeVoice Studio is a full-stack application with a modular FastAPI backend, a React frontend, and a MongoDB database. It includes JWT authentication, real AI/media integrations (ElevenLabs, Veo, OpenAI), S3 storage for assets, and a Channel Profile system to guide AI content generation.
+The application is a full-stack system (FastAPI, React, MongoDB) with a sophisticated Aura glass-morphic UI. Key features include content submissions, a strategic drag-and-drop calendar, a real-time notification engine, a guided tour, universal tooltips, and a comprehensive animation system.
 
-Recent additions include:
-- A complete, but mocked, **Publishing Layer**. This includes backend models (), CRUD APIs, a background scheduler (), a settings UI for mock OAuth connections, a central , and a Publish panel on submission detail views.
-- A **Strategy Idea Detail** page and a slide-over panel on the , allowing users to view generated scripts and create submissions or video tasks directly from an idea.
-- A fully functional **Primary Thumbnail Selection** feature, allowing users to choose the main thumbnail for a submission via the UI.
-- S3 storage is now the mandatory destination for all generated media assets.
+The most recent update introduced the foundation for a real OAuth publishing layer. This includes:
+- Backend models (, ) and API routes (, ) with a mock OAuth flow for YouTube.
+- A redesigned Connected Accounts section on the Settings page to handle OAuth connections.
+- A completely new Publishing Dashboard UI with a content queue, a publish slide-over panel, and tabs for history and failed jobs.
 
 **Last working item**:
-    - Last item agent was working: Addressing a list of 11 bugs and UX improvements provided by the user. The agent began by investigating the first few issues, identifying that admin users lacking a default  was the root cause for errors on the Channel Profile and Publishing settings pages. The agent had started to implement the fix on the frontend .
+    - Last item agent was working: The agent just finished implementing the UI for Sprint 7, the **Real OAuth Publishing Layer**. The last action was manually testing the OAuth connection flow on the Settings page and viewing the new Publishing Dashboard page via screenshots.
     - Status: IN PROGRESS
     - Agent Testing Done: N
     - Which testing method agent to use? both
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-The following bugs and UX improvements were requested by the user and are pending implementation.
-
-  Issue 1:  Settings → Channel Profile: Graceful empty state for users without a profile (P0)
-  Issue 2:  Settings → Publishing: Connection cards missing for admin role (P1)
-  Issue 3:  FVS System: Failed to save automation settings error on PATCH (P1)
-  Issue 4:  FVS System: Dynamic UI for Semi-Auto/Full-Auto modes (P1)
-  Issue 5:  Deliverables/Assets pages: Missing empty state component (P2)
-  Issue 6:  AI Video Lab: Task list query is not showing all statuses (P2)
-  Issue 7:  FVS System → Idea Detail: Incorrect hooks extraction from script (P2)
-  Issue 8:  Submissions table: Add hover state and pointer cursor (UX) (P3)
-  Issue 9:  Calendar event panel: Add View Submission link (UX) (P3)
-  Issue 10: Settings → ROI Settings: Hide legacy Brand Voice field (UX) (P3)
-  Issue 11: Submission Detail Modal: Publishing connection status is incorrect (P1)
-  
-  Issues Detail:
-  - Issue 1: 
-     - Attempted fixes: Agent analyzed  and . It determined the backend correctly creates a default profile if a  is present, but fails for admins without one. The agent started modifying  to handle the case where no  exists.
-     - Next debug checklist: 
-        1. Complete the frontend fix in  to show a Create Profile empty state if the user is an admin without an impersonated .
-        2. Ensure the Create Profile button correctly initializes a profile for the admin's default/first client or prompts for selection.
-     - Why fix this issue and what will be achieved with the fix?: This will prevent a hard crash for admin users and provide a clear path for them to set up a Channel Profile, improving usability.
-     - Status:  IN PROGRESS
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix?: both
-     - Blocked on other issue: No.
-  - Issue 2: 
-     - Attempted fixes: None yet, but analysis for Issue 1 revealed this is likely due to the same missing  for the admin role.
-     - Next debug checklist: Modify the Publishing tab in  to ensure it fetches and displays platform connection cards regardless of user role, defaulting to Not Connected if no data exists.
-     - Why fix this issue and what will be achieved with the fix?: Admins will be able to view and manage publishing connections, which is critical for system oversight.
-     - Status:  NOT STARTED
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix?: frontend
-     - Blocked on other issue: No.
-  - Issue 3: 
-     - Attempted fixes: Agent found a mismatch between the frontend using  and the backend expecting a different structure or  method for the  endpoint.
-     - Next debug checklist: Inspect  to see how  is called. The current call sends . The backend endpoint  in  expects . Align the frontend request body with the backend endpoint signature.
-     - Why fix this issue and what will be achieved with the fix?: This will fix a broken core feature on the FVS System page, allowing users to change the automation level.
-     - Status:  NOT STARTED
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix?: both
-     - Blocked on other issue: No.
-  - **(Details for Issues 4-11 follow the same pattern and are omitted for brevity but should be addressed by the next agent based on the user's final prompt)**
+There are no outstanding bug reports. The current focus is on completing and verifying the Sprint 7 feature.
 
 **In progress Task List**:
-  - Task 1:  Fix Bugs and UX Improvements
-     - Where to resume: Continue implementing the fix for Issue 1 in , then proceed through the rest of the 11-item list in priority order.
-     - What will be achieved with this?: This will resolve multiple functional bugs and improve the overall user experience of the application, making it more stable and intuitive.
+  - Task 1:  SPRINT 7 — Real OAuth Publishing Layer (P0)
+     - Where to resume: The backend and frontend implementation for the OAuth publishing layer is complete. The next critical step is to perform comprehensive end-to-end testing as per the sprint's acceptance criteria. This includes testing the mock OAuth flow, the Publish Now functionality, status polling, quota display, error handling, and calendar integration.
+     - What will be achieved with this?: This will validate that the most critical feature of the application is working as expected, paving the way for production deployment.
      - Status:  IN PROGRESS
      - Should Test frontend/backend/both after fix?: both
      - Blocked on something: No.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks:**
-    - P0: Connect real OAuth and APIs for the Publishing Layer, starting with YouTube Shorts.
+    - P1: Implement full OAuth integration for TikTok and Instagram Reels on the Publishing page.
+    - P1: Implement full animation and page transitions for a more fluid UX. (Partially done in Sprint 5, may need further refinement).
 - **Future Tasks:**
-    - P1: Refactor media services to make the S3 storage service the primary and mandatory destination for all generated assets.
+    - P1: Refactor media services to make S3 the primary and non-fallback storage mechanism.
     - P2: Integrate Stripe to replace the mocked billing system.
     - P2: Implement a real integration for the Runway video provider.
     - P2: Add a feature for admins to onboard new clients directly from the admin panel.
 
 **Completed work in this session**
-- **Strategy Idea Detail Flow**: Implemented  and backend endpoints (, ) to view an idea and its generated script.
-- **Quick Produce Feature**: Added a Quick Produce button to  that triggers the full FVS pipeline via the  service.
-- **Mandatory S3 & Thumbnail Backend**: Updated  to make S3 uploads mandatory. Added a  endpoint and updated  model to store .
-- **Thumbnail Selection UI**: Implemented a clickable thumbnail gallery on  to call the new PATCH endpoint.
-- **Mocked Publishing Layer**:
-    - Created  model () and CRUD endpoints ().
-    - Implemented a background scheduler using  ().
-    - Built the  and added a Publishing tab to  for mock account connections.
-    - Added a Publishing panel to  to post/schedule content.
-- **Strategy Idea Detail Panel**: Added a slide-over panel on  to show idea details, with action buttons to create submissions/video tasks.
-- **Submission Detail Modal UI**: Added the Thumbnail Gallery and Publishing Panel to the submission detail modal on .
-- **Testing**: Created new backend test files (, ) and successfully ran the testing agent multiple times, ensuring all 17 tests pass.
+- **Sprint 4 Gap Fill (Tooltips)**: Expanded  coverage to all 11 required pages, completing the universal tooltip system. (DONE)
+- **Sprint 5 (Silk Animations)**: Integrated  to add page transitions, animated numbers, staggered card entry, sidebar glow effects, and other micro-interactions across the app. (DONE)
+- **Sprint 6 (Mastermind Calendar)**: Rebuilt the  into a two-pane, drag-and-drop interface with a Content Pipeline, multiple views (Month/Agenda/Upcoming), and an AI suggestion engine. (DONE)
+- **Sprint 7 (OAuth Publishing Layer - Implementation)**:
+    - Created backend models (, ) and API routes (, ) with a mock OAuth flow.
+    - Implemented a Connected Accounts section in .
+    - Completely redesigned  with a new UI for queuing, publishing, and tracking content. (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-The 11 items listed in **All Pending/In progress Issue list** are the outstanding issues to be fixed.
+- None.
 
 **Known issue recurrence from previous fork**
   - None.
@@ -111,102 +63,99 @@ The 11 items listed in **All Pending/In progress Issue list** are the outstandin
 
 
 **Key Technical Concepts**
-- **Frontend**: React, React Router, Tailwind CSS, Shadcn UI.
-- **Backend**: Modular FastAPI, Pydantic.
+- **Frontend**: React, React Router, Tailwind CSS, Shadcn UI, Framer Motion, .
+- **Backend**: FastAPI, Pydantic.
 - **Database**: MongoDB.
-- **Background Jobs**:  for processing scheduled publishing tasks.
-- **Cloud Storage**:  for mandatory S3 integration.
-- **Dynamic AI Prompting**: Using a  to guide content generation.
+- **UI/UX**: Glass-morphism, Aura theme, page transitions, drag-and-drop.
+- **Authentication**: Custom JWT, Mock OAuth 2.0 PKCE flow.
 
 **key DB schema**
-  - **publishing_tasks**: (New) Stores tasks for social media posts with , , , , etc.
-  - **fvs_ideas**: (Updated) Added , Script started, output log file is 'typescript'.
-# 
-Script done., , .
-  - **submissions**: (Updated) Added  and .
-  - **channel_profiles**: Stores client-specific brand settings.
+  - **notifications**: uid=0(root) gid=0(root) groups=0(root), , , , , , , .
+  - **oauth_tokens**: uid=0(root) gid=0(root) groups=0(root), , , , , , , , .
+  - **publish_jobs**: uid=0(root) gid=0(root) groups=0(root), , , , , , , .
 
 **changes in tech stack**
-  -  added to  for background job scheduling.
+  - Added  for animations.
+  - Added , ,  for drag-and-drop functionality.
 
 **All files of reference**
-- : Logic for FVS automation, ideas, and script generation.
-- : API for managing channel profiles.
-- : UI for Channel Profile and Publishing settings.
-- : UI for FVS automation and idea management.
-- : Location of the submission detail modal that needs UI additions.
-- : Standalone detail page with thumbnail selection.
-- , , : Contain the new publishing layer logic.
+- **Sprint 7 Core Files:**
+  -  (New: Handles OAuth connection flow)
+  -  (New: Handles publishing logic)
+  -  (New: Mock YouTube API interaction)
+  -  (Updated for Connected Accounts)
+  -  (New: Redesigned publishing UI)
+- **Sprint 6 Core Files:**
+  -  (Rebuilt for drag-and-drop)
+  -  (New: Backend for calendar data and AI suggestions)
+- **Sprint 5 Core Files:**
+  -  (New directory with animation components)
+  -  (Updated with )
+  -  (Updated with animation keyframes)
 
 **Areas that need refactoring**:
-- The user has requested multiple UI/UX consistency fixes which are part of the pending issues list.
-- Future task to enforce S3 as the primary, non-fallback storage mechanism.
+- A future task is to refactor all media services to enforce S3 as the sole, mandatory storage solution.
 
 **key api endpoints**
-- **New Endpoints:**
-    - 
-    - 
-    - 
-    - 
-    - , ,  (mock OAuth)
-- **Updated Endpoints:**
-    - : Now handles .
-    - : Now handles .
-    - : Endpoint for automation settings (needs bug fix).
+- : Initiates the mock OAuth flow.
+- : Handles the mock OAuth redirect.
+- : Deletes stored mock tokens.
+- : Fetches connection status for all platforms.
+- : Initiates a mock video publish job.
+- : Polls the status of a publish job.
+- : Returns mock daily quota usage.
+- : Provides AI-driven scheduling suggestions.
+- : Used to update submission status and schedule date.
 
 **Critical Info for New Agent**
-- Your immediate priority is to work through the list of 11 bugs and UX improvements provided in the last user message.
-- Start with , as you have already begun analysis. The root cause for several issues (especially for the admin role) is the lack of a . Address this pattern as you work through the list.
-- Fix issues in the priority order provided by the user.
-- All 17 existing tests must continue to pass after your fixes. Use the testing agent to verify this.
-- Do not begin work on the real Publishing Layer OAuth integration until all listed bugs are resolved and confirmed by the user.
+- Your immediate task is to thoroughly test the Sprint 7: Real OAuth Publishing Layer feature. The implementation is done, but it has not been verified against the user's comprehensive acceptance criteria.
+- Use the  to run a full end-to-end test suite covering all 10 scenarios outlined in the Sprint 7 prompt.
+- The entire OAuth and publishing flow is currently mocked on the backend (). Your testing should validate this mock flow works perfectly, as it's the foundation for the real integration.
+- Do not proceed to new features until Sprint 7 is fully tested and any bugs are fixed.
 
 **documents and test reports created in this job**
--  (Updated with multiple new phases)
-- 
-- 
-- 
-- 
-- 
-- 
-- 
+-  (Continuously updated)
+-  (Sprint 4 Test)
+-  (Sprint 5 Test)
+-  (Sprint 6 Test)
 
-**Last 10 User Messages and any pending HUMAN messages** 
-- **User**: Provided a list of 11 bugs and UX improvements to be fixed in priority order. (PENDING)
-- **Agent**: Finished adding the Thumbnail Gallery and Publishing Panel to the Submission Detail Modal. (COMPLETE)
-- **User**: Requested to add the Thumbnail Gallery and Publishing Panel to the Submission Detail Modal on the submissions page. (RESOLVED)
-- **Agent**: Finished implementing the Strategy Idea Detail Side Panel. (COMPLETE)
-- **User**: Requested to build the Strategy Idea Detail Side Panel, which was missed in a previous step. (RESOLVED)
-- **Agent**: Finished implementing the full mocked Publishing Layer. (COMPLETE)
-- **User**: Provided a detailed prompt to build the entire mocked Publishing Layer. (RESOLVED)
-- **Agent**: Finished implementing the thumbnail selection UI and confirmed S3 env var names. (COMPLETE)
-- **User**: Requested the thumbnail selection UI on the  and confirmation of S3 environment variable names. (RESOLVED)
-- **Agent**: Finished making S3 mandatory and implementing the primary thumbnail selection backend. (COMPLETE)
+**Last 10 User Messages and any pending HUMAN messages**
+- **User**: Approved the plan for Sprint 7, emphasizing the need for a fully demonstrable mock flow and zero regressions. (PENDING)
+- **Agent**: Proposed the implementation plan for Sprint 7. (RESOLVED)
+- **User**: Provided the prompt for Sprint 7: P0 — Real OAuth Publishing Layer. (RESOLVED)
+- **Agent**: Finished Sprint 6. (COMPLETE)
+- **User**: Approved the plan for Sprint 6, prioritizing the fluid drag-and-drop experience. (RESOLVED)
+- **Agent**: Proposed the implementation plan for Sprint 6. (RESOLVED)
+- **User**: Provided the prompt for Sprint 6: The Mastermind Calendar. (RESOLVED)
+- **Agent**: Finished Sprint 5. (COMPLETE)
+- **User**: Approved the plan for Sprint 5. (RESOLVED)
+- **Agent**: Proposed the implementation plan for Sprint 5. (RESOLVED)
 
 **Project Health Check:**
--   **Broken**: Several features are functionally broken as per the user's last message (FVS automation settings, AI Video Lab task list, hooks extraction, etc.).
--   **Mocked**:
-    -   Publishing Layer (YouTube, TikTok, Instagram Reels integrations are fully mocked).
-    -   Video generation via the  provider.
-    -   Stripe Payments on the Billing page.
+- **Broken**: None.
+- **Mocked**:
+    - **Publishing Layer**: The entire end-to-end publishing flow is mocked at the service level () to simulate OAuth and video uploads without real credentials.
+    - **Video Generation**: The  provider integration is mocked.
+    - **Stripe Payments**: The billing system and Stripe integration are mocked.
 
 **3rd Party Integrations**
--   **OpenAI, Gemini, Anthropic (Text Generation)**: Integrated via  — uses **Emergent LLM Key**.
--   **OpenAI GPT-Image-1 (Image Generation)**: Integrated for thumbnails — uses **Emergent LLM Key**.
--   **ElevenLabs (Voice Generation)**: Integrated and working — requires User API Key.
--   **Google Veo (Video Generation)**: Integrated and working — requires User API Key.
--   **Runway (Video Generation)**: Architected but mocked — requires User API Key.
--   **Stripe (Payments)**: UI placeholder exists — requires User API Key.
+- **YouTube Data API v3**: Mocked integration for video publishing.
+- **OpenAI, Gemini, Anthropic (Text Generation)**: Integrated via  — uses **Emergent LLM Key**.
+- **OpenAI GPT-Image-1 (Image Generation)**: Integrated — uses **Emergent LLM Key**.
+- **ElevenLabs (Voice Generation)**: Integrated — requires User API Key.
+- **Google Veo (Video Generation)**: Integrated — requires User API Key.
+- **Runway (Video Generation)**: Mocked — requires User API Key.
+- **Stripe (Payments)**: Mocked — requires User API Key.
 
 **Testing status**
   - Testing agent used after significant changes: YES
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: [, ]
-  - Known regressions: None, but the user has reported 11 new bugs to be fixed.
+  - Test files created: []
+  - Known regressions: None, but Sprint 7 is untested.
 
 **Credentials to test flow:**
 -   **Client**:  / 
 -   **Admin**:  / 
 
 **What agent forgot to execute**
-The agent has a clear list of 11 bugs and UX issues that were either missed during implementation or introduced as side effects. These are now the primary focus and are detailed in the All Pending/In progress Issue list. The agent must now systematically resolve each one.</analysis>
+The agent has completed the implementation of Sprint 7 but has not yet performed the comprehensive end-to-end testing that was explicitly required in the user's prompt. The manual screenshots only confirm the UI renders, not that the complex workflows (OAuth connection, publishing, status polling, error handling, quota management, calendar integration) are functional. The next step must be to call the testing agent to validate all 10 acceptance criteria from the Sprint 7 prompt.</analysis>

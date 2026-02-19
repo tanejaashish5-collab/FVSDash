@@ -78,7 +78,7 @@ async def create_session(data: StrategySessionCreate, user: dict = Depends(get_c
     await db.insert_one(session_doc)
     
     # Return without _id
-    del session_doc["_id"] if "_id" in session_doc else None
+    session_doc.pop("_id", None)
     return session_doc
 
 

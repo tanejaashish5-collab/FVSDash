@@ -14,7 +14,7 @@ from routers import (
     auth, dashboard, submissions, assets, calendar,
     deliverables, analytics, roi, billing, settings,
     help, blog, ai, video_tasks, fvs, admin, channel_profile,
-    publishing, strategy_session
+    publishing, strategy_session, notifications
 )
 
 # Import database utilities
@@ -56,6 +56,7 @@ api_router.include_router(admin.router)
 api_router.include_router(channel_profile.router)
 api_router.include_router(publishing.router)
 api_router.include_router(strategy_session.router)
+api_router.include_router(notifications.router)
 
 # Include API router in app
 app.include_router(api_router)

@@ -357,71 +357,115 @@ export default function SubmissionDetailPage() {
                       <h4 className="text-sm font-medium text-zinc-400 mb-3 flex items-center gap-2">
                         <FileImage className="h-4 w-4" />
                         Thumbnails ({thumbnailAssets.length})
-                        {thumbnailAssets.length > 1 && (
-                          <span className="text-xs text-zinc-500 ml-2">
-                            - Click to select primary
-                          </span>
-                        )}
+                        <span className="text-xs text-zinc-500 ml-2">
+                          - Click to select primary
+                        </span>
                       </h4>
-                      {/* Thumbnail Gallery for multiple thumbnails */}
-                      {thumbnailAssets.length > 1 ? (
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                          {thumbnailAssets.map((asset, idx) => {
-                            const isPrimary = asset.id === submission.primaryThumbnailAssetId || asset.isPrimaryThumbnail;
-                            return (
+                      {/* Thumbnail Selection Gallery */}
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {thumbnailAssets.map((asset, idx) => {
+                          const isPrimary = asset.id === submission.primaryThumbnailAssetId || asset.isPrimaryThumbnail;
+                          const isSelecting = selectingThumbnail === asset.id;
+                          
+                          return (
+                            <div 
+                              key={asset.id}
+                              className={`relative rounded-lg overflow-hidden border-2 cursor-pointer transition-all group ${
+                                isPrimary 
+                                  ? 'border-emerald-500 ring-2 ring-emerald-500/30 shadow-lg shadow-emerald-500/20' 
+                                  : 'border-zinc-700 hover:border-amber-500/50 hover:ring-1 hover:ring-amber-500/20'
+                              } ${isSelecting ? 'opacity-70' : ''}`}
+                              onClick={() => handleSelectPrimaryThumbnail(asset.id)}
+                              data-testid={`thumbnail-select-${idx + 1}`}
+                            >
+                              {/* Thumbnail Image */}
+                              {asset.url ? (
+                                <img 
+                                  src={asset.url} 
+                                  alt={asset.name}
+                                  className="w-full aspect-video object-cover"
+                                  onError={(e) => { 
+                                    e.target.style.display = 'none';
+                                    e.target.nextSibling.style.display = 'flex';
+                                  }}
+                                />
+                              ) : null}
                               <div 
-                                key={asset.id}
-                                className={`relative rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${
-                                  isPrimary 
-                                    ? 'border-emerald-500 ring-2 ring-emerald-500/30' 
-                                    : 'border-zinc-700 hover:border-indigo-500/50'
-                                }`}
-                                onClick={() => handleViewAsset(asset)}
-                                data-testid={`thumbnail-option-${idx + 1}`}
+                                className="w-full aspect-video bg-zinc-800 items-center justify-center hidden"
+                                style={{ display: asset.url ? 'none' : 'flex' }}
                               >
-                                {asset.url && (
-                                  <img 
-                                    src={asset.url} 
-                                    alt={asset.name}
-                                    className="w-full aspect-video object-cover"
-                                    onError={(e) => { e.target.style.display = 'none'; }}
-                                  />
-                                )}
-                                <div className="absolute top-2 left-2 flex gap-1">
+                                <FileImage className="h-8 w-8 text-zinc-600" />
+                              </div>
+                              
+                              {/* Overlay on hover (non-primary) */}
+                              {!isPrimary && !isSelecting && (
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <span className="text-xs font-medium text-white px-3 py-1.5 bg-amber-500/80 rounded-full">
+                                    Set as Primary
+                                  </span>
+                                </div>
+                              )}
+                              
+                              {/* Loading overlay */}
+                              {isSelecting && (
+                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                  <Loader2 className="h-6 w-6 text-white animate-spin" />
+                                </div>
+                              )}
+                              
+                              {/* Top badges */}
+                              <div className="absolute top-2 left-2 flex gap-1">
+                                <Badge 
+                                  variant="outline" 
+                                  className="bg-black/60 text-white text-[10px] border-none"
+                                >
+                                  {idx + 1}/{thumbnailAssets.length}
+                                </Badge>
+                              </div>
+                              
+                              {/* Primary indicator */}
+                              {isPrimary && (
+                                <div className="absolute top-2 right-2">
+                                  <Badge className="bg-emerald-500 text-white text-[10px] flex items-center gap-1">
+                                    <Check className="h-3 w-3" />
+                                    Primary
+                                  </Badge>
+                                </div>
+                              )}
+                              
+                              {/* FVS badge */}
+                              {asset.fvsGenerated && !isPrimary && (
+                                <div className="absolute top-2 right-2">
                                   <Badge 
                                     variant="outline" 
-                                    className="bg-black/60 text-white text-[10px] border-none"
+                                    className="bg-purple-500/80 text-white text-[10px] border-none"
                                   >
-                                    {idx + 1}/{thumbnailAssets.length}
+                                    <Sparkles className="h-3 w-3 mr-1" />
+                                    FVS
                                   </Badge>
-                                  {isPrimary && (
-                                    <Badge className="bg-emerald-500 text-white text-[10px]">
-                                      Primary
-                                    </Badge>
-                                  )}
                                 </div>
-                                {asset.fvsGenerated && (
-                                  <div className="absolute top-2 right-2">
-                                    <Badge 
-                                      variant="outline" 
-                                      className="bg-purple-500/80 text-white text-[10px] border-none"
-                                    >
-                                      <Sparkles className="h-3 w-3 mr-1" />
-                                      FVS
-                                    </Badge>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="grid gap-3">
-                          {thumbnailAssets.map(asset => (
-                            <AssetCard key={asset.id} asset={asset} onView={handleViewAsset} />
-                          ))}
-                        </div>
-                      )}
+                              )}
+                              
+                              {/* View button (bottom right) */}
+                              <button
+                                className="absolute bottom-2 right-2 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleViewAsset(asset);
+                                }}
+                                data-testid={`thumbnail-view-${idx + 1}`}
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      
+                      {/* Helper text */}
+                      <p className="text-[10px] text-zinc-600 mt-2 text-center">
+                        Click a thumbnail to set it as the primary image for publishing
+                      </p>
                     </div>
                   )}
 

@@ -307,13 +307,12 @@ class TestAdminPublishingFeatures:
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
-        # Should have at least one client (alex@company.com)
+        # Should have at least one client (demo-client-1)
         assert len(data) >= 1
-        # Verify structure
+        # Verify structure (uses clients collection format)
         if len(data) > 0:
             assert "id" in data[0]
-            assert "fullName" in data[0]
-            assert "email" in data[0]
+            assert "name" in data[0]
     
     @pytest.mark.asyncio
     async def test_client_cannot_access_admin_clients_endpoint(self, async_client, client_headers):

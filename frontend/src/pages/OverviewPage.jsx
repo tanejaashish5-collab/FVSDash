@@ -80,7 +80,7 @@ function PipelineCard({ submission, onStatusChange }) {
   const tc = typeCfg[submission.contentType] || 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20';
   return (
     <div
-      className="p-3 bg-[#060c17] border border-[#1F2933] rounded-md mb-2 group hover:border-indigo-500/30 transition-colors"
+      className="aura-card-hover p-3 bg-[#060c17] rounded-md mb-2 group"
       data-testid={`pipeline-card-${submission.id}`}
     >
       <div className="flex items-start justify-between gap-1">

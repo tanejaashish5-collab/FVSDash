@@ -174,7 +174,7 @@ async def initiate_oauth_connect(
     if MOCK_OAUTH_ENABLED:
         # Mock OAuth URL points to our callback with pre-generated code
         mock_code = f"mock_auth_code_{secrets.token_urlsafe(16)}"
-        base_url = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001")
+        base_url = os.environ.get("BACKEND_PUBLIC_URL", os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001"))
         auth_url = f"{base_url}/api/oauth/callback/{platform}?code={mock_code}&state={state}"
         
         return {

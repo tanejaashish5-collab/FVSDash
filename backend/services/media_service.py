@@ -350,7 +350,8 @@ async def _generate_thumbnail_openai(
             provider="openai_gpt_image_1",
             is_mocked=False,
             prompt_used=prompt[:500],
-            storage_provider=storage_provider
+            storage_provider=storage_provider,
+            warning=warning
         )
         
     except Exception as e:

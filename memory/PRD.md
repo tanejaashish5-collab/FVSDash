@@ -14,8 +14,50 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 - **Publishing**: Mock platform connections with background scheduler
 - **Notifications**: Real-time notification engine for status updates and FVS events
 - **Spotlight Tour**: Guided onboarding tour with SVG mask spotlight
+- **Universal Tooltips**: Contextual help system with glassmorphic tooltips
 
 ## What's Been Implemented
+
+### Phase 23 — Universal Tooltips (Sprint 4) (Feb 19, 2026)
+
+#### AuraTooltip Component (`/app/frontend/src/components/ui/AuraTooltip.jsx`):
+- **Glassmorphic Styling**: `backdrop-blur-md`, `bg-[rgba(20,20,25,0.95)]`, `border-white/10`
+- **Trigger Icon**: 12px HelpCircle icon, `text-amber-400/40` at rest, `text-amber-400` on hover
+- **Smart Positioning**: `calculatePosition()` with viewport boundary clamping
+- **Arrow Pointer**: CSS rotated square connecting tooltip to icon
+- **Animation**: Fade-in with upward translate (150ms ease)
+- **Portal Rendering**: Uses `createPortal` for z-index 9999 overlay
+
+#### Tooltip Content (`/app/frontend/src/constants/tooltipContent.js`):
+- **115 tooltip entries** organized by page:
+  - Overview (7 entries): KPIs, Pipeline, Schedule, Submit
+  - Submissions (8 entries): New, Status, Thumbnails, Script, Tags
+  - Calendar (5 entries): Badges, Add to Calendar
+  - Deliverables (4 entries): Status, Complete, Type, Due
+  - Assets (6 entries): Upload, Filter, Download, Copy URL
+  - Publishing (6 entries): Connect, Publish, Schedule, Status
+  - Blog (5 entries): Generate, SEO, Publish
+  - Strategy Lab (9 entries): Content, Audience, Phases
+  - AI Video Lab (7 entries): Script, Voice, Export
+  - FVS System (7 entries): Score, Velocity, Automation
+  - Analytics (7 entries): Views, Watch Time, CTR, Retention
+  - ROI Center (6 entries): Calculation, Cost, Revenue
+  - Billing (6 entries): Plan, Usage, Invoice
+  - Settings (9 entries): Notifications, Platform, API Keys
+  - Common (8 entries): Save, Cancel, Delete, Export
+
+#### Pages Updated with Tooltips:
+- `OverviewPage.jsx`: KPI cards (4), Production Pipeline (1)
+- `SubmissionsPage.jsx`: New Submission button (1), Status column (1)
+- `StrategyPage.jsx`: Episode Concept (1), Target Audience (1)
+- `FvsSystemPage.jsx`: Automation Level (1), each automation option (3)
+- `SettingsPage.jsx`: Language Style (1), Thumbnail Style (1)
+- `AssetsPage.jsx`: Asset Type filter (1)
+- `PublishingDashboardPage.jsx`: Publishing Tasks title (1)
+
+#### Test Results (Feb 19, 2026):
+- Frontend: 100% (15/15 tests passed)
+- Total tooltip-enabled elements: 19+ across 7 pages
 
 ### Phase 22 — Spotlight Tour (Sprint 3) (Feb 19, 2026)
 

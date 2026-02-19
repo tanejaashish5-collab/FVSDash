@@ -330,21 +330,29 @@ export default function FvsSystemPage() {
                 className="grid grid-cols-1 md:grid-cols-3 gap-3"
               >
                 {AUTOMATION_LEVELS.map(level => (
-                  <Label
-                    key={level.value}
-                    htmlFor={level.value}
-                    className={`flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${
-                      config.automationLevel === level.value
-                        ? 'bg-indigo-500/10 border-indigo-500/30'
-                        : 'bg-zinc-950/50 border-[#1F2933] hover:border-zinc-700'
-                    }`}
-                  >
-                    <RadioGroupItem value={level.value} id={level.value} className="mt-1" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-white">{level.label}</p>
-                      <p className="text-xs text-zinc-500 mt-0.5">{level.description}</p>
-                    </div>
-                  </Label>
+                  <TooltipProvider key={level.value} delayDuration={300}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Label
+                          htmlFor={level.value}
+                          className={`flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${
+                            config.automationLevel === level.value
+                              ? 'bg-indigo-500/10 border-indigo-500/30'
+                              : 'bg-zinc-950/50 border-[#1F2933] hover:border-zinc-700'
+                          }`}
+                        >
+                          <RadioGroupItem value={level.value} id={level.value} className="mt-1" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-white">{level.label}</p>
+                            <p className="text-xs text-zinc-500 mt-0.5">{level.description}</p>
+                          </div>
+                        </Label>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-[240px] bg-zinc-900 text-white border-zinc-700">
+                        {level.tooltip}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 ))}
               </RadioGroup>
               

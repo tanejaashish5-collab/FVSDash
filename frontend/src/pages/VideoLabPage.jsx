@@ -213,7 +213,9 @@ export default function VideoLabPage() {
             <CardContent className="space-y-4">
               {/* Provider */}
               <div className="space-y-2">
-                <Label className="text-xs font-medium text-zinc-400">Provider</Label>
+                <AuraTooltip content={tooltipContent.videoLab.videoProvider} position="top">
+                  <Label className="text-xs font-medium text-zinc-400">Provider</Label>
+                </AuraTooltip>
                 <Select value={provider} onValueChange={setProvider}>
                   <SelectTrigger data-testid="provider-select" className="h-9 bg-zinc-950 border-zinc-800 text-white">
                     <SelectValue />
@@ -267,7 +269,9 @@ export default function VideoLabPage() {
             <CardContent className="space-y-4">
               {/* Prompt */}
               <div className="space-y-2">
-                <Label className="text-xs font-medium text-zinc-400">Prompt / Description</Label>
+                <AuraTooltip content={tooltipContent.videoLab.scriptInput} position="top">
+                  <Label className="text-xs font-medium text-zinc-400">Prompt / Description</Label>
+                </AuraTooltip>
                 <Textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
@@ -280,7 +284,9 @@ export default function VideoLabPage() {
               {/* Mode-specific inputs */}
               {mode === 'script' && (
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium text-zinc-400">Script Text (optional)</Label>
+                  <AuraTooltip content={tooltipContent.videoLab.sceneBreakdown} position="top">
+                    <Label className="text-xs font-medium text-zinc-400">Script Text (optional)</Label>
+                  </AuraTooltip>
                   <Textarea
                     value={scriptText}
                     onChange={(e) => setScriptText(e.target.value)}
@@ -293,7 +299,9 @@ export default function VideoLabPage() {
 
               {mode === 'audio' && (
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium text-zinc-400">Audio Asset</Label>
+                  <AuraTooltip content={tooltipContent.videoLab.generateVoiceover} position="top">
+                    <Label className="text-xs font-medium text-zinc-400">Audio Asset</Label>
+                  </AuraTooltip>
                   <Select value={selectedAudioAsset} onValueChange={setSelectedAudioAsset}>
                     <SelectTrigger className="h-9 bg-zinc-950 border-zinc-800 text-white">
                       <SelectValue placeholder="Select audio file..." />

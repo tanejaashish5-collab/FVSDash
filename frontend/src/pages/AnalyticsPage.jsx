@@ -24,12 +24,20 @@ const RANGES = [
   { value: '365d', label: 'Last 12 months' },
 ];
 
-function KPICard({ label, value, subtext, icon: Icon, trend }) {
+function KPICard({ label, value, subtext, icon: Icon, trend, tooltipContent: tipContent }) {
+  const labelElement = tipContent ? (
+    <AuraTooltip content={tipContent} position="top">
+      <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">{label}</span>
+    </AuraTooltip>
+  ) : (
+    <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">{label}</span>
+  );
+  
   return (
     <Card className="bg-[#0B1120] border-[#1F2933]" data-testid={`kpi-${label.toLowerCase().replace(/[\s().]+/g, '-')}`}>
       <CardContent className="p-5">
         <div className="flex items-center justify-between mb-4">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">{label}</span>
+          {labelElement}
           <div className="h-9 w-9 rounded-md bg-indigo-500/10 flex items-center justify-center">
             <Icon className="h-4 w-4 text-indigo-400" />
           </div>
@@ -125,7 +133,9 @@ export default function AnalyticsPage() {
         <h1 className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
           Analytics
         </h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Understand how your content performs across time.</p>
+        <AuraTooltip content={tooltipContent.analytics.views30d} position="right">
+          <p className="text-sm text-zinc-500 mt-0.5">Understand how your content performs across time.</p>
+        </AuraTooltip>
       </div>
 
       {/* Range Selector */}
@@ -229,24 +239,28 @@ export default function AnalyticsPage() {
               value={data.summary.totalDownloads.toLocaleString()}
               subtext="In selected period"
               icon={Download}
+              tooltipContent={tooltipContent.analytics.views30d}
             />
             <KPICard
               label="Total Views"
               value={data.summary.totalViews.toLocaleString()}
               subtext="Across all content"
               icon={Eye}
+              tooltipContent={tooltipContent.analytics.watchTime}
             />
             <KPICard
               label="Episodes Published"
               value={data.summary.totalEpisodes}
               subtext="In this range"
               icon={Radio}
+              tooltipContent={tooltipContent.analytics.ctr}
             />
             <KPICard
               label="Avg ROI / Episode"
               value={`$${data.summary.avgRoiPerEpisode.toLocaleString()}`}
               subtext="Estimated return"
               icon={TrendingUp}
+              tooltipContent={tooltipContent.analytics.revenue}
             />
           </div>
 

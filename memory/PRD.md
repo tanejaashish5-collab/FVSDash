@@ -17,8 +17,120 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 - **Universal Tooltips**: Contextual help system with glassmorphic tooltips
 - **Silk Animations**: Premium page transitions and micro-interactions via Framer Motion
 - **Mastermind Calendar**: Drag-and-drop strategic scheduling workbench
+- **OAuth Publishing Layer**: Mock OAuth 2.0 publishing pipeline for YouTube with token management
 
 ## What's Been Implemented
+
+### Phase 26 — Real OAuth Publishing Layer (Sprint 7) (Dec 2025)
+
+**Summary**: Built a complete mock OAuth 2.0 publishing pipeline for YouTube Shorts with token management, quota tracking, and progress polling.
+
+#### Backend Implementation (`/app/backend/routers/oauth.py`)
+- **OAuth Status Endpoint** (`GET /api/oauth/status`):
+  - Returns connection status for all 3 platforms (YouTube, TikTok, Instagram)
+  - Tracks token status: `valid`, `expiring_soon`, `expired`
+  - Returns account metadata (name, handle, subscriber count)
+
+- **OAuth Connect Flow** (`POST /api/oauth/connect/{platform}`):
+  - Generates state parameter for CSRF protection
+  - Generates PKCE code verifier/challenge for production readiness
+  - Returns mock authUrl that auto-completes the flow
+
+- **OAuth Callback** (`GET /api/oauth/callback/{platform}`):
+  - Validates state parameter
+  - Stores mock access/refresh tokens (1-hour expiry)
+  - Returns success HTML that posts message to parent window
+
+- **Token Refresh** (`POST /api/oauth/refresh/{platform}`):
+  - Generates new mock access token
+  - Updates expiry timestamp
+
+- **Disconnect** (`DELETE /api/oauth/disconnect/{platform}`):
+  - Removes stored tokens
+
+- **Quota Management** (`GET /api/oauth/quota`):
+  - Tracks daily API quota usage (10,000 units max)
+  - Returns warning levels: `normal`, `warning` (>80%), `critical` (>95%)
+
+#### Backend Implementation (`/app/backend/routers/youtube_publish.py`)
+- **Publish to YouTube** (`POST /api/publish/youtube`):
+  - Validates platform connection, token validity, quota
+  - Validates submission and video asset existence
+  - Creates publish job with background processing
+  - Simulates upload progress (10% → 25% → 45% → 65% → 85% → 100%)
+  - Generates mock video ID and YouTube URL
+
+- **Status Polling** (`GET /api/publish/status/{job_id}`):
+  - Returns current job status and progress percentage
+  - States: `pending`, `uploading`, `processing`, `live`, `failed`
+
+- **Retry Failed Jobs** (`POST /api/publish/jobs/{job_id}/retry`):
+  - Resets failed job status to pending
+  - Restarts background upload process
+
+- **History & Queue**:
+  - `GET /api/publish/history` - Completed (live) jobs
+  - `GET /api/publish/queue` - Submissions ready to publish
+  - `GET /api/publish/jobs` - All jobs with filters
+  - `GET /api/publish/stats` - Publishing statistics + quota
+
+#### Frontend Implementation (`/app/frontend/src/pages/SettingsPage.jsx`)
+- **Connected Accounts Section** (Publishing tab):
+  - Platform cards for YouTube, TikTok, Instagram
+  - YouTube: Connect/Disconnect buttons, Refresh token button
+  - Token status badges: Connected (green), Expiring Soon (amber), Expired (red)
+  - Account info: handle, subscriber count
+  - TikTok/Instagram: "Coming Soon" badges, disabled buttons
+  - OAuth security info banner
+  - Demo mode notice
+
+#### Frontend Implementation (`/app/frontend/src/pages/PublishingDashboardPage.jsx`)
+- **Publishing Command Center**:
+  - Stats cards: Total Published, In Queue, Uploading, Failed
+  - Quota indicator with progress bar and warning colors
+  - Platform selector (YouTube connected, others coming soon)
+
+- **Content Queue Tab**:
+  - Lists submissions ready to publish
+  - Shows content type/status badges
+  - "No Video" warning badge when video asset missing
+  - "Publish Now" button opens slide-over
+
+- **Publish Slide-Over**:
+  - Title input (100 char max)
+  - Description textarea (5000 char max)
+  - Tags input (comma-separated)
+  - Privacy selector: Public, Unlisted, Private
+  - Schedule toggle with date picker
+  - Video asset selector
+  - Thumbnail selector
+  - Progress indicator during upload
+
+- **Published History Tab**:
+  - Shows completed jobs with YouTube link
+  - Platform icon, title, publish date
+  - "View" button opens YouTube URL
+
+- **Failed Jobs Tab**:
+  - Shows failed jobs with error message
+  - "Retry" button to retry upload
+
+#### Database Collections
+- **oauth_tokens**: `clientId`, `platform`, `connected`, `accessToken`, `refreshToken`, `expiresAt`, `accountName`, `accountHandle`, `accountMeta`, `connectedAt`
+- **publish_jobs**: `clientId`, `submissionId`, `platform`, `status`, `progress`, `title`, `description`, `tags`, `privacyStatus`, `platformVideoId`, `platformUrl`, `errorMessage`
+
+#### Environment Updates
+- Added `BACKEND_PUBLIC_URL` env var for proper OAuth callback URL generation
+
+#### Test Results (Dec 2025):
+- Backend: 96% (27/28 tests passed)
+- Frontend: 100% (all UI elements and flows working)
+- Test report: `/app/test_reports/iteration_31.json`
+
+#### Mocked Integrations:
+- YouTube OAuth 2.0 - simulated via MOCK_OAUTH_ENABLED flag
+- YouTube video upload - background task simulates progress
+- Token refresh - generates new mock tokens
 
 ### Phase 25 — Mastermind Calendar: Strategic Command Center (Sprint 6) (Dec 19, 2025)
 

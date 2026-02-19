@@ -785,6 +785,21 @@ export default function SubmissionsPage() {
 
               <Separator className="bg-[#1F2933] my-5" />
 
+              {/* Open in Strategy Lab */}
+              <div>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(`/dashboard/strategy?submissionId=${selected.id}`)}
+                  className="w-full h-9 text-xs border-zinc-800 text-zinc-300 hover:text-white hover:bg-white/5 justify-start"
+                  data-testid="open-strategy-lab-btn"
+                >
+                  <Sparkles className="h-3.5 w-3.5 mr-2 text-amber-400" />
+                  Open in Strategy Lab
+                </Button>
+              </div>
+
+              <Separator className="bg-[#1F2933] my-5" />
+
               {/* Thumbnails Section */}
               <div data-testid="thumbnails-section">
                 <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold mb-3 flex items-center gap-2">

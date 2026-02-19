@@ -350,13 +350,19 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
     """
     FVS Orchestrator: Produce a full episode from an approved idea.
     
+    Uses Channel Profile for:
+    - Script language style (English, Hinglish, etc.)
+    - Thumbnail style and template
+    - Number of thumbnail options to generate
+    
     Pipeline Steps:
-    1. Generate script using LLM
-    2. Generate YouTube metadata using LLM
-    3. Generate audio using ElevenLabs (REAL)
-    4. Generate thumbnail using OpenAI GPT-Image-1 (REAL)
-    5. Create video task (MOCKED - P2)
-    6. Create Submission and Assets
+    1. Load Channel Profile (Brand Brain)
+    2. Generate script using LLM with profile settings
+    3. Generate YouTube metadata using LLM
+    4. Generate audio using ElevenLabs (REAL)
+    5. Generate N thumbnails using OpenAI GPT-Image-1 (based on profile)
+    6. Create video task (MOCKED - P2)
+    7. Create Submission and Assets
     
     Returns same response structure as before for backwards compatibility.
     """
@@ -375,6 +381,15 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
     activity_db = fvs_activity_collection()
     
     try:
+        # =================================================================
+        # STEP 0: Load Channel Profile (Brand Brain)
+        # =================================================================
+        from services.channel_profile_service import get_channel_profile, get_thumbnail_prompt
+        
+        channel_profile = await get_channel_profile(client_id)
+        thumbnails_to_generate = channel_profile.get("thumbnailsPerShort", 1)
+        logger.info(f"FVS using Channel Profile: language={channel_profile.get('languageStyle')}, thumbnails={thumbnails_to_generate}")
+        
         # Fetch idea
         idea = await ideas_db.find_one({"id": idea_id, "clientId": client_id}, {"_id": 0})
         if not idea:
@@ -385,15 +400,15 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
             {"$set": {"status": "in_progress", "updatedAt": now}}
         )
         
-        # Get client settings
+        # Get client settings (legacy, for backwards compat)
         settings = await settings_db.find_one({"clientId": client_id}, {"_id": 0})
         brand_voice = settings.get("brandVoiceDescription", "Professional and engaging") if settings else "Professional and engaging"
         
         # =================================================================
-        # STEP 1: Generate Script
+        # STEP 1: Generate Script with Channel Profile
         # =================================================================
-        logger.info(f"FVS Step 1: Generating script for idea '{idea.get('topic')}'")
-        script_data = await generate_script_for_idea(idea, brand_voice)
+        logger.info(f"FVS Step 1: Generating script for idea '{idea.get('topic')}' in {channel_profile.get('languageStyle')} style")
+        script_data = await generate_script_for_idea(idea, brand_voice, channel_profile)
         script_text = script_data["text"]
         
         # =================================================================
@@ -416,20 +431,47 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
             logger.warning(f"Audio generation warning: {audio_result.warning}")
         
         # =================================================================
-        # STEP 4: Generate Thumbnail (OpenAI - REAL)
+        # STEP 4: Generate Multiple Thumbnails (OpenAI - REAL)
         # =================================================================
-        logger.info("FVS Step 4: Generating thumbnail via OpenAI")
-        thumbnail_result: ThumbnailGenerationResult = await generate_thumbnail(
-            topic=idea.get("topic", ""),
-            brand_voice=brand_voice,
-            title=title,
-            format=idea.get("format", "short"),
-            provider="openai"
-        )
+        logger.info(f"FVS Step 4: Generating {thumbnails_to_generate} thumbnail(s) via OpenAI")
         
-        if thumbnail_result.warning:
-            warnings.append(thumbnail_result.warning)
-            logger.warning(f"Thumbnail generation warning: {thumbnail_result.warning}")
+        # Variation hints for generating different thumbnail options
+        variation_hints = [
+            "",  # First one uses base prompt
+            "alternative composition, different text arrangement",
+            "emphasize the key concept visually, minimal text",
+            "bold dramatic style, maximum contrast",
+        ]
+        
+        thumbnail_results: List[ThumbnailGenerationResult] = []
+        for i in range(thumbnails_to_generate):
+            variation_hint = variation_hints[i % len(variation_hints)]
+            
+            # Build prompt using channel profile
+            custom_prompt = get_thumbnail_prompt(
+                channel_profile,
+                topic=idea.get("topic", ""),
+                title=title,
+                variation_hint=variation_hint
+            )
+            
+            thumbnail_result = await generate_thumbnail(
+                topic=idea.get("topic", ""),
+                brand_voice=brand_voice,
+                title=title,
+                format=idea.get("format", "short"),
+                provider="openai",
+                custom_prompt=custom_prompt
+            )
+            thumbnail_results.append(thumbnail_result)
+            
+            if thumbnail_result.warning:
+                warnings.append(f"Thumbnail {i+1}: {thumbnail_result.warning}")
+        
+        # Use first thumbnail as primary
+        primary_thumbnail = thumbnail_results[0]
+        if primary_thumbnail.warning:
+            logger.warning(f"Primary thumbnail warning: {primary_thumbnail.warning}")
         
         # =================================================================
         # STEP 5: Create Submission
@@ -449,6 +491,8 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
             "sourceFileUrl": None,
             "fvsIdeaId": idea_id,
             "tags": tags,
+            "languageStyle": channel_profile.get("languageStyle", "english"),
+            "primaryThumbnailAssetId": None,  # Will be set after thumbnail assets created
             "createdAt": now,
             "updatedAt": now
         }
@@ -467,6 +511,7 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
             "fvsIdeaId": idea_id,
             "provider": script_data["provider"],
             "text": script_text,
+            "languageStyle": script_data.get("languageStyle", "english"),
             "createdAt": script_data["createdAt"]
         }
         await scripts_db.insert_one(script)
@@ -498,7 +543,6 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
         # =================================================================
         # STEP 8: Create Video Task (MOCKED - video providers P2)
         # =================================================================
-        # TODO: P2 - Integrate real video providers (Runway, Veo, etc.)
         video_prompt = f"Create a {idea.get('format', 'short')}-form video for: {title}"
         provider_job_id = f"fvs-kling-{uuid.uuid4()}"
         
@@ -518,7 +562,7 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
             "status": "READY",
             "videoUrl": "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
             "fvsGenerated": True,
-            "isMocked": True,  # Video is still mocked
+            "isMocked": True,
             "createdAt": now,
             "updatedAt": now
         }
@@ -549,26 +593,44 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
             del video_asset["_id"]
         
         # =================================================================
-        # STEP 10: Create Thumbnail Asset (OpenAI - REAL)
+        # STEP 10: Create Thumbnail Assets (OpenAI - REAL, multiple options)
         # =================================================================
-        thumbnail_asset = {
-            "id": str(uuid.uuid4()),
-            "clientId": client_id,
-            "submissionId": submission_id,
-            "name": f"FVS Thumbnail - {title[:40]}",
-            "type": "Thumbnail",
-            "url": thumbnail_result.url,
-            "status": "Draft",
-            "provider": thumbnail_result.provider,
-            "fvsGenerated": True,
-            "isMocked": thumbnail_result.is_mocked,
-            "thumbnailPrompt": thumbnail_result.prompt_used,
-            "createdAt": now,
-            "updatedAt": now
-        }
-        await assets_db.insert_one(thumbnail_asset)
-        if "_id" in thumbnail_asset:
-            del thumbnail_asset["_id"]
+        thumbnail_assets = []
+        for i, thumb_result in enumerate(thumbnail_results):
+            thumb_num = i + 1
+            is_primary = (i == 0)
+            
+            thumbnail_asset = {
+                "id": str(uuid.uuid4()),
+                "clientId": client_id,
+                "submissionId": submission_id,
+                "name": f"FVS Thumbnail {thumb_num}/{len(thumbnail_results)} - {title[:30]}",
+                "type": "Thumbnail",
+                "url": thumb_result.url,
+                "status": "Draft",
+                "provider": thumb_result.provider,
+                "fvsGenerated": True,
+                "isMocked": thumb_result.is_mocked,
+                "thumbnailPrompt": thumb_result.prompt_used,
+                "thumbnailIndex": thumb_num,
+                "thumbnailTotal": len(thumbnail_results),
+                "isPrimaryThumbnail": is_primary,
+                "createdAt": now,
+                "updatedAt": now
+            }
+            await assets_db.insert_one(thumbnail_asset)
+            if "_id" in thumbnail_asset:
+                del thumbnail_asset["_id"]
+            thumbnail_assets.append(thumbnail_asset)
+        
+        # Set primary thumbnail on submission
+        primary_thumb_id = thumbnail_assets[0]["id"] if thumbnail_assets else None
+        if primary_thumb_id:
+            await submissions_db.update_one(
+                {"id": submission_id},
+                {"$set": {"primaryThumbnailAssetId": primary_thumb_id}}
+            )
+            submission["primaryThumbnailAssetId"] = primary_thumb_id
         
         # =================================================================
         # STEP 11: Finalize - Update idea and submission status
@@ -589,15 +651,17 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
             "id": str(uuid.uuid4()),
             "clientId": client_id,
             "action": "produce_episode",
-            "description": f"FVS produced episode '{title}' with script, audio, video, and thumbnail",
+            "description": f"FVS produced episode '{title}' with script ({channel_profile.get('languageStyle')}), audio, video, and {len(thumbnail_assets)} thumbnail(s)",
             "metadata": {
                 "ideaId": idea_id,
                 "submissionId": submission_id,
                 "videoTaskId": video_task["id"],
                 "audioProvider": audio_result.provider,
-                "thumbnailProvider": thumbnail_result.provider,
+                "thumbnailProvider": primary_thumbnail.provider,
                 "audioMocked": audio_result.is_mocked,
-                "thumbnailMocked": thumbnail_result.is_mocked
+                "thumbnailMocked": primary_thumbnail.is_mocked,
+                "languageStyle": channel_profile.get("languageStyle"),
+                "thumbnailCount": len(thumbnail_assets)
             },
             "createdAt": now
         }
@@ -607,8 +671,9 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
         idea["submissionId"] = submission_id
         
         logger.info(f"FVS produced episode '{title}' for client {client_id}")
+        logger.info(f"  - Script: {channel_profile.get('languageStyle')} style")
         logger.info(f"  - Audio: {audio_result.provider} (mocked={audio_result.is_mocked})")
-        logger.info(f"  - Thumbnail: {thumbnail_result.provider} (mocked={thumbnail_result.is_mocked})")
+        logger.info(f"  - Thumbnails: {len(thumbnail_assets)} generated (mocked={primary_thumbnail.is_mocked})")
         
         # Build response (backwards compatible structure)
         response = {
@@ -618,11 +683,16 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
             "audioAsset": audio_asset,
             "videoTask": video_task,
             "videoAsset": video_asset,
-            "thumbnailAsset": thumbnail_asset,
-            "idea": idea
+            "thumbnailAsset": thumbnail_assets[0] if thumbnail_assets else None,  # Primary for backwards compat
+            "thumbnailAssets": thumbnail_assets,  # All thumbnails for new UI
+            "idea": idea,
+            "channelProfile": {
+                "languageStyle": channel_profile.get("languageStyle"),
+                "thumbnailStyle": channel_profile.get("thumbnailStyle"),
+                "thumbnailsGenerated": len(thumbnail_assets)
+            }
         }
         
-        # Add warnings if any occurred
         if warnings:
             response["warnings"] = warnings
         

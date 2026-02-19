@@ -34,6 +34,31 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 - Backend: 100% (13/13 tests passed)
 - Frontend: 100% (7/7 UI tests passed)
 
+### Phase 19.1 — Submissions Page Restructure (Feb 19, 2026)
+
+#### Layout Changes:
+- Removed split-panel layout (was 40% form / 60% table)
+- Full-width table is now the default view
+- Added "+ New Submission" teal button in page header
+
+#### New Submission Modal:
+- Right-anchored slide-over panel (not centered dialog)
+- Contains all form fields: Source URL, Title, Guest, Description, Content Type, Priority, Release Date, Confirm checkbox
+- On submit: closes modal, shows success toast, refreshes table
+- On cancel/backdrop click: closes modal, discards form state
+
+#### Expanded Table Columns:
+- TITLE (wider, truncated with ellipsis only if > 60 chars)
+- TYPE (badge - unchanged)
+- STATUS (badge with dropdown - unchanged)
+- PRIORITY (new Badge styling with colors: High=red, Medium=amber, Low=zinc)
+- RELEASE DATE (new column - formatted date)
+- CREATED (new column - formatted date)
+- ACTIONS (unchanged)
+
+#### Test Results (Feb 19, 2026):
+- Frontend: 100% (10/10 tests passed)
+
 ### Phase 18 — Bug Fixes & UX Improvements (Feb 19, 2026)
 
 #### Fixed Issues:

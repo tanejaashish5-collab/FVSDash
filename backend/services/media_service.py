@@ -292,7 +292,11 @@ async def _generate_thumbnail_openai(
             warning="OpenAI API key not configured. Using placeholder thumbnail."
         )
     
-    prompt = build_thumbnail_prompt(topic, brand_voice, title, format)
+    # Use custom prompt from Channel Profile if provided, otherwise build default
+    if custom_prompt:
+        prompt = custom_prompt
+    else:
+        prompt = build_thumbnail_prompt(topic, brand_voice, title, format)
     
     try:
         from emergentintegrations.llm.openai.image_generation import OpenAIImageGeneration

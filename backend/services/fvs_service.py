@@ -225,6 +225,28 @@ async def propose_ideas(client_id: str, format: str, range: str) -> dict:
         
         logger.info(f"FVS proposed {len(ideas)} ideas for client {client_id}")
         
+        # Create notification for new FVS ideas
+        try:
+            from routers.notifications import create_notification
+            from models.notification import NotificationType, NotificationPriority
+            from db.mongo import users_collection
+            
+            # Find the user associated with this client to send notification
+            users_db = users_collection()
+            client_user = await users_db.find_one({"clientId": client_id}, {"_id": 0, "id": 1})
+            
+            if client_user:
+                await create_notification(
+                    user_id=client_user["id"],
+                    notification_type=NotificationType.FVS_IDEA,
+                    title=f"FVS Brain: {len(ideas)} new ideas",
+                    message=f"The FVS Brain analyzed your content and proposed {len(ideas)} new {format}-format episode ideas.",
+                    link="/dashboard/system",
+                    priority=NotificationPriority.MEDIUM
+                )
+        except Exception as e:
+            logger.warning(f"Failed to create FVS idea notification: {e}")
+        
         return {
             "ideas": ideas,
             "snapshot": snapshot

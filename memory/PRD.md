@@ -14,6 +14,50 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 
 ## What's Been Implemented
 
+### Phase 16 — Strategy Idea Detail Page (Feb 19, 2026)
+
+#### Strategy Idea Detail Flow
+Complete workflow from FVS idea → script generation → submission/video task creation.
+
+#### New Route
+- **Path**: `/dashboard/strategy/idea/:ideaId`
+- **Component**: `StrategyIdeaDetailPage.jsx`
+
+#### Three-Panel UI
+1. **Idea Overview Panel** (left):
+   - Topic and hypothesis
+   - Format badge (Short/Long)
+   - Conviction score
+   - Source badge (YouTube Analytics, Reddit, etc.)
+   - Status badge
+
+2. **Generated Script Panel** (right):
+   - Auto-generates script on page load
+   - Uses Channel Profile (Hinglish style for demo client)
+   - Opening hooks preview
+   - "Regenerate Script" button
+   - "Copy" button
+   - Language/provider badges
+
+3. **Actions Panel** (left bottom):
+   - "Create Submission" button → Creates submission, shows inline "View in Submissions" link
+   - "Create AI Video Task" button → Creates video task, shows inline "View in AI Video Lab" link
+   - Buttons disabled until script is generated
+   - User stays on page after creation (no auto-navigation)
+
+#### Backend Endpoints
+- `GET /api/fvs/ideas/{idea_id}` - Fetch single idea
+- `POST /api/fvs/ideas/{idea_id}/generate-script` - Generate script with Channel Profile
+
+#### FVS System Page Updates
+- Added "View" button for proposed ideas → navigates to detail page
+- Fixed "View Episode" button field reference (`submissionId` not `producedSubmissionId`)
+
+#### Test Results (Feb 19, 2026):
+- Backend: 9/9 tests passed (100%)
+- Frontend: All UI components working
+- Script generation uses Anthropic Claude with Hinglish style
+
 ### Phase 15 — Channel Profile & Brand Brain (Feb 18, 2026)
 
 #### Channel Profile Data Model

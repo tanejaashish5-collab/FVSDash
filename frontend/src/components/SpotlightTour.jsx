@@ -319,7 +319,33 @@ export default function SpotlightTour({ isOpen, onClose, autoStart = false }) {
   const [targetRect, setTargetRect] = useState(null);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
   const [isActive, setIsActive] = useState(false);
-  const resizeObserverRef = useRef(null);
+
+  // Define handlers first
+  const closeTour = useCallback(() => {
+    localStorage.setItem(STORAGE_KEY, 'true');
+    setIsActive(false);
+    setTargetRect(null);
+    onClose?.();
+  }, [onClose]);
+
+  const handleNext = useCallback(() => {
+    if (currentStep < TOUR_STEPS.length - 1) {
+      setCurrentStep(prev => prev + 1);
+    } else {
+      // Tour complete
+      closeTour();
+    }
+  }, [currentStep, closeTour]);
+
+  const handleBack = useCallback(() => {
+    if (currentStep > 0) {
+      setCurrentStep(prev => prev - 1);
+    }
+  }, [currentStep]);
+
+  const handleSkip = useCallback(() => {
+    closeTour();
+  }, [closeTour]);
 
   // Check if tour should auto-start
   useEffect(() => {
@@ -375,7 +401,7 @@ export default function SpotlightTour({ isOpen, onClose, autoStart = false }) {
       // Also update after a brief delay for any layout shifts
       setTimeout(updatePosition, 600);
     } else {
-      // Target not found - try to find any element and show message
+      // Target not found - skip to next step
       console.warn(`Tour target not found: ${step.target}, trying fallback: ${step.fallbackTarget}`);
       
       // Skip to next step if target not found after a delay
@@ -384,11 +410,11 @@ export default function SpotlightTour({ isOpen, onClose, autoStart = false }) {
           setCurrentStep(prev => prev + 1);
         } else {
           // End tour if no more steps
-          handleSkip();
+          closeTour();
         }
       }, 500);
     }
-  }, [isActive, currentStep]);
+  }, [isActive, currentStep, closeTour]);
 
   // Update on step change
   useEffect(() => {

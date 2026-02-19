@@ -436,16 +436,9 @@ export default function SubmissionsPage() {
                   <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold w-[30%]">Title</TableHead>
                   <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Type</TableHead>
                   <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
-                    <TooltipProvider delayDuration={300}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="cursor-help border-b border-dashed border-zinc-600">Status</span>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-[240px] bg-zinc-900 text-white border-zinc-700">
-                          INTAKE → EDITING → DESIGN → SCHEDULED → PUBLISHED. Click any row to change status.
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <AuraTooltip content={tooltipContent.submissions.statusFilter} position="top">
+                      <span>Status</span>
+                    </AuraTooltip>
                   </TableHead>
                   <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Priority</TableHead>
                   <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Release Date</TableHead>

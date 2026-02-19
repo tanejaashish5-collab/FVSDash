@@ -358,11 +358,9 @@ export default function SpotlightTour({ isOpen, onClose, autoStart = false }) {
 
   // External control
   useEffect(() => {
-    console.log('SpotlightTour: isOpen changed to', isOpen);
     if (isOpen) {
       setCurrentStep(0);
       setIsActive(true);
-      console.log('SpotlightTour: Setting isActive to true');
     }
   }, [isOpen]);
 

@@ -430,29 +430,6 @@ export default function SpotlightTour({ isOpen, onClose, autoStart = false }) {
     return () => window.removeEventListener('resize', handleResize);
   }, [isActive, highlightTarget]);
 
-  const handleNext = useCallback(() => {
-    if (currentStep < TOUR_STEPS.length - 1) {
-      setCurrentStep(prev => prev + 1);
-    } else {
-      // Tour complete
-      localStorage.setItem(STORAGE_KEY, 'true');
-      setIsActive(false);
-      onClose?.();
-    }
-  }, [currentStep, onClose]);
-
-  const handleBack = useCallback(() => {
-    if (currentStep > 0) {
-      setCurrentStep(prev => prev - 1);
-    }
-  }, [currentStep]);
-
-  const handleSkip = useCallback(() => {
-    localStorage.setItem(STORAGE_KEY, 'true');
-    setIsActive(false);
-    onClose?.();
-  }, [onClose]);
-
   // Handle clicking outside spotlight (skip tour)
   const handleOverlayClick = useCallback((e) => {
     // Only close if clicking on the dark overlay, not the tooltip

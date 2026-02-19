@@ -175,7 +175,7 @@ async def propose_ideas(client_id: str, format: str, range: str) -> dict:
         patterns = [
             f"Format '{format}' episodes recommended based on current trends",
             f"Top performing topics: {', '.join(top_topics[:3])}",
-            f"External signals suggest focus on AI and efficiency content",
+            "External signals suggest focus on AI and efficiency content",
             f"Audience engagement is {('strong' if total_views > 5000 else 'growing')}"
         ]
         

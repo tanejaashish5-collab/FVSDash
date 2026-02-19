@@ -15,6 +15,25 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 
 ## What's Been Implemented
 
+### Phase 19 — Admin Publishing Dashboard (Cross-Client View) (Feb 19, 2026)
+
+#### Backend Changes:
+- `GET /api/publishing-tasks` accepts optional `?clientId=<uuid>` param
+  - Admin + no clientId → returns ALL tasks across all clients with `clientName` field
+  - Admin + clientId → filters to that specific client
+  - Client → ignores clientId param, always returns own tasks only
+- `GET /api/publishing-stats` same admin/client logic for stats filtering
+- Uses existing `GET /api/admin/clients` endpoint for client list
+
+#### Frontend Changes (PublishingDashboardPage.jsx):
+- Admin only: "All Clients" dropdown next to platform/status filters
+- Admin only: "Client" column in publishing tasks table (between Submission and Platform)
+- Client users: unchanged behavior - no dropdown, no Client column
+
+#### Test Results (Feb 19, 2026):
+- Backend: 100% (13/13 tests passed)
+- Frontend: 100% (7/7 UI tests passed)
+
 ### Phase 18 — Bug Fixes & UX Improvements (Feb 19, 2026)
 
 #### Fixed Issues:

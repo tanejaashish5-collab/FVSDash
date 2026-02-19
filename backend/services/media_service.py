@@ -148,22 +148,24 @@ async def generate_voice_for_script(
         if not audio_data:
             raise ValueError("No audio data received from ElevenLabs")
         
-        # Try to upload to S3 if configured
-        s3_url, storage_provider = await _try_upload_to_s3(
+        # S3 is the PRIMARY storage - try to upload first
+        s3_url, storage_provider, s3_error = await _try_upload_to_s3(
             audio_data,
             "audio/mpeg",
             f"audio/elevenlabs/{uuid.uuid4()}"
         )
         
+        warning = None
         if s3_url:
             audio_url = s3_url
             logger.info(f"Audio uploaded to S3: {len(audio_data)} bytes")
         else:
-            # Fall back to base64 data URL
+            # Graceful fallback: store as data URL with warning
             audio_b64 = base64.b64encode(audio_data).decode()
             audio_url = f"data:audio/mpeg;base64,{audio_b64}"
             storage_provider = "data_url"
-            logger.info(f"Audio stored as data URL: {len(audio_data)} bytes")
+            warning = f"S3 not configured - audio stored as data URL. {s3_error}"
+            logger.warning(f"Audio fallback to data URL: {s3_error}")
         
         # Estimate duration (rough: ~150 words per minute, ~5 chars per word)
         estimated_duration = (len(truncated_text) / 5) / 150 * 60

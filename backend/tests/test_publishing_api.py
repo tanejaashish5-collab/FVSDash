@@ -4,7 +4,7 @@ import requests
 import os
 
 # Use public URL for testing
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://automated-content.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://content-lifecycle.preview.emergentagent.com')
 
 
 class TestPublishingAPI:

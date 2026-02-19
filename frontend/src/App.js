@@ -74,6 +74,8 @@ function AppRoutes() {
         <Route path="/dashboard/strategy" element={<StrategyPage />} />
         <Route path="/dashboard/video-lab" element={<VideoLabPage />} />
         <Route path="/dashboard/system" element={<FvsSystemPage />} />
+        {/* Strategy Idea Detail - view and act on a specific idea */}
+        <Route path="/dashboard/strategy/idea/:ideaId" element={<StrategyIdeaDetailPage />} />
         <Route path="/dashboard/analytics" element={<AnalyticsPage />} />
         <Route path="/dashboard/roi" element={<ROIPage />} />
         <Route path="/dashboard/billing" element={<BillingPage />} />

@@ -76,15 +76,22 @@ async def startup():
     await db.users.create_index("email", unique=True)
     await db.users.create_index("id", unique=True)
     await db.clients.create_index("id", unique=True)
+    await db.publishing_tasks.create_index("clientId")
+    await db.publishing_tasks.create_index([("status", 1), ("scheduledAt", 1)])
+    await db.platform_connections.create_index([("clientId", 1), ("platform", 1)], unique=True)
     try:
         result = await run_seed()
         if result:
             logger.info("Demo data seeded successfully")
     except Exception as e:
         logger.error(f"Seed error: {e}")
+    
+    # Start the publishing scheduler
+    start_scheduler()
 
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
     """Close database connection on shutdown."""
+    stop_scheduler()
     close_client()

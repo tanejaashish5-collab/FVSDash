@@ -22,8 +22,13 @@ class UserResponse(BaseModel):
     name: str
     role: str
     clientId: Optional[str] = None
+    onboardingComplete: bool = True  # Default True for backward compatibility
 
 
 class TokenResponse(BaseModel):
     token: str
     user: UserResponse
+
+
+class OnboardingUpdate(BaseModel):
+    onboarding_complete: bool

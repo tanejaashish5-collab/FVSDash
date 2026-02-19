@@ -5,14 +5,63 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 
 ## Architecture
 - **Frontend**: React 19 + Tailwind CSS + shadcn/ui + Recharts + lucide-react
-- **Backend**: FastAPI + Motor (async MongoDB) + PyJWT + emergentintegrations
+- **Backend**: FastAPI + Motor (async MongoDB) + PyJWT + emergentintegrations + APScheduler
 - **Database**: MongoDB (multi-tenant via clientId scoping)
 - **Auth**: JWT-based with admin/client roles
 - **AI**: Multi-provider LLM (Gemini/OpenAI/Anthropic via Emergent key)
 - **Storage**: S3/S3-compatible (optional, with graceful fallback to data URLs)
 - **Brand Brain**: Channel Profile system for AI content customization
+- **Publishing**: Mock platform connections with background scheduler
 
 ## What's Been Implemented
+
+### Phase 17 — Publishing Layer (Feb 19, 2026)
+
+#### Settings → Publishing Tab
+- Connection cards for YouTube Shorts, TikTok, Instagram Reels
+- Mock OAuth connect/disconnect buttons
+- Shows connected status with account handle (@demo_yt_channel, etc.)
+- Note: "This is a demo environment. OAuth connections are simulated."
+
+#### PublishingTask Model + Backend
+- **Collections**: `publishing_tasks`, `platform_connections`
+- **Endpoints**:
+  - `GET /api/platform-connections` - List all platforms
+  - `POST /api/platform-connections/{platform}/connect` - Mock OAuth
+  - `POST /api/platform-connections/{platform}/disconnect` - Disconnect
+  - `POST /api/publishing-tasks` - Create task
+  - `GET /api/publishing-tasks` - List with filters (platform, status, submissionId)
+  - `PATCH /api/publishing-tasks/{id}` - Update status/scheduledAt
+  - `DELETE /api/publishing-tasks/{id}` - Delete task
+  - `POST /api/publishing-tasks/{id}/post-now` - Immediate mock post
+  - `POST /api/publishing-tasks/create-and-post` - Convenience endpoint
+  - `GET /api/publishing-stats` - Stats (posted, scheduled, failed counts)
+
+#### Background Scheduler (APScheduler)
+- Runs every 30 seconds
+- Processes tasks where `status=scheduled` and `scheduledAt <= now`
+- Mock-executes: sets status to `posted`, generates fake `platformPostId`
+
+#### Submission Detail – Publishing Panel
+- Shows all 3 platforms in right sidebar
+- Connected platforms: Post Now / Schedule buttons
+- Disconnected platforms: "Connect in Settings" hint
+- Posted tasks: Green "Live" badge
+- Scheduled tasks: Blue badge with date + Cancel button
+- Date/time picker for scheduling
+
+#### Publishing Dashboard
+- New route: `/dashboard/publishing`
+- Sidebar navigation link added
+- Stats cards: Posted, Scheduled, Failed, Total
+- Filters: Platform dropdown, Status dropdown
+- Task table with columns: Submission, Platform, Status, Scheduled, Posted, Actions
+- Clicking row navigates to Submission Detail
+
+#### Test Results (Feb 19, 2026):
+- Backend: 17/17 tests passed (100%)
+- Frontend: All UI components working
+- All integrations are MOCKED (no real OAuth or API calls)
 
 ### Phase 16 — Strategy Idea Detail Page (Feb 19, 2026)
 

@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,35 +10,232 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import { Separator } from '@/components/ui/separator';
-import { ChevronLeft, ChevronRight, CalendarIcon, ExternalLink, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { 
+  ChevronLeft, ChevronRight, CalendarIcon, ExternalLink, Loader2, 
+  Clock, Palette, Check, Sparkles, GripVertical, List, Calendar as CalendarViewIcon,
+  ArrowRight, Undo2
+} from 'lucide-react';
 import { toast } from 'sonner';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, addMonths, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, addMonths, subMonths, addDays, isAfter, isBefore } from 'date-fns';
 import axios from 'axios';
 import { AuraTooltip } from '@/components/ui/AuraTooltip';
 import { tooltipContent } from '@/constants/tooltipContent';
+import { AuraSpinner } from '@/components/animations/AuraSpinner';
+
+// DnD Kit imports
+import {
+  DndContext,
+  DragOverlay,
+  useSensor,
+  useSensors,
+  PointerSensor,
+  useDroppable,
+  useDraggable,
+  closestCenter,
+} from '@dnd-kit/core';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const STATUSES = ['INTAKE', 'EDITING', 'DESIGN', 'SCHEDULED', 'PUBLISHED'];
 const CONTENT_TYPES = ['Podcast', 'Short', 'Blog', 'Webinar', 'Other'];
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+// Silk easing for animations
+const silkEase = [0.22, 1, 0.36, 1];
 
 const statusCfg = {
-  INTAKE: { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20', dot: 'bg-amber-400' },
-  EDITING: { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/20', dot: 'bg-blue-400' },
-  DESIGN: { bg: 'bg-violet-500/10', text: 'text-violet-400', border: 'border-violet-500/20', dot: 'bg-violet-400' },
-  SCHEDULED: { bg: 'bg-teal-500/10', text: 'text-teal-400', border: 'border-teal-500/20', dot: 'bg-teal-400' },
-  PUBLISHED: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20', dot: 'bg-emerald-400' },
+  INTAKE: { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20', dot: 'bg-amber-400', icon: Clock },
+  EDITING: { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/20', dot: 'bg-blue-400', icon: Clock },
+  DESIGN: { bg: 'bg-violet-500/10', text: 'text-violet-400', border: 'border-violet-500/20', dot: 'bg-violet-400', icon: Palette },
+  SCHEDULED: { bg: 'bg-teal-500/10', text: 'text-teal-400', border: 'border-teal-500/20', dot: 'bg-teal-400', icon: Check },
+  PUBLISHED: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20', dot: 'bg-emerald-400', icon: Check },
 };
 
 const typeCfg = {
-  Podcast: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
-  Short: 'bg-pink-500/10 text-pink-400 border-pink-500/20',
-  Blog: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
-  Webinar: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
-  Other: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20',
+  Podcast: { class: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', color: 'indigo' },
+  Short: { class: 'bg-pink-500/10 text-pink-400 border-pink-500/20', color: 'pink' },
+  Blog: { class: 'bg-orange-500/10 text-orange-400 border-orange-500/20', color: 'orange' },
+  Webinar: { class: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20', color: 'cyan' },
+  Other: { class: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20', color: 'zinc' },
 };
 
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+// Cadence watermarks based on day of week
+const getCadenceWatermark = (dayOfWeek) => {
+  switch (dayOfWeek) {
+    case 1: // Monday
+    case 3: // Wednesday
+      return { text: 'SHORTS DAY', type: 'Short' };
+    case 2: // Tuesday
+    case 4: // Thursday
+      return { text: 'PODCAST DAY', type: 'Podcast' };
+    case 5: // Friday
+      return { text: 'BLOG DAY', type: 'Blog' };
+    default:
+      return null;
+  }
+};
 
+// Draggable Pipeline Card
+function DraggablePipelineCard({ submission, isDragging }) {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: `pipeline-${submission.id}`,
+    data: { submission, source: 'pipeline' },
+  });
+
+  const tc = typeCfg[submission.contentType] || typeCfg.Other;
+  const sc = statusCfg[submission.status] || statusCfg.INTAKE;
+  const StatusIcon = sc.icon;
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+  } : undefined;
+
+  return (
+    <motion.div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: isDragging ? 0.5 : 1, x: 0 }}
+      className={`group p-3 rounded-lg bg-[#060c17] border border-[#1F2933] hover:border-indigo-500/30 cursor-grab active:cursor-grabbing transition-all ${isDragging ? 'opacity-50' : ''}`}
+      data-testid={`pipeline-card-${submission.id}`}
+    >
+      <div className="flex items-start gap-2">
+        <GripVertical className="h-4 w-4 text-zinc-600 mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Badge variant="outline" className={`text-[8px] px-1 py-0 ${tc.class}`}>
+              {submission.contentType}
+            </Badge>
+            <StatusIcon className={`h-3 w-3 ${sc.text}`} />
+          </div>
+          <p className="text-xs text-white font-medium truncate">{submission.title}</p>
+          {submission.guest && (
+            <p className="text-[10px] text-zinc-500 truncate">w/ {submission.guest}</p>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// Draggable Calendar Event
+function DraggableCalendarEvent({ submission, isToday, onClick }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `calendar-${submission.id}`,
+    data: { submission, source: 'calendar' },
+  });
+
+  const tc = typeCfg[submission.contentType] || typeCfg.Other;
+  const sc = statusCfg[submission.status] || statusCfg.INTAKE;
+  const StatusIcon = sc.icon;
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    zIndex: 1000,
+  } : undefined;
+
+  return (
+    <motion.button
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      onClick={(e) => {
+        if (!isDragging) {
+          e.stopPropagation();
+          onClick(submission);
+        }
+      }}
+      className={`w-full text-left p-1.5 rounded bg-[#0B1120] border border-[#1F2933] hover:border-indigo-500/30 transition-all cursor-grab active:cursor-grabbing group ${
+        isToday ? 'animate-aura-gold ring-1 ring-amber-400/30' : ''
+      } ${isDragging ? 'opacity-50 scale-95' : ''}`}
+      data-testid={`event-${submission.id}`}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+    >
+      <div className="flex items-center gap-1 mb-0.5">
+        <Badge variant="outline" className={`text-[7px] px-0.5 py-0 ${tc.class}`}>
+          {submission.contentType?.substring(0, 3)}
+        </Badge>
+        <StatusIcon className={`h-2.5 w-2.5 ${sc.text}`} />
+      </div>
+      <p className="text-[9px] text-zinc-300 truncate leading-tight">{submission.title}</p>
+    </motion.button>
+  );
+}
+
+// Droppable Day Cell
+function DroppableDay({ day, children, isOver, isToday, cadence, draggedItem }) {
+  const { setNodeRef, isOver: dropIsOver } = useDroppable({
+    id: `day-${format(day, 'yyyy-MM-dd')}`,
+    data: { date: format(day, 'yyyy-MM-dd') },
+  });
+
+  const dayOfWeek = getDay(day);
+  const watermark = getCadenceWatermark(dayOfWeek);
+  
+  // Check if dragged item matches the cadence recommendation
+  const isCompatibleDrag = draggedItem && watermark && 
+    draggedItem.contentType === watermark.type;
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`min-h-[100px] bg-[#060c17] p-2 transition-all relative ${
+        isToday ? 'ring-1 ring-inset ring-indigo-500/30' : ''
+      } ${dropIsOver ? 'bg-indigo-500/10 ring-2 ring-indigo-500/50' : ''}`}
+      data-testid={`day-cell-${format(day, 'yyyy-MM-dd')}`}
+    >
+      <div className={`text-xs font-medium mb-1.5 ${isToday ? 'text-indigo-400' : 'text-zinc-500'}`}>
+        {format(day, 'd')}
+      </div>
+      
+      {/* Cadence Watermark */}
+      {watermark && children.length === 0 && (
+        <div className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-all ${
+          isCompatibleDrag ? 'animate-pulse' : ''
+        }`}>
+          <span className={`text-[10px] uppercase tracking-widest font-semibold ${
+            isCompatibleDrag ? 'text-amber-400/40' : 'text-white/5'
+          }`}>
+            {watermark.text}
+          </span>
+        </div>
+      )}
+      
+      <div className="space-y-1 relative z-10">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// Ghost Pill for AI Suggestions
+function GhostPill({ suggestion, onAccept }) {
+  return (
+    <motion.button
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      onClick={() => onAccept(suggestion)}
+      className="w-full p-1.5 rounded border-2 border-dashed border-amber-400/30 bg-amber-400/5 hover:bg-amber-400/10 transition-all cursor-pointer group"
+      data-testid={`ghost-pill-${suggestion.date}`}
+    >
+      <div className="flex items-center gap-1.5">
+        <Sparkles className="h-3 w-3 text-amber-400/60 group-hover:text-amber-400 animate-pulse" />
+        <span className="text-[9px] text-amber-400/60 group-hover:text-amber-400 truncate">
+          {suggestion.suggestedSubmission?.title?.substring(0, 20)}...
+        </span>
+      </div>
+    </motion.button>
+  );
+}
+
+// Detail Row Component
 function DetailRow({ label, children }) {
   return (
     <div>
@@ -47,41 +245,144 @@ function DetailRow({ label, children }) {
   );
 }
 
+// View Toggle Component
+function ViewToggle({ view, setView }) {
+  return (
+    <div className="inline-flex p-1 rounded-lg bg-zinc-900/50 border border-[#1F2933]">
+      <button
+        onClick={() => setView('month')}
+        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+          view === 'month' 
+            ? 'bg-indigo-500/20 text-indigo-400 shadow-sm' 
+            : 'text-zinc-400 hover:text-white'
+        }`}
+        data-testid="view-month"
+      >
+        <CalendarViewIcon className="h-3.5 w-3.5 inline mr-1.5" />
+        Month
+      </button>
+      <button
+        onClick={() => setView('agenda')}
+        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+          view === 'agenda' 
+            ? 'bg-indigo-500/20 text-indigo-400 shadow-sm' 
+            : 'text-zinc-400 hover:text-white'
+        }`}
+        data-testid="view-agenda"
+      >
+        <List className="h-3.5 w-3.5 inline mr-1.5" />
+        Agenda
+      </button>
+      <button
+        onClick={() => setView('upcoming')}
+        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+          view === 'upcoming' 
+            ? 'bg-indigo-500/20 text-indigo-400 shadow-sm' 
+            : 'text-zinc-400 hover:text-white'
+        }`}
+        data-testid="view-upcoming"
+      >
+        <ArrowRight className="h-3.5 w-3.5 inline mr-1.5" />
+        Upcoming
+      </button>
+    </div>
+  );
+}
+
 export default function CalendarPage() {
-  const { authHeaders } = useAuth();
+  const { authHeaders, buildApiUrl } = useAuth();
   const navigate = useNavigate();
 
+  // State
   const [currentDate, setCurrentDate] = useState(new Date());
   const [submissions, setSubmissions] = useState([]);
+  const [pipeline, setPipeline] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [updating, setUpdating] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [activeId, setActiveId] = useState(null);
+  const [draggedItem, setDraggedItem] = useState(null);
+  const [view, setView] = useState('month');
+  const [rescheduleConfirm, setRescheduleConfirm] = useState(null);
 
   // Filters
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
 
-  const fetchCalendar = useCallback(() => {
+  // DnD Sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
+
+  // Fetch calendar data
+  const fetchCalendar = useCallback(async () => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth() + 1;
     setLoading(true);
-    axios.get(`${API}/calendar?year=${year}&month=${month}`, { headers: authHeaders })
-      .then(res => setSubmissions(res.data.submissions || []))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [authHeaders, currentDate]);
+    try {
+      const [calendarRes, pipelineRes, suggestRes] = await Promise.all([
+        axios.get(buildApiUrl(`${API}/calendar?year=${year}&month=${month}`), { headers: authHeaders }),
+        axios.get(buildApiUrl(`${API}/calendar/pipeline`), { headers: authHeaders }),
+        axios.get(buildApiUrl(`${API}/calendar/suggest?year=${year}&month=${month}`), { headers: authHeaders }),
+      ]);
+      setSubmissions(calendarRes.data.submissions || []);
+      setPipeline(pipelineRes.data.submissions || []);
+      setSuggestions(suggestRes.data.suggestions || []);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to load calendar data');
+    } finally {
+      setLoading(false);
+    }
+  }, [authHeaders, buildApiUrl, currentDate]);
 
   useEffect(() => { fetchCalendar(); }, [fetchCalendar]);
 
   const handlePrevMonth = () => setCurrentDate(subMonths(currentDate, 1));
   const handleNextMonth = () => setCurrentDate(addMonths(currentDate, 1));
 
+  // Schedule submission to a date
+  const scheduleSubmission = async (submissionId, date) => {
+    try {
+      await axios.patch(
+        buildApiUrl(`${API}/calendar/schedule/${submissionId}?date=${date}`),
+        {},
+        { headers: authHeaders }
+      );
+      toast.success('Content scheduled!');
+      fetchCalendar();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to schedule');
+    }
+  };
+
+  // Unschedule submission
+  const unscheduleSubmission = async (submissionId) => {
+    try {
+      await axios.patch(
+        buildApiUrl(`${API}/calendar/unschedule/${submissionId}`),
+        {},
+        { headers: authHeaders }
+      );
+      toast.success('Content unscheduled');
+      fetchCalendar();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to unschedule');
+    }
+  };
+
+  // Handle status change
   const handleStatusChange = async (newStatus) => {
     if (!selected) return;
     setUpdating(true);
     try {
-      await axios.patch(`${API}/submissions/${selected.id}`, { status: newStatus }, { headers: authHeaders });
+      await axios.patch(buildApiUrl(`${API}/submissions/${selected.id}`), { status: newStatus }, { headers: authHeaders });
       toast.success('Status updated');
       setSelected(prev => ({ ...prev, status: newStatus }));
       fetchCalendar();
@@ -92,21 +393,84 @@ export default function CalendarPage() {
     }
   };
 
+  // Handle date change from detail panel
   const handleDateChange = async (newDate) => {
     if (!selected) return;
     setUpdating(true);
     setDatePickerOpen(false);
     try {
       const formattedDate = format(newDate, 'yyyy-MM-dd');
-      await axios.patch(`${API}/submissions/${selected.id}`, { releaseDate: formattedDate }, { headers: authHeaders });
-      toast.success('Release date updated');
-      setSelected(prev => ({ ...prev, releaseDate: formattedDate }));
-      fetchCalendar();
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to update release date');
+      await scheduleSubmission(selected.id, formattedDate);
+      setSelected(prev => ({ ...prev, releaseDate: formattedDate, status: 'SCHEDULED' }));
     } finally {
       setUpdating(false);
     }
+  };
+
+  // Accept AI suggestion
+  const handleAcceptSuggestion = async (suggestion) => {
+    await scheduleSubmission(suggestion.suggestedSubmission.id, suggestion.date);
+  };
+
+  // DnD Handlers
+  const handleDragStart = (event) => {
+    const { active } = event;
+    setActiveId(active.id);
+    setDraggedItem(active.data.current?.submission);
+  };
+
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+    setActiveId(null);
+    setDraggedItem(null);
+
+    if (!over) return;
+
+    const sourceData = active.data.current;
+    const targetDate = over.data.current?.date;
+
+    if (!targetDate) return;
+
+    const submission = sourceData.submission;
+    const fromCalendar = sourceData.source === 'calendar';
+
+    // If rescheduling from calendar, show confirmation
+    if (fromCalendar && submission.releaseDate !== targetDate) {
+      setRescheduleConfirm({
+        submission,
+        newDate: targetDate,
+        oldDate: submission.releaseDate,
+      });
+      return;
+    }
+
+    // Schedule from pipeline
+    if (!fromCalendar) {
+      // Optimistic update
+      setPipeline(prev => prev.filter(p => p.id !== submission.id));
+      setSubmissions(prev => [...prev, { ...submission, releaseDate: targetDate, status: 'SCHEDULED' }]);
+      await scheduleSubmission(submission.id, targetDate);
+    }
+  };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
+    setDraggedItem(null);
+  };
+
+  // Confirm reschedule
+  const confirmReschedule = async () => {
+    if (!rescheduleConfirm) return;
+    
+    // Optimistic update
+    setSubmissions(prev => prev.map(s => 
+      s.id === rescheduleConfirm.submission.id 
+        ? { ...s, releaseDate: rescheduleConfirm.newDate }
+        : s
+    ));
+    setRescheduleConfirm(null);
+    
+    await scheduleSubmission(rescheduleConfirm.submission.id, rescheduleConfirm.newDate);
   };
 
   // Filter submissions
@@ -127,156 +491,365 @@ export default function CalendarPage() {
     return filteredSubmissions.filter(sub => sub.releaseDate === dateStr);
   };
 
+  const getSuggestionForDay = (day) => {
+    const dateStr = format(day, 'yyyy-MM-dd');
+    return suggestions.find(s => s.date === dateStr);
+  };
+
+  // Find active dragged item for overlay
+  const activeDragItem = useMemo(() => {
+    if (!activeId) return null;
+    const fromPipeline = pipeline.find(p => `pipeline-${p.id}` === activeId);
+    if (fromPipeline) return fromPipeline;
+    return submissions.find(s => `calendar-${s.id}` === activeId);
+  }, [activeId, pipeline, submissions]);
+
+  // Upcoming view data (next 14 days)
+  const upcomingDays = useMemo(() => {
+    const today = new Date();
+    const result = [];
+    for (let i = 0; i < 14; i++) {
+      const day = addDays(today, i);
+      const dateStr = format(day, 'yyyy-MM-dd');
+      const daySubmissions = submissions.filter(s => s.releaseDate === dateStr);
+      if (daySubmissions.length > 0) {
+        result.push({ date: day, submissions: daySubmissions });
+      }
+    }
+    return result;
+  }, [submissions]);
+
+  // Agenda view data (grouped by date)
+  const agendaData = useMemo(() => {
+    const grouped = {};
+    filteredSubmissions.forEach(sub => {
+      if (sub.releaseDate) {
+        if (!grouped[sub.releaseDate]) {
+          grouped[sub.releaseDate] = [];
+        }
+        grouped[sub.releaseDate].push(sub);
+      }
+    });
+    return Object.entries(grouped)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, subs]) => ({ date, submissions: subs }));
+  }, [filteredSubmissions]);
+
   return (
-    <div data-testid="calendar-page" className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <AuraTooltip content={tooltipContent.calendar.calendarView} position="right">
-          <h1 className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
-            Content calendar
-          </h1>
-        </AuraTooltip>
-        <p className="text-sm text-zinc-500 mt-0.5">Visualize and adjust your publishing schedule.</p>
-      </div>
-
-      {/* Filters */}
-      <Card className="bg-[#0B1120] border-[#1F2933]">
-        <CardContent className="p-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger data-testid="filter-content-type" className="w-[140px] h-8 text-xs bg-zinc-950 border-zinc-800 text-zinc-300">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-[#0B1120] border-[#1F2933]">
-                <SelectItem value="all" className="text-xs text-zinc-300">All Types</SelectItem>
-                {CONTENT_TYPES.map(t => (
-                  <SelectItem key={t} value={t} className="text-xs text-zinc-300">{t}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger data-testid="filter-status" className="w-[140px] h-8 text-xs bg-zinc-950 border-zinc-800 text-zinc-300">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-[#0B1120] border-[#1F2933]">
-                <SelectItem value="all" className="text-xs text-zinc-300">All Statuses</SelectItem>
-                {STATUSES.map(s => (
-                  <SelectItem key={s} value={s} className="text-xs text-zinc-300">{s}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span className="text-[10px] text-zinc-600 ml-auto">
-              {filteredSubmissions.length} event{filteredSubmissions.length !== 1 ? 's' : ''} this month
-            </span>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Calendar */}
-      <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="calendar-grid">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handlePrevMonth}
-              className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-white/5"
-              data-testid="prev-month-btn"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <CardTitle className="text-base font-semibold text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>
-              {format(currentDate, 'MMMM yyyy')}
-            </CardTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleNextMonth}
-              className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-white/5"
-              data-testid="next-month-btn"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="h-6 w-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : (
-            <>
-              {/* Weekday headers */}
-              <div className="grid grid-cols-7 mb-2">
-                {WEEKDAYS.map(day => (
-                  <div key={day} className="text-center text-[10px] uppercase tracking-wider text-zinc-500 font-semibold py-2">
-                    {day}
-                  </div>
-                ))}
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
+      <div data-testid="calendar-page" className="flex gap-6 h-[calc(100vh-140px)]">
+        {/* Main Calendar Area (75%) */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Page Header */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <AuraTooltip content={tooltipContent.calendar.calendarView} position="right">
+                  <h1 className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                    Strategic Calendar
+                  </h1>
+                </AuraTooltip>
+                <p className="text-sm text-zinc-500 mt-0.5">Drag content from the pipeline to schedule your releases.</p>
               </div>
+              <ViewToggle view={view} setView={setView} />
+            </div>
+          </div>
 
-              {/* Calendar grid */}
-              <div className="grid grid-cols-7 gap-px bg-[#1F2933]/50 rounded-lg overflow-hidden">
-                {/* Padding for start of month */}
-                {Array.from({ length: startPadding }).map((_, i) => (
-                  <div key={`pad-${i}`} className="min-h-[100px] bg-[#060c17]/50 p-2" />
-                ))}
+          {/* Filters */}
+          <Card className="bg-[#0B1120] border-[#1F2933] mb-4 shrink-0">
+            <CardContent className="p-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <Select value={filterType} onValueChange={setFilterType}>
+                  <SelectTrigger data-testid="filter-content-type" className="w-[130px] h-8 text-xs bg-zinc-950 border-zinc-800 text-zinc-300">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0B1120] border-[#1F2933]">
+                    <SelectItem value="all" className="text-xs text-zinc-300">All Types</SelectItem>
+                    {CONTENT_TYPES.map(t => (
+                      <SelectItem key={t} value={t} className="text-xs text-zinc-300">{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger data-testid="filter-status" className="w-[130px] h-8 text-xs bg-zinc-950 border-zinc-800 text-zinc-300">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0B1120] border-[#1F2933]">
+                    <SelectItem value="all" className="text-xs text-zinc-300">All Statuses</SelectItem>
+                    {STATUSES.map(s => (
+                      <SelectItem key={s} value={s} className="text-xs text-zinc-300">{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-[10px] text-zinc-600 ml-auto">
+                  {filteredSubmissions.length} scheduled · {pipeline.length} in pipeline
+                </span>
+              </div>
+            </CardContent>
+          </Card>
 
-                {/* Days */}
-                {days.map(day => {
-                  const daySubmissions = getSubmissionsForDay(day);
-                  const isToday = isSameDay(day, new Date());
-                  return (
-                    <div
-                      key={day.toISOString()}
-                      className={`min-h-[100px] bg-[#060c17] p-2 transition-colors ${
-                        isToday ? 'ring-1 ring-inset ring-indigo-500/30' : ''
-                      }`}
-                      data-testid={`day-cell-${format(day, 'yyyy-MM-dd')}`}
+          {/* Calendar Views */}
+          <Card className="bg-[#0B1120] border-[#1F2933] flex-1 overflow-hidden" data-testid="calendar-grid">
+            {view === 'month' && (
+              <>
+                <CardHeader className="pb-2 shrink-0">
+                  <div className="flex items-center justify-between">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handlePrevMonth}
+                      className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-white/5"
+                      data-testid="prev-month-btn"
                     >
-                      <div className={`text-xs font-medium mb-1.5 ${isToday ? 'text-indigo-400' : 'text-zinc-500'}`}>
-                        {format(day, 'd')}
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <CardTitle className="text-base font-semibold text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                      {format(currentDate, 'MMMM yyyy')}
+                    </CardTitle>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleNextMonth}
+                      className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-white/5"
+                      data-testid="next-month-btn"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-3 overflow-auto">
+                  {loading ? (
+                    <div className="flex items-center justify-center h-64">
+                      <AuraSpinner size="md" />
+                    </div>
+                  ) : (
+                    <>
+                      {/* Weekday headers */}
+                      <div className="grid grid-cols-7 mb-2">
+                        {WEEKDAYS.map(day => (
+                          <div key={day} className="text-center text-[10px] uppercase tracking-wider text-zinc-500 font-semibold py-2">
+                            {day}
+                          </div>
+                        ))}
                       </div>
-                      <div className="space-y-1">
-                        {daySubmissions.slice(0, 3).map(sub => {
-                          const tc = typeCfg[sub.contentType] || typeCfg.Other;
-                          const sc = statusCfg[sub.status] || statusCfg.INTAKE;
+
+                      {/* Calendar grid */}
+                      <div className="grid grid-cols-7 gap-px bg-[#1F2933]/50 rounded-lg overflow-hidden">
+                        {/* Padding for start of month */}
+                        {Array.from({ length: startPadding }).map((_, i) => (
+                          <div key={`pad-${i}`} className="min-h-[90px] bg-[#060c17]/50 p-2" />
+                        ))}
+
+                        {/* Days */}
+                        {days.map(day => {
+                          const daySubmissions = getSubmissionsForDay(day);
+                          const suggestion = getSuggestionForDay(day);
+                          const isToday = isSameDay(day, new Date());
+                          
                           return (
-                            <button
-                              key={sub.id}
-                              onClick={() => setSelected(sub)}
-                              className="w-full text-left p-1.5 rounded bg-[#0B1120] border border-[#1F2933] hover:border-indigo-500/30 transition-colors group"
-                              data-testid={`event-${sub.id}`}
+                            <DroppableDay 
+                              key={day.toISOString()} 
+                              day={day} 
+                              isToday={isToday}
+                              draggedItem={draggedItem}
                             >
-                              <Badge variant="outline" className={`text-[8px] px-1 py-0 mb-0.5 ${tc}`}>
-                                {sub.contentType}
-                              </Badge>
-                              <p className="text-[10px] text-zinc-300 truncate leading-tight">{sub.title}</p>
-                              <div className={`h-1 w-1 rounded-full ${sc.dot} mt-1`} />
-                            </button>
+                              {daySubmissions.slice(0, 2).map(sub => (
+                                <DraggableCalendarEvent
+                                  key={sub.id}
+                                  submission={sub}
+                                  isToday={isToday && sub.releaseDate === format(new Date(), 'yyyy-MM-dd')}
+                                  onClick={setSelected}
+                                />
+                              ))}
+                              {daySubmissions.length > 2 && (
+                                <p className="text-[8px] text-zinc-500 pl-1">+{daySubmissions.length - 2} more</p>
+                              )}
+                              {/* AI Suggestion Ghost Pill */}
+                              {suggestion && daySubmissions.length === 0 && (
+                                <GhostPill suggestion={suggestion} onAccept={handleAcceptSuggestion} />
+                              )}
+                            </DroppableDay>
                           );
                         })}
-                        {daySubmissions.length > 3 && (
-                          <p className="text-[9px] text-zinc-500 pl-1">+{daySubmissions.length - 3} more</p>
-                        )}
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    </>
+                  )}
+                </CardContent>
+              </>
+            )}
 
-              {/* Empty state */}
-              {filteredSubmissions.length === 0 && (
-                <div className="text-center py-8 mt-4 border border-dashed border-[#1F2933] rounded-lg">
-                  <CalendarIcon className="h-8 w-8 text-zinc-700 mx-auto mb-2" />
-                  <p className="text-sm text-zinc-500">No scheduled episodes for this view.</p>
-                  <p className="text-xs text-zinc-600 mt-1">Use Submissions to plan your next content drops.</p>
+            {view === 'agenda' && (
+              <CardContent className="p-4">
+                <h3 className="text-sm font-semibold text-white mb-4" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                  {format(currentDate, 'MMMM yyyy')} Agenda
+                </h3>
+                <ScrollArea className="h-[calc(100vh-340px)]">
+                  {agendaData.length === 0 ? (
+                    <div className="text-center py-12">
+                      <CalendarIcon className="h-8 w-8 text-zinc-700 mx-auto mb-2" />
+                      <p className="text-sm text-zinc-500">No scheduled content this month.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {agendaData.map(({ date, submissions: daySubs }) => (
+                        <div key={date} className="border-l-2 border-indigo-500/30 pl-4">
+                          <p className="text-xs font-semibold text-zinc-400 mb-2">
+                            {format(new Date(date), 'EEEE, MMMM d')}
+                          </p>
+                          <div className="space-y-2">
+                            {daySubs.map(sub => {
+                              const tc = typeCfg[sub.contentType] || typeCfg.Other;
+                              const sc = statusCfg[sub.status] || statusCfg.INTAKE;
+                              return (
+                                <button
+                                  key={sub.id}
+                                  onClick={() => setSelected(sub)}
+                                  className="w-full text-left p-3 rounded-lg bg-[#060c17] border border-[#1F2933] hover:border-indigo-500/30 transition-colors"
+                                >
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Badge variant="outline" className={`text-[9px] px-1 py-0 ${tc.class}`}>
+                                      {sub.contentType}
+                                    </Badge>
+                                    <Badge variant="outline" className={`text-[9px] px-1 py-0 ${sc.bg} ${sc.text} ${sc.border}`}>
+                                      {sub.status}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-sm text-white font-medium">{sub.title}</p>
+                                  {sub.guest && <p className="text-xs text-zinc-500">w/ {sub.guest}</p>}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            )}
+
+            {view === 'upcoming' && (
+              <CardContent className="p-4">
+                <h3 className="text-sm font-semibold text-white mb-4" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                  Next 14 Days
+                </h3>
+                <ScrollArea className="h-[calc(100vh-340px)]">
+                  {upcomingDays.length === 0 ? (
+                    <div className="text-center py-12">
+                      <CalendarIcon className="h-8 w-8 text-zinc-700 mx-auto mb-2" />
+                      <p className="text-sm text-zinc-500">No upcoming content in the next 2 weeks.</p>
+                      <p className="text-xs text-zinc-600 mt-1">Drag content from the pipeline to schedule.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {upcomingDays.map(({ date, submissions: daySubs }) => {
+                        const isToday = isSameDay(date, new Date());
+                        return (
+                          <div 
+                            key={format(date, 'yyyy-MM-dd')} 
+                            className={`p-3 rounded-lg border ${isToday ? 'border-amber-500/30 bg-amber-500/5' : 'border-[#1F2933] bg-[#060c17]'}`}
+                          >
+                            <p className={`text-xs font-semibold mb-2 ${isToday ? 'text-amber-400' : 'text-zinc-400'}`}>
+                              {isToday ? 'Today' : format(date, 'EEEE, MMM d')}
+                            </p>
+                            {daySubs.map(sub => {
+                              const tc = typeCfg[sub.contentType] || typeCfg.Other;
+                              return (
+                                <button
+                                  key={sub.id}
+                                  onClick={() => setSelected(sub)}
+                                  className="w-full text-left p-2 rounded bg-[#0B1120] border border-[#1F2933] hover:border-indigo-500/30 transition-colors mb-1 last:mb-0"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline" className={`text-[8px] px-1 py-0 ${tc.class}`}>
+                                      {sub.contentType}
+                                    </Badge>
+                                    <p className="text-xs text-white truncate">{sub.title}</p>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            )}
+          </Card>
+        </div>
+
+        {/* Content Pipeline Sidebar (25%) */}
+        <Card className="w-[280px] shrink-0 bg-[#0B1120] border-[#1F2933] flex flex-col" data-testid="content-pipeline">
+          <CardHeader className="pb-2 shrink-0">
+            <CardTitle className="text-sm font-semibold text-white flex items-center gap-2" style={{ fontFamily: 'Manrope, sans-serif' }}>
+              <Sparkles className="h-4 w-4 text-amber-400" />
+              Content Pipeline
+            </CardTitle>
+            <p className="text-[10px] text-zinc-500">Drag to schedule</p>
+          </CardHeader>
+          <CardContent className="flex-1 overflow-hidden p-3 pt-0">
+            <ScrollArea className="h-full">
+              {loading ? (
+                <div className="flex items-center justify-center h-32">
+                  <AuraSpinner size="sm" />
+                </div>
+              ) : pipeline.length === 0 ? (
+                <div className="text-center py-8">
+                  <CalendarIcon className="h-6 w-6 text-zinc-700 mx-auto mb-2" />
+                  <p className="text-[10px] text-zinc-500">No unscheduled content.</p>
+                  <p className="text-[9px] text-zinc-600 mt-1">Submit new content to see it here.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {pipeline.map(sub => (
+                    <DraggablePipelineCard
+                      key={sub.id}
+                      submission={sub}
+                      isDragging={activeId === `pipeline-${sub.id}`}
+                    />
+                  ))}
                 </div>
               )}
-            </>
+            </ScrollArea>
+          </CardContent>
+          
+          {/* AI Suggestions Count */}
+          {suggestions.length > 0 && (
+            <div className="p-3 border-t border-[#1F2933] shrink-0">
+              <div className="flex items-center gap-2 text-[10px] text-amber-400/80">
+                <Sparkles className="h-3 w-3" />
+                <span>{suggestions.length} AI suggestion{suggestions.length !== 1 ? 's' : ''} available</span>
+              </div>
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </Card>
+
+        {/* Drag Overlay */}
+        <DragOverlay>
+          {activeDragItem && (
+            <motion.div
+              initial={{ scale: 1, opacity: 1 }}
+              animate={{ scale: 1.05, opacity: 0.9 }}
+              className="p-3 rounded-lg bg-[#0B1120] border-2 border-indigo-500 shadow-xl shadow-indigo-500/20"
+            >
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className={`text-[8px] px-1 py-0 ${(typeCfg[activeDragItem.contentType] || typeCfg.Other).class}`}>
+                  {activeDragItem.contentType}
+                </Badge>
+              </div>
+              <p className="text-xs text-white font-medium mt-1">{activeDragItem.title}</p>
+            </motion.div>
+          )}
+        </DragOverlay>
+      </div>
 
       {/* Detail Sheet */}
       <Sheet open={!!selected} onOpenChange={(open) => { if (!open) setSelected(null); }}>
@@ -288,18 +861,24 @@ export default function CalendarPage() {
                   {selected.title}
                 </SheetTitle>
                 <SheetDescription className="text-zinc-500 text-xs">
-                  Edit status and release date
+                  Edit status and schedule
                 </SheetDescription>
               </SheetHeader>
 
               <div className="flex items-center gap-2 mb-5 flex-wrap">
                 {(() => {
                   const sc = statusCfg[selected.status] || statusCfg.INTAKE;
-                  return <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${sc.bg} ${sc.text} ${sc.border}`}>{selected.status}</Badge>;
+                  const StatusIcon = sc.icon;
+                  return (
+                    <Badge variant="outline" className={`text-[10px] px-1.5 py-0.5 flex items-center gap-1 ${sc.bg} ${sc.text} ${sc.border}`}>
+                      <StatusIcon className="h-3 w-3" />
+                      {selected.status}
+                    </Badge>
+                  );
                 })()}
                 {(() => {
                   const tc = typeCfg[selected.contentType] || typeCfg.Other;
-                  return <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${tc}`}>{selected.contentType}</Badge>;
+                  return <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${tc.class}`}>{selected.contentType}</Badge>;
                 })()}
               </div>
 
@@ -329,7 +908,7 @@ export default function CalendarPage() {
                         className="w-full justify-start text-left font-normal h-9 bg-zinc-950 border-zinc-800 hover:bg-zinc-900 hover:text-white text-white"
                       >
                         <CalendarIcon className="mr-2 h-3.5 w-3.5 text-zinc-500" />
-                        <span className="text-sm">{selected.releaseDate || 'Not set'}</span>
+                        <span className="text-sm">{selected.releaseDate || 'Not scheduled'}</span>
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0 bg-[#0B1120] border-[#1F2933]" align="start">
@@ -341,6 +920,22 @@ export default function CalendarPage() {
                       />
                     </PopoverContent>
                   </Popover>
+                  
+                  {/* Unschedule button */}
+                  {selected.releaseDate && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        unscheduleSubmission(selected.id);
+                        setSelected(null);
+                      }}
+                      className="w-full mt-2 h-8 text-xs text-zinc-500 hover:text-red-400"
+                    >
+                      <Undo2 className="h-3 w-3 mr-1.5" />
+                      Unschedule (move to pipeline)
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -375,7 +970,6 @@ export default function CalendarPage() {
               <Separator className="bg-[#1F2933] my-5" />
 
               {/* Deep-link to Submission details page */}
-              {/* Clicking opens the canonical submission detail view with full context */}
               <div className="space-y-2">
                 <Button
                   onClick={() => navigate(`/dashboard/submissions/${selected.id}`)}
@@ -384,7 +978,7 @@ export default function CalendarPage() {
                   className="w-full justify-center gap-2 bg-indigo-500/10 border-indigo-500/30 hover:bg-indigo-500/20 text-indigo-300 h-9 text-xs"
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
-                  View Submission
+                  View Full Submission
                 </Button>
               </div>
 
@@ -398,6 +992,57 @@ export default function CalendarPage() {
           )}
         </SheetContent>
       </Sheet>
-    </div>
+
+      {/* Reschedule Confirmation Sheet */}
+      <Sheet open={!!rescheduleConfirm} onOpenChange={(open) => { if (!open) setRescheduleConfirm(null); }}>
+        <SheetContent side="right" className="bg-[#0B1120] border-[#1F2933] w-[380px]">
+          {rescheduleConfirm && (
+            <div className="py-6">
+              <div className="text-center mb-6">
+                <CalendarIcon className="h-10 w-10 text-indigo-400 mx-auto mb-3" />
+                <h3 className="text-lg font-semibold text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                  Reschedule Content?
+                </h3>
+              </div>
+              
+              <div className="space-y-4 mb-6">
+                <div className="p-3 rounded-lg bg-zinc-900/50 border border-[#1F2933]">
+                  <p className="text-xs text-zinc-500 mb-1">Content</p>
+                  <p className="text-sm text-white font-medium">{rescheduleConfirm.submission.title}</p>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 p-3 rounded-lg bg-zinc-900/50 border border-[#1F2933]">
+                    <p className="text-xs text-zinc-500 mb-1">From</p>
+                    <p className="text-sm text-white">{rescheduleConfirm.oldDate}</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-zinc-500 shrink-0" />
+                  <div className="flex-1 p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/30">
+                    <p className="text-xs text-indigo-400 mb-1">To</p>
+                    <p className="text-sm text-white">{rescheduleConfirm.newDate}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setRescheduleConfirm(null)}
+                  className="flex-1 h-10 text-sm border-[#1F2933] text-zinc-400 hover:text-white"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={confirmReschedule}
+                  className="flex-1 h-10 text-sm bg-indigo-600 hover:bg-indigo-700 text-white"
+                >
+                  Confirm Reschedule
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+    </DndContext>
   );
 }

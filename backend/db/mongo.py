@@ -101,3 +101,6 @@ def platform_connections_collection():
 
 def strategy_sessions_collection():
     return get_db().strategy_sessions
+
+def notifications_collection():
+    return get_db().notifications

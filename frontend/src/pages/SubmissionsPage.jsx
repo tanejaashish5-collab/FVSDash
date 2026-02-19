@@ -124,6 +124,36 @@ export default function SubmissionsPage() {
 
   useEffect(() => { fetchSubmissions(); }, [fetchSubmissions]);
 
+  // Fetch thumbnails and publishing data when submission is selected
+  useEffect(() => {
+    if (!selected || !authHeaders) return;
+    
+    const fetchDetailData = async () => {
+      setLoadingThumbnails(true);
+      try {
+        const [assetsRes, connectionsRes, tasksRes] = await Promise.all([
+          axios.get(`${API}/assets/library`, { headers: authHeaders }),
+          axios.get(`${API}/platform-connections`, { headers: authHeaders }),
+          axios.get(`${API}/publishing-tasks?submissionId=${selected.id}`, { headers: authHeaders })
+        ]);
+        
+        // Filter thumbnails for this submission
+        const subThumbnails = assetsRes.data.filter(
+          a => a.submissionId === selected.id && a.type === 'Thumbnail'
+        );
+        setThumbnails(subThumbnails);
+        setPlatformConnections(connectionsRes.data);
+        setPublishingTasks(tasksRes.data);
+      } catch (err) {
+        console.error('Failed to fetch detail data:', err);
+      } finally {
+        setLoadingThumbnails(false);
+      }
+    };
+    
+    fetchDetailData();
+  }, [selected, authHeaders]);
+
   const resetForm = () => {
     setTitle(''); setGuest(''); setDescription('');
     setContentType(''); setPriority('Medium');

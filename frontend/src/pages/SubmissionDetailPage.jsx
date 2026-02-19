@@ -129,7 +129,15 @@ export default function SubmissionDetailPage() {
   const [fvsIdea, setFvsIdea] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectingThumbnail, setSelectingThumbnail] = useState(null); // ID of thumbnail being selected
+  const [selectingThumbnail, setSelectingThumbnail] = useState(null);
+  
+  // Publishing state
+  const [platformConnections, setPlatformConnections] = useState([]);
+  const [publishingTasks, setPublishingTasks] = useState([]);
+  const [postingPlatform, setPostingPlatform] = useState(null);
+  const [schedulingPlatform, setSchedulingPlatform] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedTime, setSelectedTime] = useState('12:00'); // ID of thumbnail being selected
 
   const fetchSubmission = useCallback(async () => {
     if (!token || !submissionId) return;

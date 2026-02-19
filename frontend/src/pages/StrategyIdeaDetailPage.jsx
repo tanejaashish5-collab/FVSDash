@@ -149,6 +149,55 @@ export default function StrategyIdeaDetailPage() {
     }
   };
 
+  // Quick Produce - Full FVS Pipeline
+  const handleQuickProduce = async () => {
+    setQuickProducing(true);
+    setProduceProgress('Initializing production pipeline...');
+    setProduceResult(null);
+    
+    try {
+      // Show progress updates
+      const progressSteps = [
+        'Generating script with Channel Profile...',
+        'Creating audio with ElevenLabs...',
+        'Generating thumbnails (3 options)...',
+        'Creating video task...',
+        'Finalizing submission...'
+      ];
+      
+      let stepIndex = 0;
+      const progressInterval = setInterval(() => {
+        if (stepIndex < progressSteps.length) {
+          setProduceProgress(progressSteps[stepIndex]);
+          stepIndex++;
+        }
+      }, 3000);
+      
+      // Call the produce-episode endpoint
+      const res = await axios.post(`${API}/fvs/produce-episode`, {
+        ideaId: ideaId,
+        mode: 'full_auto_short'
+      }, { headers: authHeaders });
+      
+      clearInterval(progressInterval);
+      setProduceProgress('');
+      setProduceResult(res.data);
+      
+      // Update idea status
+      setIdea(prev => ({ ...prev, status: 'completed', submissionId: res.data.submission.id }));
+      
+      const thumbnailCount = res.data.thumbnailAssets?.length || 1;
+      toast.success(`Episode "${res.data.submission.title}" produced!`, {
+        description: `Script, audio, video, and ${thumbnailCount} thumbnail(s) generated.`
+      });
+    } catch (err) {
+      setProduceProgress('');
+      toast.error(err.response?.data?.detail || 'Failed to produce episode');
+    } finally {
+      setQuickProducing(false);
+    }
+  };
+
   // Copy script
   const handleCopyScript = () => {
     if (scriptData?.scriptText) {

@@ -248,7 +248,8 @@ async def generate_thumbnail(
     brand_voice: str,
     title: str,
     format: str = "short",
-    provider: str = "openai"
+    provider: str = "openai",
+    custom_prompt: str = None
 ) -> ThumbnailGenerationResult:
     """
     Generate a thumbnail image for an episode.
@@ -259,23 +260,25 @@ async def generate_thumbnail(
         title: The episode title
         format: Episode format (short/long)
         provider: Image generation provider ("openai", "stability" - future)
+        custom_prompt: Optional custom prompt from Channel Profile
         
     Returns:
         ThumbnailGenerationResult with URL and metadata
     """
     if provider == "openai":
-        return await _generate_thumbnail_openai(topic, brand_voice, title, format)
+        return await _generate_thumbnail_openai(topic, brand_voice, title, format, custom_prompt)
     # TODO: Add "stability" provider when needed
     else:
         logger.warning(f"Unknown thumbnail provider '{provider}'. Falling back to OpenAI.")
-        return await _generate_thumbnail_openai(topic, brand_voice, title, format)
+        return await _generate_thumbnail_openai(topic, brand_voice, title, format, custom_prompt)
 
 
 async def _generate_thumbnail_openai(
     topic: str,
     brand_voice: str,
     title: str,
-    format: str
+    format: str,
+    custom_prompt: str = None
 ) -> ThumbnailGenerationResult:
     """Generate thumbnail using OpenAI's image generation via Emergent."""
     api_key = os.environ.get("EMERGENT_LLM_KEY")

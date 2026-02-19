@@ -900,10 +900,11 @@ async def generate_script_for_idea_endpoint(client_id: str, idea_id: str) -> dic
     # Generate a title suggestion
     title = idea.get("topic", "Untitled")
     
-    # Generate hooks (opening lines) - first 2-3 sentences of the script
     script_text = script_data.get("text", "")
-    lines = [line.strip() for line in script_text.split('\n') if line.strip()]
-    hooks = lines[:3] if len(lines) >= 3 else lines
+    
+    # Use the pre-generated hooks from the idea, not the script lines
+    # The hooks field was already set during propose_ideas with catchy opening lines
+    hooks = idea.get("hooks", [])
     
     # Save script back to the idea document for persistence
     now = datetime.now(timezone.utc).isoformat()
@@ -911,7 +912,6 @@ async def generate_script_for_idea_endpoint(client_id: str, idea_id: str) -> dic
         {"id": idea_id, "clientId": client_id},
         {"$set": {
             "script": script_text,
-            "generatedHooks": hooks,
             "updatedAt": now
         }}
     )

@@ -35,12 +35,27 @@ const typeCfg = {
   Webinar: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
 };
 
-function KPICard({ label, value, subtext, icon: Icon, trend }) {
+function KPICard({ label, value, subtext, icon: Icon, trend, tooltip }) {
+  const labelElement = tooltip ? (
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 cursor-help border-b border-dashed border-zinc-600">{label}</span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-[240px] bg-zinc-900 text-white border-zinc-700">
+          {tooltip}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  ) : (
+    <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">{label}</span>
+  );
+
   return (
     <Card className="bg-[#0B1120] border-[#1F2933] stat-card" data-testid={`kpi-${label.toLowerCase().replace(/[\s().]+/g, '-').replace(/-+/g, '-').replace(/-$/, '')}`}>
       <CardContent className="p-5">
         <div className="flex items-center justify-between mb-4">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">{label}</span>
+          {labelElement}
           <div className="h-9 w-9 rounded-md bg-indigo-500/10 flex items-center justify-center">
             <Icon className="h-4 w-4 text-indigo-400" />
           </div>

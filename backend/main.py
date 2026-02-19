@@ -14,7 +14,7 @@ from routers import (
     auth, dashboard, submissions, assets, calendar,
     deliverables, analytics, roi, billing, settings,
     help, blog, ai, video_tasks, fvs, admin, channel_profile,
-    publishing, strategy_session, notifications
+    publishing, strategy_session, notifications, oauth, youtube_publish
 )
 
 # Import database utilities

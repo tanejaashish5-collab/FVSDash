@@ -681,7 +681,7 @@ export default function SubmissionsPage() {
                 type="submit"
                 data-testid="form-submit-btn"
                 disabled={submitting}
-                className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-medium h-9 text-sm"
+                className={`aura-btn-teal flex-1 bg-teal-600 hover:bg-teal-700 text-white font-medium h-9 text-sm ${submitting ? 'animate-aura-button-glow' : ''}`}
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Submit'}
               </Button>

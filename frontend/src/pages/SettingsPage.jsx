@@ -265,6 +265,35 @@ export default function SettingsPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
+              {noClientId || !channelProfile ? (
+                // Empty state for admin or no profile
+                <div className="text-center py-12">
+                  <Brain className="h-16 w-16 text-zinc-700 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-white mb-2">Set up your Brand Brain</h3>
+                  <p className="text-sm text-zinc-500 max-w-md mx-auto mb-6">
+                    {noClientId 
+                      ? "As an admin, please select a client to impersonate from the admin panel to configure their Brand Brain settings."
+                      : "Configure your channel profile to customize how AI generates content for you."}
+                  </p>
+                  {!noClientId && (
+                    <Button 
+                      onClick={() => setChannelProfile({
+                        languageStyle: 'english',
+                        thumbnailStyle: 'modern_clean',
+                        brandDescription: '',
+                        tone: 'professional and engaging',
+                        contentPillars: [],
+                        thumbnailsPerShort: 1
+                      })}
+                      className="bg-indigo-600 hover:bg-indigo-700"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Profile
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <>
               {/* Language Style */}
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -435,6 +464,8 @@ export default function SettingsPage() {
                   Save Channel Profile
                 </Button>
               </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

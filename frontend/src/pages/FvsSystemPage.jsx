@@ -464,8 +464,8 @@ export default function FvsSystemPage() {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => idea.producedSubmissionId && navigate(`/dashboard/submissions/${idea.producedSubmissionId}`)}
-                                    disabled={!idea.producedSubmissionId}
+                                    onClick={() => idea.submissionId && navigate(`/dashboard/submissions/${idea.submissionId}`)}
+                                    disabled={!idea.submissionId}
                                     className="h-7 px-2 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
                                     data-testid={`view-episode-btn-${idea.id}`}
                                   >

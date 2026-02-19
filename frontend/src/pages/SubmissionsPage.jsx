@@ -19,7 +19,7 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Loader2, CalendarIcon, FileText, ChevronDown, Link as LinkIcon, ExternalLink,
-  FileImage, Check, Send, Youtube, Instagram, X, CalendarClock, Settings, Plus
+  FileImage, Check, Send, Youtube, Instagram, X, CalendarClock, Settings, Plus, Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';

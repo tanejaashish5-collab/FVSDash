@@ -40,6 +40,11 @@ export default function StrategyIdeaDetailPage() {
   const [copied, setCopied] = useState(false);
   const [createdSubmissionId, setCreatedSubmissionId] = useState(null);
   const [createdVideoTaskId, setCreatedVideoTaskId] = useState(null);
+  
+  // Quick Produce state
+  const [quickProducing, setQuickProducing] = useState(false);
+  const [produceProgress, setProduceProgress] = useState('');
+  const [produceResult, setProduceResult] = useState(null);
 
   // Fetch idea details
   const fetchIdea = useCallback(async () => {

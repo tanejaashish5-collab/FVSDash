@@ -59,6 +59,37 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 #### Test Results (Feb 19, 2026):
 - Frontend: 100% (10/10 tests passed)
 
+### Phase 19.2 — Onboarding Checklist Modal (Feb 19, 2026)
+
+#### Backend Changes:
+- Added `onboardingComplete: Boolean` field to User model
+  - Default `False` for new users (via signup)
+  - Existing users without field default to `True` (backward compatible)
+- Added `PATCH /api/auth/me/onboarding` endpoint
+  - Auth required, any user can update their own
+  - Body: `{ "onboarding_complete": true/false }`
+- Updated `GET /api/auth/me` and login response to include `onboardingComplete`
+
+#### Frontend Changes:
+- Created `OnboardingModal.jsx` component
+  - Centered dialog (not slide-over) with dark overlay
+  - Shows for non-admin users with `onboardingComplete === false`
+  - Session-level flag (React state, not localStorage)
+- 4 Setup Steps with checkboxes:
+  1. Set up your Brand Brain → /dashboard/settings
+  2. Submit your first episode → /dashboard/submissions
+  3. Run the FVS Brain → /dashboard/system
+  4. Connect your social accounts → /dashboard/settings?tab=publishing
+- Footer buttons:
+  - "Skip for now" - dismisses immediately
+  - "I'm all set — let's go!" - visible when all 4 checked
+- Both dismiss methods call PATCH endpoint
+- Admin users (`role === 'admin'`) never see the modal
+
+#### Test Results (Feb 19, 2026):
+- Backend: 100% (7/7 tests passed)
+- Frontend: 100% (all UI tests passed)
+
 ### Phase 18 — Bug Fixes & UX Improvements (Feb 19, 2026)
 
 #### Fixed Issues:

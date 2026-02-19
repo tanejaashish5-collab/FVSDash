@@ -23,6 +23,9 @@ from db.mongo import get_db, close_client
 # Import seed module
 from seed import run_seed
 
+# Import scheduler
+from services.publishing_scheduler import start_scheduler, stop_scheduler
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)

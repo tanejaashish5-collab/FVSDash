@@ -315,9 +315,71 @@ export default function SubmissionDetailPage() {
                       <h4 className="text-sm font-medium text-zinc-400 mb-3 flex items-center gap-2">
                         <FileImage className="h-4 w-4" />
                         Thumbnails ({thumbnailAssets.length})
+                        {thumbnailAssets.length > 1 && (
+                          <span className="text-xs text-zinc-500 ml-2">
+                            - Click to select primary
+                          </span>
+                        )}
                       </h4>
-                      <div className="grid gap-3">
-                        {thumbnailAssets.map(asset => (
+                      {/* Thumbnail Gallery for multiple thumbnails */}
+                      {thumbnailAssets.length > 1 ? (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {thumbnailAssets.map((asset, idx) => {
+                            const isPrimary = asset.id === submission.primaryThumbnailAssetId || asset.isPrimaryThumbnail;
+                            return (
+                              <div 
+                                key={asset.id}
+                                className={`relative rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${
+                                  isPrimary 
+                                    ? 'border-emerald-500 ring-2 ring-emerald-500/30' 
+                                    : 'border-zinc-700 hover:border-indigo-500/50'
+                                }`}
+                                onClick={() => handleViewAsset(asset)}
+                                data-testid={`thumbnail-option-${idx + 1}`}
+                              >
+                                {asset.url && (
+                                  <img 
+                                    src={asset.url} 
+                                    alt={asset.name}
+                                    className="w-full aspect-video object-cover"
+                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                  />
+                                )}
+                                <div className="absolute top-2 left-2 flex gap-1">
+                                  <Badge 
+                                    variant="outline" 
+                                    className="bg-black/60 text-white text-[10px] border-none"
+                                  >
+                                    {idx + 1}/{thumbnailAssets.length}
+                                  </Badge>
+                                  {isPrimary && (
+                                    <Badge className="bg-emerald-500 text-white text-[10px]">
+                                      Primary
+                                    </Badge>
+                                  )}
+                                </div>
+                                {asset.fvsGenerated && (
+                                  <div className="absolute top-2 right-2">
+                                    <Badge 
+                                      variant="outline" 
+                                      className="bg-purple-500/80 text-white text-[10px] border-none"
+                                    >
+                                      <Sparkles className="h-3 w-3 mr-1" />
+                                      FVS
+                                    </Badge>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="grid gap-3">
+                          {thumbnailAssets.map(asset => (
+                            <AssetCard key={asset.id} asset={asset} onView={handleViewAsset} />
+                          ))}
+                        </div>
+                      )}
                           <AssetCard key={asset.id} asset={asset} onView={handleViewAsset} />
                         ))}
                       </div>

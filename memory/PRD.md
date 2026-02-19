@@ -51,17 +51,34 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 - Date/time picker for scheduling
 
 #### Publishing Dashboard
-- New route: `/dashboard/publishing`
+- Route: `/dashboard/publishing`
 - Sidebar navigation link added
 - Stats cards: Posted, Scheduled, Failed, Total
 - Filters: Platform dropdown, Status dropdown
 - Task table with columns: Submission, Platform, Status, Scheduled, Posted, Actions
 - Clicking row navigates to Submission Detail
 
+#### Strategy Idea Detail Side Panel (Feb 19, 2026)
+- **Trigger**: Clicking any row in Episode Ideas table on FVS System page
+- **Panel**: 480px slide-over from right using shadcn Sheet component
+- **Content**:
+  - Full idea title (large heading)
+  - Score badge, format badge (short/long), status badge
+  - **Hooks section**: Numbered list of 3 opening hooks
+  - **Script section**: Hinglish script (scrollable), auto-generated on panel open
+  - **Caption & Hashtags**: Caption text + hashtag badges
+- **Action Buttons**:
+  - "Create Submission from Idea" → Creates submission with `strategyIdeaId`, navigates to /dashboard/submissions
+  - "Create AI Video Task from Idea" → Creates video task with script, navigates to /dashboard/video-lab
+  - "Copy Script" → Copies to clipboard with "Copied!" confirmation
+
+#### Idea Data Model Updates
+- Added fields: `hooks` (array), `script` (nullable), `caption`, `hashtags` (array)
+- `strategyIdeaId` added to Submission model to link submissions back to ideas
+
 #### Test Results (Feb 19, 2026):
-- Backend: 17/17 tests passed (100%)
-- Frontend: All UI components working
-- All integrations are MOCKED (no real OAuth or API calls)
+- Backend: 9/9 strategy idea tests passed + 17/17 publishing tests = 100%
+- Frontend: All UI components verified
 
 ### Phase 16 — Strategy Idea Detail Page (Feb 19, 2026)
 

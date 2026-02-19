@@ -4,9 +4,9 @@ from datetime import datetime, timezone
 from typing import Optional
 import uuid
 
-from models.content import SubmissionCreate, SubmissionUpdate, StatusUpdate
+from models.content import SubmissionCreate, SubmissionUpdate, StatusUpdate, PrimaryThumbnailUpdate
 from services.auth_service import get_current_user, get_client_id_from_user
-from db.mongo import submissions_collection
+from db.mongo import submissions_collection, assets_collection
 
 router = APIRouter(tags=["submissions"])
 

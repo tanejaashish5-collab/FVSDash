@@ -4,6 +4,29 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+   AURA DESIGN SYSTEM - ForgeVoice Studio
+   ============================================ */
+
+:root {
+  /* Aura Brand Palette */
+  --aura-gold: rgba(241, 200, 122, 0.2);
+  --aura-gold-solid: rgba(241, 200, 122, 1);
+  --aura-gold-glow: rgba(241, 200, 122, 0.35);
+  --aura-teal: rgba(45, 212, 191, 0.2);
+  --aura-teal-solid: rgba(45, 212, 191, 1);
+  --aura-teal-glow: rgba(45, 212, 191, 0.35);
+  --aura-indigo: rgba(99, 102, 241, 0.2);
+  --aura-indigo-solid: rgba(99, 102, 241, 1);
+  --aura-indigo-glow: rgba(99, 102, 241, 0.35);
+  
+  /* Surface colors */
+  --surface-dark: #0c0c0f;
+  --surface-card: #0B1120;
+  --surface-elevated: #121218;
+  --surface-border: rgba(255, 255, 255, 0.08);
+}
+
 body {
     margin: 0;
     font-family: 'IBM Plex Sans', sans-serif;
@@ -17,6 +40,97 @@ h1, h2, h3, h4, h5, h6 {
 
 code, .font-mono {
     font-family: 'JetBrains Mono', monospace;
+}
+
+/* ============================================
+   AURA CARD SYSTEM
+   ============================================ */
+
+.aura-card {
+  background: linear-gradient(180deg, #1A1A1A 0%, #121212 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.5rem;
+}
+
+/* Glass-morphic surface */
+.aura-glass {
+  background: rgba(12, 12, 15, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Glass-morphic modal backdrop */
+.aura-backdrop {
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* ============================================
+   AURA ANIMATIONS
+   ============================================ */
+
+/* Success pulse animation for form feedback */
+@keyframes aura-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--aura-teal-glow);
+    border-color: var(--aura-teal-solid);
+  }
+  25% {
+    box-shadow: 0 0 12px 3px var(--aura-teal-glow);
+    border-color: var(--aura-teal-solid);
+  }
+  50% {
+    box-shadow: 0 0 0 0 var(--aura-teal-glow);
+    border-color: var(--aura-teal-solid);
+  }
+  75% {
+    box-shadow: 0 0 12px 3px var(--aura-teal-glow);
+    border-color: var(--aura-teal-solid);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+}
+
+.animate-aura-pulse {
+  animation: aura-pulse 1.2s ease-out forwards;
+}
+
+/* Button processing glow */
+@keyframes aura-button-glow {
+  0% {
+    box-shadow: 0 0 0 0 var(--aura-indigo-glow);
+  }
+  50% {
+    box-shadow: 0 0 20px 4px var(--aura-indigo-glow), 0 4px 15px -3px rgba(0, 0, 0, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.animate-aura-button-glow {
+  animation: aura-button-glow 0.6s ease-out forwards;
+}
+
+/* Gold accent glow for premium elements */
+@keyframes aura-gold-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--aura-gold-glow);
+  }
+  50% {
+    box-shadow: 0 0 15px 2px var(--aura-gold-glow);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.animate-aura-gold {
+  animation: aura-gold-pulse 0.8s ease-out forwards;
 }
 
 @layer base {

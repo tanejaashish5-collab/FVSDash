@@ -20,6 +20,11 @@ class SubmissionCreate(BaseModel):
 class SubmissionUpdate(BaseModel):
     status: Optional[str] = None
     releaseDate: Optional[str] = None
+    primaryThumbnailAssetId: Optional[str] = None
+
+
+class PrimaryThumbnailUpdate(BaseModel):
+    assetId: str
 
 
 class AssetStatusUpdate(BaseModel):

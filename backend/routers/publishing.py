@@ -9,7 +9,7 @@ from models.publishing import (
     PlatformType, PublishingStatus
 )
 from services.auth_service import get_current_user, get_client_id_from_user
-from db.mongo import publishing_tasks_collection, platform_connections_collection, submissions_collection
+from db.mongo import publishing_tasks_collection, platform_connections_collection, submissions_collection, users_collection
 
 router = APIRouter(tags=["publishing"])
 
@@ -215,14 +215,35 @@ async def list_publishing_tasks(
     submissionId: Optional[str] = Query(None),
     platform: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
+    clientId: Optional[str] = Query(None, description="Filter by client ID (admin only)"),
     user: dict = Depends(get_current_user),
     impersonateClientId: Optional[str] = Query(None)
 ):
-    """List publishing tasks with optional filters."""
-    client_id = get_client_id_from_user(user, impersonateClientId)
-    db = publishing_tasks_collection()
+    """
+    List publishing tasks with optional filters.
     
-    query = {"clientId": client_id}
+    For admin users:
+    - If no clientId provided: returns ALL tasks across all clients with clientName
+    - If clientId provided: filters to that specific client
+    
+    For client users:
+    - Always returns only their own tasks (clientId param is ignored)
+    """
+    is_admin = user.get("role") == "admin"
+    db = publishing_tasks_collection()
+    users_db = users_collection()
+    
+    # Build query based on role
+    if is_admin:
+        if clientId:
+            # Admin filtering by specific client
+            query = {"clientId": clientId}
+        else:
+            # Admin sees all tasks
+            query = {}
+    else:
+        # Client users always see only their own tasks
+        query = {"clientId": get_client_id_from_user(user, impersonateClientId)}
     
     if submissionId:
         query["submissionId"] = submissionId
@@ -232,6 +253,25 @@ async def list_publishing_tasks(
         query["status"] = status
     
     tasks = await db.find(query, {"_id": 0}).sort("createdAt", -1).to_list(500)
+    
+    # For admin users, enrich with client names
+    if is_admin and tasks:
+        # Get unique client IDs
+        client_ids = list(set(t.get("clientId") for t in tasks if t.get("clientId")))
+        
+        # Fetch client names from users collection
+        client_name_map = {}
+        if client_ids:
+            clients = await users_db.find(
+                {"clientId": {"$in": client_ids}},
+                {"_id": 0, "clientId": 1, "name": 1}
+            ).to_list(500)
+            client_name_map = {c["clientId"]: c.get("name", "Unknown Client") for c in clients}
+        
+        # Add clientName to each task
+        for task in tasks:
+            task["clientName"] = client_name_map.get(task.get("clientId"), "Unknown")
+    
     return tasks
 
 
@@ -381,14 +421,33 @@ async def create_and_post_task(
 
 @router.get("/publishing-stats")
 async def get_publishing_stats(
+    clientId: Optional[str] = Query(None, description="Filter by client ID (admin only)"),
     user: dict = Depends(get_current_user),
     impersonateClientId: Optional[str] = Query(None)
 ):
-    """Get publishing statistics for the dashboard."""
-    client_id = get_client_id_from_user(user, impersonateClientId)
+    """
+    Get publishing statistics for the dashboard.
+    
+    For admin users:
+    - If no clientId provided: returns stats for ALL tasks
+    - If clientId provided: returns stats for that specific client
+    
+    For client users:
+    - Always returns stats for own tasks only
+    """
+    is_admin = user.get("role") == "admin"
     db = publishing_tasks_collection()
     
-    tasks = await db.find({"clientId": client_id}, {"_id": 0, "status": 1}).to_list(1000)
+    # Build query based on role
+    if is_admin:
+        if clientId:
+            query = {"clientId": clientId}
+        else:
+            query = {}  # All tasks
+    else:
+        query = {"clientId": get_client_id_from_user(user, impersonateClientId)}
+    
+    tasks = await db.find(query, {"_id": 0, "status": 1}).to_list(1000)
     
     stats = {
         "total": len(tasks),
@@ -400,3 +459,40 @@ async def get_publishing_stats(
     }
     
     return stats
+
+
+# ============================================================================
+# Admin Endpoints
+# ============================================================================
+
+@router.get("/admin/clients")
+async def list_clients_for_admin(user: dict = Depends(get_current_user)):
+    """
+    Get list of all client users for admin filtering.
+    Admin-only endpoint.
+    
+    Returns: [{id, fullName, email, clientId}]
+    """
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    users_db = users_collection()
+    
+    # Find all users with role 'client'
+    clients = await users_db.find(
+        {"role": "client"},
+        {"_id": 0, "id": 1, "name": 1, "email": 1, "clientId": 1}
+    ).to_list(500)
+    
+    # Format response
+    result = [
+        {
+            "id": c.get("clientId"),  # Use clientId as the primary identifier for filtering
+            "fullName": c.get("name", "Unknown"),
+            "email": c.get("email", ""),
+            "userId": c.get("id")
+        }
+        for c in clients
+    ]
+    
+    return result

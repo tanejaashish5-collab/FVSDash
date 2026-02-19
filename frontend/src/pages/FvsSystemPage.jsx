@@ -421,6 +421,16 @@ export default function FvsSystemPage() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
+                                      onClick={() => navigate(`/dashboard/strategy/idea/${idea.id}`)}
+                                      className="h-7 px-2 text-xs text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10"
+                                      data-testid={`view-idea-btn-${idea.id}`}
+                                    >
+                                      <Eye className="h-3 w-3 mr-1" />
+                                      View
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
                                       onClick={() => handleProduceEpisode(idea.id)}
                                       disabled={producing === idea.id}
                                       className="h-7 px-2 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"

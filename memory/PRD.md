@@ -40,14 +40,22 @@ Complete workflow from FVS idea → script generation → submission/video task 
    - Language/provider badges
 
 3. **Actions Panel** (left bottom):
-   - "Create Submission" button → Creates submission, shows inline "View in Submissions" link
-   - "Create AI Video Task" button → Creates video task, shows inline "View in AI Video Lab" link
-   - Buttons disabled until script is generated
-   - User stays on page after creation (no auto-navigation)
+   - **Quick Produce** button (gradient emerald/teal) - Full FVS pipeline in one click
+   - Progress indicator with pipeline steps
+   - "Create Submission" button → Creates submission, shows inline link
+   - "Create AI Video Task" button → Creates video task, shows inline link
+
+#### Quick Produce Feature
+- Runs full FVS pipeline: Script + Audio + Video + 3 Thumbnails
+- Uses Channel Profile for script language and thumbnail style
+- Progress indicator shows current pipeline step
+- On completion, shows link to Submission detail page
+- Calls existing `/api/fvs/produce-episode` endpoint
 
 #### Backend Endpoints
 - `GET /api/fvs/ideas/{idea_id}` - Fetch single idea
 - `POST /api/fvs/ideas/{idea_id}/generate-script` - Generate script with Channel Profile
+- `POST /api/fvs/produce-episode` - Full production pipeline (existing)
 
 #### FVS System Page Updates
 - Added "View" button for proposed ideas → navigates to detail page
@@ -55,6 +63,7 @@ Complete workflow from FVS idea → script generation → submission/video task 
 
 #### Test Results (Feb 19, 2026):
 - Backend: 9/9 tests passed (100%)
+- Quick Produce: Successfully generates episode with Hinglish script, ElevenLabs audio (real), 3 OpenAI thumbnails (real), video task (mocked)
 - Frontend: All UI components working
 - Script generation uses Anthropic Claude with Hinglish style
 

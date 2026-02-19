@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -16,6 +15,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { AuraTooltip } from '@/components/ui/AuraTooltip';
+import { tooltipContent } from '@/constants/tooltipContent';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const STATUSES = ['INTAKE', 'EDITING', 'DESIGN', 'SCHEDULED', 'PUBLISHED'];
@@ -35,18 +36,13 @@ const typeCfg = {
   Webinar: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
 };
 
-function KPICard({ label, value, subtext, icon: Icon, trend, tooltip }) {
-  const labelElement = tooltip ? (
-    <TooltipProvider delayDuration={300}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 cursor-help border-b border-dashed border-zinc-600">{label}</span>
-        </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-[240px] bg-zinc-900 text-white border-zinc-700">
-          {tooltip}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+function KPICard({ label, value, subtext, icon: Icon, trend, tooltipKey }) {
+  const tooltipText = tooltipKey ? tooltipContent.overview[tooltipKey] : null;
+  
+  const labelElement = tooltipText ? (
+    <AuraTooltip content={tooltipText} position="top">
+      <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">{label}</span>
+    </AuraTooltip>
   ) : (
     <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">{label}</span>
   );

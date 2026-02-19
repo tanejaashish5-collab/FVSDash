@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { 
   Send, Calendar, CheckCircle2, XCircle, Clock, Loader2,
   Youtube, Instagram, Filter, RefreshCw, ExternalLink,
-  AlertCircle
+  AlertCircle, Users
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -57,7 +57,8 @@ const statusCfg = {
 
 export default function PublishingDashboardPage() {
   const navigate = useNavigate();
-  const { authHeaders } = useAuth();
+  const { authHeaders, user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   
   const [tasks, setTasks] = useState([]);
   const [stats, setStats] = useState(null);
@@ -66,15 +67,43 @@ export default function PublishingDashboardPage() {
   // Filters
   const [platformFilter, setPlatformFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  
+  // Admin-only: client filter
+  const [clients, setClients] = useState([]);
+  const [clientFilter, setClientFilter] = useState('all');
+
+  // Fetch client list for admin users
+  useEffect(() => {
+    if (!authHeaders || !isAdmin) return;
+    
+    const fetchClients = async () => {
+      try {
+        const res = await axios.get(`${API}/admin/clients`, { headers: authHeaders });
+        setClients(res.data);
+      } catch (err) {
+        console.error('Failed to fetch clients:', err);
+      }
+    };
+    
+    fetchClients();
+  }, [authHeaders, isAdmin]);
 
   const fetchData = useCallback(async () => {
     if (!authHeaders) return;
     
     try {
       setLoading(true);
+      
+      // Build query params for admin client filter
+      const params = new URLSearchParams();
+      if (isAdmin && clientFilter !== 'all') {
+        params.append('clientId', clientFilter);
+      }
+      const queryString = params.toString() ? `?${params.toString()}` : '';
+      
       const [tasksRes, statsRes] = await Promise.all([
-        axios.get(`${API}/publishing-tasks`, { headers: authHeaders }),
-        axios.get(`${API}/publishing-stats`, { headers: authHeaders })
+        axios.get(`${API}/publishing-tasks${queryString}`, { headers: authHeaders }),
+        axios.get(`${API}/publishing-stats${queryString}`, { headers: authHeaders })
       ]);
       setTasks(tasksRes.data);
       setStats(statsRes.data);
@@ -83,7 +112,7 @@ export default function PublishingDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [authHeaders]);
+  }, [authHeaders, isAdmin, clientFilter]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -209,6 +238,24 @@ export default function PublishingDashboardPage() {
               <span className="text-sm text-zinc-400">Filters:</span>
             </div>
             
+            {/* Admin-only: Client Filter */}
+            {isAdmin && (
+              <Select value={clientFilter} onValueChange={setClientFilter}>
+                <SelectTrigger className="w-48 bg-zinc-900/50 border-zinc-700 text-white" data-testid="client-filter">
+                  <Users className="h-4 w-4 mr-2 text-zinc-400" />
+                  <SelectValue placeholder="All Clients" />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-900 border-zinc-700">
+                  <SelectItem value="all" className="text-white">All Clients</SelectItem>
+                  {clients.map(client => (
+                    <SelectItem key={client.id} value={client.id} className="text-white">
+                      {client.fullName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            
             <Select value={platformFilter} onValueChange={setPlatformFilter}>
               <SelectTrigger className="w-40 bg-zinc-900/50 border-zinc-700 text-white" data-testid="platform-filter">
                 <SelectValue placeholder="Platform" />
@@ -262,6 +309,9 @@ export default function PublishingDashboardPage() {
                 <thead>
                   <tr className="border-b border-zinc-800">
                     <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Submission</th>
+                    {isAdmin && (
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Client</th>
+                    )}
                     <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Platform</th>
                     <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Status</th>
                     <th className="text-left py-3 px-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Scheduled</th>
@@ -287,6 +337,13 @@ export default function PublishingDashboardPage() {
                             {task.submissionTitle || 'Untitled'}
                           </span>
                         </td>
+                        {isAdmin && (
+                          <td className="py-3 px-4">
+                            <span className="text-sm text-zinc-400" data-testid={`task-client-${task.id}`}>
+                              {task.clientName || 'Unknown'}
+                            </span>
+                          </td>
+                        )}
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2">
                             <PlatformIcon className={`h-4 w-4 ${platform.color}`} />

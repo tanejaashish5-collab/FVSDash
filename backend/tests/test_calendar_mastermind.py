@@ -26,8 +26,8 @@ class TestCalendarAuth:
         )
         assert response.status_code == 200, f"Login failed: {response.text}"
         data = response.json()
-        assert "access_token" in data, "No access_token in response"
-        return data["access_token"]
+        assert "token" in data, "No token in response"
+        return data["token"]
     
     @pytest.fixture(scope="class")
     def auth_headers(self, auth_token):
@@ -42,7 +42,7 @@ class TestCalendarAuth:
         )
         assert response.status_code == 200
         data = response.json()
-        assert "access_token" in data
+        assert "token" in data
         assert "user" in data
 
 
@@ -55,7 +55,7 @@ class TestCalendarMain:
             f"{BASE_URL}/api/auth/login",
             json={"email": TEST_CLIENT_EMAIL, "password": TEST_CLIENT_PASSWORD}
         )
-        return response.json().get("access_token")
+        return response.json().get("token")
     
     @pytest.fixture(scope="class")
     def auth_headers(self, auth_token):
@@ -104,7 +104,7 @@ class TestCalendarPipeline:
             f"{BASE_URL}/api/auth/login",
             json={"email": TEST_CLIENT_EMAIL, "password": TEST_CLIENT_PASSWORD}
         )
-        return response.json().get("access_token")
+        return response.json().get("token")
     
     @pytest.fixture(scope="class")
     def auth_headers(self, auth_token):
@@ -140,7 +140,7 @@ class TestCalendarSuggestions:
             f"{BASE_URL}/api/auth/login",
             json={"email": TEST_CLIENT_EMAIL, "password": TEST_CLIENT_PASSWORD}
         )
-        return response.json().get("access_token")
+        return response.json().get("token")
     
     @pytest.fixture(scope="class")
     def auth_headers(self, auth_token):
@@ -183,7 +183,7 @@ class TestCalendarScheduling:
             f"{BASE_URL}/api/auth/login",
             json={"email": TEST_CLIENT_EMAIL, "password": TEST_CLIENT_PASSWORD}
         )
-        return response.json().get("access_token")
+        return response.json().get("token")
     
     @pytest.fixture(scope="class")
     def auth_headers(self, auth_token):
@@ -292,7 +292,7 @@ class TestCalendarDataIntegrity:
             f"{BASE_URL}/api/auth/login",
             json={"email": TEST_CLIENT_EMAIL, "password": TEST_CLIENT_PASSWORD}
         )
-        return response.json().get("access_token")
+        return response.json().get("token")
     
     @pytest.fixture(scope="class")
     def auth_headers(self, auth_token):

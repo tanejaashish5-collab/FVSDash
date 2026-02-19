@@ -50,6 +50,9 @@ export default function Header() {
   // Notification state
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  
+  // Tour state
+  const [showTour, setShowTour] = useState(false);
 
   // Fetch unread count on mount and periodically
   const fetchUnreadCount = useCallback(async () => {

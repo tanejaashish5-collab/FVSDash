@@ -210,6 +210,10 @@ export default function SettingsPage() {
             <Brain className="h-4 w-4 mr-2" />
             Channel Profile
           </TabsTrigger>
+          <TabsTrigger value="publishing" className="data-[state=active]:bg-indigo-500/20">
+            <Send className="h-4 w-4 mr-2" />
+            Publishing
+          </TabsTrigger>
           <TabsTrigger value="account" className="data-[state=active]:bg-indigo-500/20">
             <User className="h-4 w-4 mr-2" />
             Account

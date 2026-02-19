@@ -192,42 +192,95 @@ export default function SettingsPage() {
     });
   };
   
-  // Connect platform (mock OAuth)
+  // Listen for OAuth popup messages
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.data?.type === 'oauth_success') {
+        const { platform, accountName, accountHandle } = event.data;
+        toast.success(`${platformCfg[platform]?.label || platform} connected successfully!`);
+        fetchOAuthStatus();
+        setConnectingPlatform(null);
+      } else if (event.data?.type === 'oauth_error') {
+        const { platform, error } = event.data;
+        toast.error(`Failed to connect ${platformCfg[platform]?.label || platform}: ${error}`);
+        setConnectingPlatform(null);
+      }
+    };
+    
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [fetchOAuthStatus]);
+  
+  // Connect platform via OAuth popup
   const handleConnectPlatform = async (platform) => {
+    if (platformCfg[platform]?.comingSoon) {
+      toast.info(`${platformCfg[platform].label} integration coming soon!`);
+      return;
+    }
+    
     setConnectingPlatform(platform);
     try {
-      const res = await axios.post(`${API}/platform-connections/${platform}/connect`, {}, { headers: authHeaders });
-      setPlatformConnections(prev => 
-        prev.map(p => p.platform === platform ? res.data : p)
+      const res = await axios.post(buildApiUrl(`${API}/oauth/connect/${platform}`), {}, { headers: authHeaders });
+      const { authUrl, popupWidth, popupHeight } = res.data;
+      
+      // Calculate popup position (centered)
+      const left = window.screenX + (window.outerWidth - popupWidth) / 2;
+      const top = window.screenY + (window.outerHeight - popupHeight) / 2;
+      
+      // Open OAuth popup
+      oauthPopupRef.current = window.open(
+        authUrl,
+        `oauth_${platform}`,
+        `width=${popupWidth},height=${popupHeight},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes`
       );
-      toast.success(`${platformCfg[platform]?.label || platform} connected!`);
+      
+      // Check if popup was blocked
+      if (!oauthPopupRef.current) {
+        toast.error('Popup blocked. Please allow popups for this site.');
+        setConnectingPlatform(null);
+      }
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to connect platform');
-    } finally {
+      toast.error(err.response?.data?.detail || 'Failed to initiate OAuth');
       setConnectingPlatform(null);
     }
   };
   
   // Disconnect platform
   const handleDisconnectPlatform = async (platform) => {
+    if (!window.confirm(`Are you sure you want to disconnect ${platformCfg[platform]?.label || platform}?`)) {
+      return;
+    }
+    
     setConnectingPlatform(platform);
     try {
-      await axios.post(`${API}/platform-connections/${platform}/disconnect`, {}, { headers: authHeaders });
-      setPlatformConnections(prev => 
-        prev.map(p => p.platform === platform ? { ...p, connected: false, accountName: null, accountHandle: null } : p)
-      );
+      await axios.delete(buildApiUrl(`${API}/oauth/disconnect/${platform}`), { headers: authHeaders });
       toast.success(`${platformCfg[platform]?.label || platform} disconnected`);
+      fetchOAuthStatus();
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to disconnect platform');
     } finally {
       setConnectingPlatform(null);
     }
   };
+  
+  // Refresh expiring token
+  const handleRefreshToken = async (platform) => {
+    setRefreshingToken(platform);
+    try {
+      await axios.post(buildApiUrl(`${API}/oauth/refresh/${platform}`), {}, { headers: authHeaders });
+      toast.success('Token refreshed successfully');
+      fetchOAuthStatus();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to refresh token');
+    } finally {
+      setRefreshingToken(null);
+    }
+  };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-400" />
+        <AuraSpinner size="md" />
       </div>
     );
   }

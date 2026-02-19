@@ -170,6 +170,107 @@ export default function FvsSystemPage() {
     }
   };
 
+  // Open idea detail panel
+  const handleOpenIdeaPanel = async (idea) => {
+    setSelectedIdea(idea);
+    setPanelOpen(true);
+    setScriptData(null);
+    
+    // Auto-generate script if not already generated
+    if (!idea.script) {
+      setLoadingScript(true);
+      try {
+        const res = await axios.post(`${API}/fvs/ideas/${idea.id}/generate-script`, {}, { headers: authHeaders });
+        setScriptData(res.data);
+        // Update the idea in the list with generated script
+        setIdeas(prev => prev.map(i => i.id === idea.id ? { ...i, script: res.data.scriptText } : i));
+      } catch (err) {
+        toast.error('Failed to generate script');
+      } finally {
+        setLoadingScript(false);
+      }
+    } else {
+      // Use existing script
+      setScriptData({
+        scriptText: idea.script,
+        hooks: idea.generatedHooks || idea.hooks,
+        caption: idea.caption,
+        hashtags: idea.hashtags
+      });
+    }
+  };
+
+  // Close panel
+  const handleClosePanel = () => {
+    setPanelOpen(false);
+    setSelectedIdea(null);
+    setScriptData(null);
+  };
+
+  // Create submission from idea
+  const handleCreateSubmissionFromIdea = async () => {
+    if (!selectedIdea) return;
+    setCreatingSubmission(true);
+    try {
+      const res = await axios.post(`${API}/submissions`, {
+        title: selectedIdea.topic,
+        description: selectedIdea.hypothesis || scriptData?.scriptText?.slice(0, 500) || '',
+        contentType: selectedIdea.format === 'short' ? 'Short' : 'Podcast',
+        priority: 'High',
+        strategyIdeaId: selectedIdea.id
+      }, { headers: authHeaders });
+      
+      toast.success('Submission created!', {
+        description: `"${res.data.title}" added to pipeline.`
+      });
+      handleClosePanel();
+      navigate('/dashboard/submissions');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to create submission');
+    } finally {
+      setCreatingSubmission(false);
+    }
+  };
+
+  // Create video task from idea
+  const handleCreateVideoTaskFromIdea = async () => {
+    if (!selectedIdea || !scriptData?.scriptText) {
+      toast.error('Please wait for script to generate');
+      return;
+    }
+    setCreatingVideoTask(true);
+    try {
+      const res = await axios.post(`${API}/video-tasks`, {
+        provider: 'veo',
+        prompt: `Create a ${selectedIdea.format === 'short' ? '60-90 second vertical' : '15-30 minute'} video for: ${selectedIdea.topic}`,
+        mode: 'script',
+        scriptText: scriptData.scriptText,
+        aspectRatio: selectedIdea.format === 'short' ? '9:16' : '16:9',
+        outputProfile: selectedIdea.format === 'short' ? 'shorts' : 'youtube_long'
+      }, { headers: authHeaders });
+      
+      toast.success('Video task created!', {
+        description: 'Check the AI Video Lab for progress.'
+      });
+      handleClosePanel();
+      navigate('/dashboard/video-lab');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to create video task');
+    } finally {
+      setCreatingVideoTask(false);
+    }
+  };
+
+  // Copy script to clipboard
+  const handleCopyScript = () => {
+    if (scriptData?.scriptText) {
+      navigator.clipboard.writeText(scriptData.scriptText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast.success('Script copied to clipboard');
+    }
+  };
+
   const formatDate = (dateStr) => {
     if (!dateStr) return '—';
     const date = new Date(dateStr);

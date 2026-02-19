@@ -149,6 +149,40 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 #### Test Results (Feb 19, 2026):
 - Frontend: 100% (10/10 tooltips verified)
 
+### Phase 20 — The Aura Update: Sprint 1 (Feb 19, 2026)
+
+#### Global "Aura" CSS Variables (index.css):
+- `--aura-gold`: rgba(241, 200, 122, 0.2) - Primary brand glow
+- `--aura-teal`: rgba(45, 212, 191, 0.2) - Success/action glow
+- `--aura-indigo`: rgba(99, 102, 241, 0.2) - Active state glow
+- `.aura-card`, `.aura-glass`, `.aura-backdrop` utility classes
+
+#### Card Pop Hover System (App.css):
+- `.stat-card`: KPI tiles lift & gold glow (translateY -2px, scale 1.01)
+- `.aura-card-hover`: Pipeline cards lift & glow
+- `.aura-table-row`: Table rows with gold left-border accent on hover
+- `.aura-btn-primary`: Button indigo glow on hover
+- `.aura-btn-teal`: Teal action button glow
+
+#### Aura Animations:
+- `animate-aura-pulse`: Success pulse for form feedback (1.2s, 2 pulses)
+- `animate-aura-button-glow`: Processing glow for buttons (0.6s)
+- `animate-aura-gold`: Gold pulse for premium elements
+
+#### Glass-morphic Surfaces:
+- Sidebar: bg-[#0c0c0f]/90 + backdrop-blur-xl + border-white/[0.06]
+- Header: bg-[#09090b]/85 + backdrop-blur-xl + border-white/[0.06]
+- Modals: bg-black/60 + backdrop-blur-sm
+
+#### Sidebar & Navigation Polish:
+- Active state: Gradient background (indigo 15% to 5%) + inner glow
+- Active icon: scale(1.05) + drop-shadow + indigo color
+- Hover state: Subtle background fade-in (white 4%)
+- User footer: Gradient fade from black/20
+
+#### Test Results (Feb 19, 2026):
+- Frontend: 100% (11/11 tests passed, 1 code verified)
+
 ### Phase 18 — Bug Fixes & UX Improvements (Feb 19, 2026)
 
 #### Fixed Issues:

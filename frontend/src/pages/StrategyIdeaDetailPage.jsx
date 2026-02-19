@@ -9,7 +9,8 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Lightbulb, FileText, Video, Loader2, RefreshCw, ArrowLeft,
-  Sparkles, Copy, Check, TrendingUp, Send, Film, ExternalLink
+  Sparkles, Copy, Check, TrendingUp, Send, Film, ExternalLink,
+  Zap, Music, Image
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';

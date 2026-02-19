@@ -231,3 +231,92 @@ class TestPublishingStats:
         assert "posted" in data
         assert "scheduled" in data
         assert "failed" in data
+
+
+class TestAdminPublishingFeatures:
+    """Test admin-specific publishing features."""
+    
+    @pytest.fixture
+    async def admin_token(self, async_client):
+        """Get admin auth token."""
+        response = await async_client.post("/api/auth/login", json={
+            "email": "admin@forgevoice.com",
+            "password": "admin123"
+        })
+        assert response.status_code == 200
+        return response.json()["token"]
+    
+    @pytest.fixture
+    def admin_headers(self, admin_token):
+        """Get headers with admin token."""
+        return {"Authorization": f"Bearer {admin_token}"}
+    
+    @pytest.mark.asyncio
+    async def test_admin_can_see_all_publishing_tasks(self, async_client, admin_headers):
+        """Test that admin users can see all publishing tasks across all clients."""
+        response = await async_client.get("/api/publishing-tasks", headers=admin_headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        # Admin should see tasks with clientName field populated
+        if len(data) > 0:
+            # Verify clientName field is present for admin
+            assert "clientName" in data[0]
+    
+    @pytest.mark.asyncio
+    async def test_admin_can_filter_by_client_id(self, async_client, admin_headers):
+        """Test that admin can filter publishing tasks by client ID."""
+        # First get the list of clients
+        clients_response = await async_client.get("/api/admin/clients", headers=admin_headers)
+        assert clients_response.status_code == 200
+        clients = clients_response.json()
+        
+        if len(clients) > 0:
+            # Filter by first client
+            client_id = clients[0]["id"]
+            response = await async_client.get(
+                f"/api/publishing-tasks?clientId={client_id}",
+                headers=admin_headers
+            )
+            assert response.status_code == 200
+            data = response.json()
+            # All tasks should belong to the specified client
+            for task in data:
+                assert task["clientId"] == client_id
+    
+    @pytest.mark.asyncio
+    async def test_client_cannot_filter_by_client_id(self, async_client, client_headers):
+        """Test that client users cannot see other clients' tasks via clientId param."""
+        # Try to pass a different clientId (should be ignored for client users)
+        response = await async_client.get(
+            "/api/publishing-tasks?clientId=some-other-client-id",
+            headers=client_headers
+        )
+        assert response.status_code == 200
+        data = response.json()
+        # Client user should only see their own tasks, clientId param should be ignored
+        # Verify all returned tasks belong to the logged-in client
+        for task in data:
+            # The clientId should be the demo-client-1 (alex@company.com's client)
+            assert task["clientId"] == "demo-client-1"
+    
+    @pytest.mark.asyncio
+    async def test_admin_clients_endpoint(self, async_client, admin_headers):
+        """Test admin endpoint to list all clients."""
+        response = await async_client.get("/api/admin/clients", headers=admin_headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        # Should have at least one client (alex@company.com)
+        assert len(data) >= 1
+        # Verify structure
+        if len(data) > 0:
+            assert "id" in data[0]
+            assert "fullName" in data[0]
+            assert "email" in data[0]
+    
+    @pytest.mark.asyncio
+    async def test_client_cannot_access_admin_clients_endpoint(self, async_client, client_headers):
+        """Test that client users cannot access the admin clients endpoint."""
+        response = await async_client.get("/api/admin/clients", headers=client_headers)
+        assert response.status_code == 403

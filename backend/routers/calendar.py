@@ -124,7 +124,6 @@ async def get_calendar_suggestions(
         
         # Check surrounding days for content gaps (>48 hours)
         prev_date = f"{target_year}-{target_month:02d}-{max(1, day-1):02d}"
-        next_date = f"{target_year}-{target_month:02d}-{min(num_days, day+1):02d}"
         prev_2_date = f"{target_year}-{target_month:02d}-{max(1, day-2):02d}"
         
         # Identify gap if neither yesterday nor day before has content

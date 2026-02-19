@@ -98,3 +98,6 @@ def publishing_tasks_collection():
 
 def platform_connections_collection():
     return get_db().platform_connections
+
+def strategy_sessions_collection():
+    return get_db().strategy_sessions

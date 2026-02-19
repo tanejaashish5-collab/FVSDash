@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,8 +15,17 @@ import {
 import axios from 'axios';
 import { AuraTooltip } from '@/components/ui/AuraTooltip';
 import { tooltipContent } from '@/constants/tooltipContent';
+import { AnimatedNumber } from '@/components/animations/AnimatedNumber';
+import { AuraSpinner } from '@/components/animations/AuraSpinner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+// Silk easing
+const silkEase = [0.22, 1, 0.36, 1];
+
+// Check reduced motion preference
+const getPrefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const RANGES = [
   { value: '7d', label: 'Last 7 days' },
@@ -24,7 +34,14 @@ const RANGES = [
   { value: '365d', label: 'Last 12 months' },
 ];
 
-function KPICard({ label, value, subtext, icon: Icon, trend, tooltipContent: tipContent }) {
+function KPICard({ label, value, subtext, icon: Icon, trend, tooltipContent: tipContent, delay = 0 }) {
+  const prefersReducedMotion = getPrefersReducedMotion();
+  
+  // Parse numeric value for animation
+  const numericValue = typeof value === 'string' ? parseFloat(value.replace(/[^0-9.-]+/g, '')) : value;
+  const isNumeric = !isNaN(numericValue);
+  const isCurrency = typeof value === 'string' && value.includes('$');
+  
   const labelElement = tipContent ? (
     <AuraTooltip content={tipContent} position="top">
       <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">{label}</span>
@@ -34,27 +51,42 @@ function KPICard({ label, value, subtext, icon: Icon, trend, tooltipContent: tip
   );
   
   return (
-    <Card className="bg-[#0B1120] border-[#1F2933]" data-testid={`kpi-${label.toLowerCase().replace(/[\s().]+/g, '-')}`}>
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between mb-4">
-          {labelElement}
-          <div className="h-9 w-9 rounded-md bg-indigo-500/10 flex items-center justify-center">
-            <Icon className="h-4 w-4 text-indigo-400" />
+    <motion.div
+      initial={prefersReducedMotion ? {} : { opacity: 0, y: 15, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.35, ease: silkEase, delay }}
+      whileHover={prefersReducedMotion ? {} : { y: -2 }}
+      style={{ willChange: prefersReducedMotion ? 'auto' : 'transform, opacity' }}
+    >
+      <Card className="bg-[#0B1120] border-[#1F2933] glass-flutter card-lift" data-testid={`kpi-${label.toLowerCase().replace(/[\s().]+/g, '-')}`}>
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between mb-4">
+            {labelElement}
+            <div className="h-9 w-9 rounded-md bg-indigo-500/10 flex items-center justify-center">
+              <Icon className="h-4 w-4 text-indigo-400" />
+            </div>
           </div>
-        </div>
-        <p className="text-3xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
-          {value}
-        </p>
-        <div className="flex items-center gap-2 mt-1.5">
-          <span className="text-xs text-zinc-500">{subtext}</span>
-          {trend != null && (
-            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${trend > 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-              {trend > 0 ? '+' : ''}{trend}%
-            </span>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+          <p className="text-3xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
+            {isNumeric ? (
+              <AnimatedNumber 
+                value={numericValue} 
+                prefix={isCurrency ? '$' : ''} 
+                delay={delay + 0.2}
+                duration={2}
+              />
+            ) : value}
+          </p>
+          <div className="flex items-center gap-2 mt-1.5">
+            <span className="text-xs text-zinc-500">{subtext}</span>
+            {trend != null && (
+              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${trend > 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                {trend > 0 ? '+' : ''}{trend}%
+              </span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }
 

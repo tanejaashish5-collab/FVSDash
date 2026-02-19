@@ -202,7 +202,7 @@ export default function OverviewPage() {
       {/* Middle Section: Pipeline + Schedule/Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Production Pipeline */}
-        <Card className="lg:col-span-8 bg-[#0B1120] border-[#1F2933]" data-testid="pipeline-board">
+        <Card className="lg:col-span-8 bg-[#0B1120] border-[#1F2933]" data-testid="pipeline-board" data-tour="pipeline">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>
               Production Pipeline

@@ -324,22 +324,24 @@ async def _generate_thumbnail_openai(
         
         image_data = images[0]
         
-        # Try to upload to S3 if configured
-        s3_url, storage_provider = await _try_upload_to_s3(
+        # S3 is the PRIMARY storage - try to upload first
+        s3_url, storage_provider, s3_error = await _try_upload_to_s3(
             image_data,
             "image/png",
             f"thumbnails/gpt-image/{uuid.uuid4()}"
         )
         
+        warning = None
         if s3_url:
             image_url = s3_url
             logger.info(f"Thumbnail uploaded to S3: {len(image_data)} bytes")
         else:
-            # Fall back to base64 data URL
+            # Graceful fallback: store as data URL with warning
             image_b64 = base64.b64encode(image_data).decode()
             image_url = f"data:image/png;base64,{image_b64}"
             storage_provider = "data_url"
-            logger.info(f"Thumbnail stored as data URL: {len(image_data)} bytes")
+            warning = f"S3 not configured - thumbnail stored as data URL. {s3_error}"
+            logger.warning(f"Thumbnail fallback to data URL: {s3_error}")
         
         logger.info(f"Generated thumbnail via OpenAI GPT-Image-1 ({len(image_data)} bytes)")
         

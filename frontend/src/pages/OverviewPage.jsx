@@ -196,7 +196,7 @@ export default function OverviewPage() {
         <KPICard label="Active Projects" value={data.kpis.activeProjects} subtext="Episodes in production" icon={Briefcase} trend={8} />
         <KPICard label="Published (30d)" value={data.kpis.publishedLast30d} subtext="Last 30 days" icon={Radio} trend={12} />
         <KPICard label="Total Assets" value={data.kpis.totalAssets} subtext="Video, audio, and design" icon={FolderOpen} />
-        <KPICard label="Est. ROI (30d)" value={`$${data.kpis.roiLast30d.toLocaleString()}`} subtext="At a glance ROI" icon={DollarSign} trend={15} />
+        <KPICard label="Est. ROI (30d)" value={`$${data.kpis.roiLast30d.toLocaleString()}`} subtext="At a glance ROI" icon={DollarSign} trend={15} tooltip="Estimated revenue based on views, CPM rates, and sponsorship value across all published content in the last 30 days." />
       </div>
 
       {/* Middle Section: Pipeline + Schedule/Actions */}

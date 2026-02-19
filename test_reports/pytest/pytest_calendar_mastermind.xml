@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="11" skipped="1" tests="17" time="4.681" timestamp="2026-02-19T12:58:28.700381+00:00" hostname="agent-env-a29e246a-9f60-48ed-abec-ac315fd87b68"><testcase classname="tests.test_calendar_mastermind.TestCalendarAuth" name="test_login_success" time="0.524"><failure message="AssertionError: assert 'access_token' in {'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkOTkzOTFlNC01YWUyLTRlY2YtYjMzYi01NzA5OTI5NWYxNzciLCJlbWFpbCI6ImFsZXhAY29tcGFueS5jb20iLCJyb2xlIjoiY2xpZW50IiwiY2xpZW50SWQiOiJkZW1vLWNsaWVudC0xIiwiZXhwIjoxNzcxNTkyMzA5fQ.HBe9wwie9sDxZ3VYTKotE7T3VWLfEU8I62RnYABMny8', 'user': {'clientId': 'demo-client-1', 'email': 'alex@company.com', 'id': 'd99391e4-5ae2-4ecf-b33b-57099295f177', 'name': 'Alex Chen', ...}}">tests/test_calendar_mastermind.py:45: in test_login_success
+    assert "access_token" in data
+E   AssertionError: assert 'access_token' in {'token': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkOTkzOTFlNC01YWUyLTRlY2YtYjMzYi01NzA5OTI5NWYxNzciLCJlbWFpbCI6ImFsZXhAY29tcGFueS5jb20iLCJyb2xlIjoiY2xpZW50IiwiY2xpZW50SWQiOiJkZW1vLWNsaWVudC0xIiwiZXhwIjoxNzcxNTkyMzA5fQ.HBe9wwie9sDxZ3VYTKotE7T3VWLfEU8I62RnYABMny8', 'user': {'clientId': 'demo-client-1', 'email': 'alex@company.com', 'id': 'd99391e4-5ae2-4ecf-b33b-57099295f177', 'name': 'Alex Chen', ...}}</failure></testcase><testcase classname="tests.test_calendar_mastermind.TestCalendarMain" name="test_get_calendar_without_params" time="0.617"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">tests/test_calendar_mastermind.py:67: in test_get_calendar_without_params
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_calendar_mastermind.TestCalendarMain" name="test_get_calendar_with_year_month" time="0.104"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">tests/test_calendar_mastermind.py:86: in test_get_calendar_with_year_month
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_calendar_mastermind.TestCalendarMain" name="test_get_calendar_unauthorized" time="0.138" /><testcase classname="tests.test_calendar_mastermind.TestCalendarPipeline" name="test_get_pipeline" time="0.563"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">tests/test_calendar_mastermind.py:116: in test_get_pipeline
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_calendar_mastermind.TestCalendarPipeline" name="test_get_pipeline_unauthorized" time="0.105" /><testcase classname="tests.test_calendar_mastermind.TestCalendarSuggestions" name="test_get_suggestions" time="0.545"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">tests/test_calendar_mastermind.py:157: in test_get_suggestions
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_calendar_mastermind.TestCalendarSuggestions" name="test_get_suggestions_unauthorized" time="0.105" /><testcase classname="tests.test_calendar_mastermind.TestCalendarScheduling" name="test_schedule_submission" time="0.519"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">tests/test_calendar_mastermind.py:199: in test_schedule_submission
+    assert pipeline_response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_calendar_mastermind.TestCalendarScheduling" name="test_unschedule_submission" time="0.098"><skipped type="pytest.skip" message="No scheduled submissions to unschedule">/app/backend/tests/test_calendar_mastermind.py:248: No scheduled submissions to unschedule</skipped></testcase><testcase classname="tests.test_calendar_mastermind.TestCalendarScheduling" name="test_schedule_nonexistent_submission" time="0.107"><failure message="assert 401 == 404&#10; +  where 401 = &lt;Response [401]&gt;.status_code">tests/test_calendar_mastermind.py:268: in test_schedule_nonexistent_submission
+    assert response.status_code == 404
+E   assert 401 == 404
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_calendar_mastermind.TestCalendarScheduling" name="test_schedule_unauthorized" time="0.112" /><testcase classname="tests.test_calendar_mastermind.TestCalendarScheduling" name="test_unschedule_unauthorized" time="0.125" /><testcase classname="tests.test_calendar_mastermind.TestCalendarDataIntegrity" name="test_calendar_submission_structure" time="0.469"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">tests/test_calendar_mastermind.py:309: in test_calendar_submission_structure
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_calendar_mastermind.TestCalendarDataIntegrity" name="test_pipeline_submission_structure" time="0.094"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">tests/test_calendar_mastermind.py:326: in test_pipeline_submission_structure
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_calendar_mastermind.TestCalendarDataIntegrity" name="test_suggestion_structure" time="0.119"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">tests/test_calendar_mastermind.py:342: in test_suggestion_structure
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_calendar_mastermind.TestCalendarDataIntegrity" name="test_calendar_month_boundary" time="0.120"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code">tests/test_calendar_mastermind.py:360: in test_calendar_month_boundary
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase></testsuite></testsuites>

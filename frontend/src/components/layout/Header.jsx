@@ -17,8 +17,9 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
-import { Search, Bell, LogOut, Settings, User } from 'lucide-react';
+import { Search, Bell, LogOut, Settings, User, HelpCircle } from 'lucide-react';
 import NotificationPanel from '@/components/NotificationPanel';
+import SpotlightTour from '@/components/SpotlightTour';
 import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;

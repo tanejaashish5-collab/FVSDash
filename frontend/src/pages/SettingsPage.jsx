@@ -13,7 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { 
   Settings, User, Palette, Brain, Globe, Sparkles, 
   Save, Loader2, Plus, X, Tag, Send, Youtube, Instagram,
-  CheckCircle2, XCircle, Link2, Unlink, RefreshCw, AlertTriangle, Clock
+  CheckCircle2, XCircle, Link2, Unlink, RefreshCw, AlertTriangle, Clock, Check
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';

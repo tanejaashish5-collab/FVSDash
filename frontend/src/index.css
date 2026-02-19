@@ -274,3 +274,268 @@ code, .font-mono {
 ::-webkit-scrollbar-thumb:hover {
     background: hsl(240 4% 32%);
 }
+
+/* ============================================
+   SILK UPDATE - SPRINT 5 ANIMATIONS
+   ============================================ */
+
+/* Glass Flutter Effect - Premium interactive hover */
+.glass-flutter {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.glass-flutter::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.15),
+    rgba(255, 255, 255, 0.08),
+    transparent
+  );
+  transition: left 0.6s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.glass-flutter:hover::before {
+  left: 100%;
+}
+
+.glass-flutter:hover {
+  filter: brightness(1.1);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Reduced motion - disable shimmer */
+@media (prefers-reduced-motion: reduce) {
+  .glass-flutter::before {
+    display: none;
+  }
+  .glass-flutter:hover {
+    filter: brightness(1.05);
+  }
+}
+
+/* Sidebar nav item glow trail effect */
+.nav-glow-item {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.nav-glow-item::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  background: radial-gradient(
+    circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(241, 200, 122, 0.15),
+    transparent 60%
+  );
+  pointer-events: none;
+}
+
+.nav-glow-item:hover::after {
+  opacity: 1;
+}
+
+/* Active nav item breathing glow */
+.nav-active-glow {
+  position: relative;
+}
+
+.nav-active-glow::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background: var(--aura-gold-solid);
+  border-radius: 0 2px 2px 0;
+  animation: nav-breathe 2.5s ease-in-out infinite;
+}
+
+@keyframes nav-breathe {
+  0%, 100% {
+    opacity: 0.6;
+    box-shadow: 0 0 8px var(--aura-gold-glow);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 15px var(--aura-gold-glow);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-active-glow::before {
+    animation: none;
+    opacity: 0.8;
+  }
+}
+
+/* Button press-in effect */
+.btn-press {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-press:active {
+  transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-press:active {
+    transform: none;
+  }
+}
+
+/* Tooltip icon rotation on hover */
+.tooltip-icon-rotate {
+  transition: transform 0.2s ease;
+}
+
+.tooltip-icon-rotate:hover {
+  transform: rotate(15deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tooltip-icon-rotate:hover {
+    transform: none;
+  }
+}
+
+/* Toast glow border animation */
+@keyframes toast-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 15px 2px rgba(16, 185, 129, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.toast-success-glow {
+  animation: toast-glow 1.5s ease-out;
+}
+
+/* Sync pulse animation for labels */
+@keyframes sync-pulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-sync-pulse {
+  animation: sync-pulse 1.5s ease-in-out infinite;
+}
+
+/* Card hover lift effect */
+.card-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  will-change: transform;
+}
+
+.card-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-lift:hover {
+    transform: none;
+  }
+}
+
+/* Page enter animation (fallback for non-JS) */
+.page-enter {
+  animation: page-fade-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
+  }
+}
+
+/* Stagger children animation helper */
+.stagger-children > * {
+  opacity: 0;
+  animation: stagger-fade-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.2s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.3s; }
+
+@keyframes stagger-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stagger-children > * {
+    opacity: 1;
+    animation: none;
+  }
+}
+
+/* New list item highlight flash */
+@keyframes new-item-flash {
+  0% {
+    background-color: rgba(16, 185, 129, 0.2);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.new-item-highlight {
+  animation: new-item-flash 2s ease-out forwards;
+}
+
+/* GPU acceleration hints */
+.gpu-accelerate {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+

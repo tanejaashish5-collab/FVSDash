@@ -51,25 +51,31 @@ async def _try_upload_to_s3(
     data: bytes,
     content_type: str,
     path_hint: str
-) -> tuple[Optional[str], Optional[str]]:
+) -> tuple[Optional[str], Optional[str], Optional[str]]:
     """
     Try to upload data to S3 if configured.
     
+    S3 is the PRIMARY storage destination for all FVS-generated media.
+    If S3 is not configured or upload fails, returns None to signal fallback needed.
+    
     Returns:
-        Tuple of (url, storage_provider) or (None, None) if S3 not available
+        Tuple of (url, storage_provider, error_message) 
+        - On success: (s3_url, "s3", None)
+        - On failure: (None, None, error_message)
     """
     try:
-        from services.storage_service import upload_file, StorageNotConfiguredError
+        from services.storage_service import upload_file, StorageNotConfiguredError, StorageUploadError
         
         url = await upload_file(data, content_type, path_hint)
-        return url, "s3"
+        return url, "s3", None
     except ImportError:
-        logger.debug("storage_service not available")
-        return None, None
+        return None, None, "storage_service not available"
+    except StorageNotConfiguredError as e:
+        return None, None, str(e)
+    except StorageUploadError as e:
+        return None, None, f"S3 upload failed: {e}"
     except Exception as e:
-        # StorageNotConfiguredError or StorageUploadError
-        logger.warning(f"S3 upload skipped: {e}")
-        return None, None
+        return None, None, f"Unexpected error: {e}"
 
 
 # =============================================================================

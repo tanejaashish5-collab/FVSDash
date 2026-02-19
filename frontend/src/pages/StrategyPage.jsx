@@ -557,10 +557,12 @@ export default function StrategyPage() {
             {/* Episode Concept */}
             <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="concept-card">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-                  <Lightbulb className="h-4 w-4 text-zinc-400" />
-                  Episode Concept
-                </CardTitle>
+                <AuraTooltip content={tooltipContent.strategyLab.contentAngle} position="right">
+                  <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                    <Lightbulb className="h-4 w-4 text-zinc-400" />
+                    Episode Concept
+                  </CardTitle>
+                </AuraTooltip>
                 <CardDescription className="text-xs text-zinc-500">
                   Define your episode idea and parameters.
                 </CardDescription>
@@ -578,7 +580,9 @@ export default function StrategyPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium text-zinc-400">Target Audience</Label>
+                  <AuraTooltip content={tooltipContent.strategyLab.targetAudience} position="right">
+                    <Label className="text-xs font-medium text-zinc-400">Target Audience</Label>
+                  </AuraTooltip>
                   <Input
                     value={audience}
                     onChange={(e) => setAudience(e.target.value)}

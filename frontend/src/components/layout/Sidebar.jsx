@@ -51,13 +51,13 @@ function NavSection({ title, items, currentPath }) {
             key={item.path}
             to={item.path}
             data-testid={`nav-${item.label.toLowerCase().replace(/[\s/]+/g, '-')}`}
-            className={`sidebar-nav-item flex items-center gap-3 mx-2 px-3 py-2 rounded-sm text-sm border-l-2 ${
+            className={`sidebar-nav-item flex items-center gap-3 mx-2 px-3 py-2 rounded-md text-sm border-l-2 ${
               isActive
-                ? 'border-l-indigo-500 bg-white/5 text-white font-medium'
-                : 'border-l-transparent text-zinc-400 hover:text-white hover:bg-white/5'
+                ? 'border-l-indigo-500 bg-gradient-to-r from-indigo-500/15 to-indigo-500/5 text-white font-medium shadow-[inset_0_0_20px_rgba(99,102,241,0.1)]'
+                : 'border-l-transparent text-zinc-400 hover:text-white hover:bg-white/[0.04]'
             }`}
           >
-            <Icon className="h-4 w-4 shrink-0" />
+            <Icon className={`h-4 w-4 shrink-0 transition-all duration-200 ${isActive ? 'text-indigo-400 drop-shadow-[0_0_4px_rgba(99,102,241,0.5)] scale-105' : ''}`} />
             <span>{item.label}</span>
           </Link>
         );
@@ -74,11 +74,11 @@ export default function Sidebar() {
   return (
     <aside
       data-testid="sidebar"
-      className="fixed left-0 top-0 bottom-0 w-[280px] bg-[#0c0c0f] border-r border-zinc-800 flex flex-col z-30"
+      className="fixed left-0 top-0 bottom-0 w-[280px] bg-[#0c0c0f]/90 backdrop-blur-xl border-r border-white/[0.06] flex flex-col z-30"
     >
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-5 h-16 shrink-0 border-b border-zinc-800">
-        <div className="h-8 w-8 rounded-sm bg-indigo-500 flex items-center justify-center">
+      <div className="flex items-center gap-2.5 px-5 h-16 shrink-0 border-b border-white/[0.06]">
+        <div className="h-8 w-8 rounded-md bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
           <Mic className="h-4 w-4 text-white" />
         </div>
         <div>
@@ -92,16 +92,16 @@ export default function Sidebar() {
       {/* Navigation */}
       <ScrollArea className="flex-1 py-3">
         <NavSection items={mainNav} currentPath={currentPath} />
-        <Separator className="my-2 mx-4 bg-zinc-800" />
+        <Separator className="my-2 mx-4 bg-white/[0.06]" />
         <NavSection title="Labs" items={labNav} currentPath={currentPath} />
-        <Separator className="my-2 mx-4 bg-zinc-800" />
+        <Separator className="my-2 mx-4 bg-white/[0.06]" />
         <NavSection title="Insights" items={insightsNav} currentPath={currentPath} />
-        <Separator className="my-2 mx-4 bg-zinc-800" />
+        <Separator className="my-2 mx-4 bg-white/[0.06]" />
         <NavSection title="Management" items={mgmtNav} currentPath={currentPath} />
 
         {user?.role === 'admin' && (
           <>
-            <Separator className="my-2 mx-4 bg-zinc-800" />
+            <Separator className="my-2 mx-4 bg-white/[0.06]" />
             <NavSection
               title="Admin"
               items={[{ label: 'Admin Panel', path: '/dashboard/admin', icon: ShieldCheck }]}
@@ -112,9 +112,9 @@ export default function Sidebar() {
       </ScrollArea>
 
       {/* User footer */}
-      <div className="px-4 py-3 border-t border-zinc-800 shrink-0">
+      <div className="px-4 py-3 border-t border-white/[0.06] shrink-0 bg-gradient-to-t from-black/20 to-transparent">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-xs font-semibold text-indigo-400">
+          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500/30 to-indigo-600/20 flex items-center justify-center text-xs font-semibold text-indigo-400 ring-1 ring-indigo-500/20">
             {user?.name?.charAt(0)?.toUpperCase() || '?'}
           </div>
           <div className="min-w-0 flex-1">

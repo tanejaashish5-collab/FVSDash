@@ -541,7 +541,7 @@ export default function SubmissionsPage() {
                       return (
                         <TableRow
                           key={sub.id}
-                          className="border-[#1F2933] hover:bg-white/[0.02] cursor-pointer"
+                          className="border-[#1F2933] hover:bg-white/[0.03] cursor-pointer transition-colors"
                           onClick={() => setSelected(sub)}
                           data-testid={`sub-row-${sub.id}`}
                         >

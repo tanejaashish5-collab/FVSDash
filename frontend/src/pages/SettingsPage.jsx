@@ -643,15 +643,6 @@ export default function SettingsPage() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label className="text-zinc-300">Competitor Name (for comparison)</Label>
-                <Input
-                  value={settings?.competitorName || ''}
-                  onChange={(e) => setSettings({ ...settings, competitorName: e.target.value })}
-                  placeholder="e.g., Industry Average"
-                  className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-600"
-                />
-              </div>
               <div className="flex justify-end">
                 <Button
                   onClick={handleSaveSettings}

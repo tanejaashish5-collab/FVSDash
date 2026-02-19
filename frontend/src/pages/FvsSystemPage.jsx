@@ -97,7 +97,7 @@ export default function FvsSystemPage() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   // Save automation config
-  const handleSaveConfig = async (level) => {
+  const handleAutomationChange = async (level) => {
     setSavingConfig(true);
     try {
       const res = await axios.put(`${API}/fvs/config`, { automationLevel: level }, { headers: authHeaders });
@@ -324,7 +324,7 @@ export default function FvsSystemPage() {
             <CardContent>
               <RadioGroup
                 value={config.automationLevel}
-                onValueChange={handleSaveConfig}
+                onValueChange={handleAutomationChange}
                 disabled={savingConfig}
                 className="grid grid-cols-1 md:grid-cols-3 gap-3"
               >

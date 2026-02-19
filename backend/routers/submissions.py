@@ -117,7 +117,7 @@ async def update_submission_status(
         await create_notification(
             user_id=user["id"],
             notification_type=NotificationType.STATUS_CHANGE,
-            title=f"Submission status updated",
+            title="Submission status updated",
             message=f'"{submission.get("title", "Untitled")}" moved from {old_status} to {data.status}',
             link=f"/dashboard/submissions?id={submission_id}",
             priority=priority

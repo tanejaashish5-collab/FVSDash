@@ -534,7 +534,7 @@ export default function FvsSystemPage() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => navigate(`/dashboard/strategy/idea/${idea.id}`)}
+                                      onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/strategy/idea/${idea.id}`); }}
                                       className="h-7 px-2 text-xs text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10"
                                       data-testid={`view-idea-btn-${idea.id}`}
                                     >
@@ -544,7 +544,7 @@ export default function FvsSystemPage() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => handleProduceEpisode(idea.id)}
+                                      onClick={(e) => { e.stopPropagation(); handleProduceEpisode(idea.id); }}
                                       disabled={producing === idea.id}
                                       className="h-7 px-2 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
                                       data-testid={`produce-btn-${idea.id}`}
@@ -561,7 +561,7 @@ export default function FvsSystemPage() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => handleRejectIdea(idea.id)}
+                                      onClick={(e) => { e.stopPropagation(); handleRejectIdea(idea.id); }}
                                       className="h-7 px-2 text-xs text-zinc-500 hover:text-red-400 hover:bg-red-500/10"
                                       data-testid={`reject-btn-${idea.id}`}
                                     >
@@ -577,7 +577,7 @@ export default function FvsSystemPage() {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => idea.submissionId && navigate(`/dashboard/submissions/${idea.submissionId}`)}
+                                    onClick={(e) => { e.stopPropagation(); idea.submissionId && navigate(`/dashboard/submissions/${idea.submissionId}`); }}
                                     disabled={!idea.submissionId}
                                     className="h-7 px-2 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
                                     data-testid={`view-episode-btn-${idea.id}`}

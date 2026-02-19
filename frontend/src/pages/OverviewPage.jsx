@@ -189,10 +189,10 @@ export default function OverviewPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="kpi-row" data-tour="kpi-cards">
-        <KPICard label="Active Projects" value={data.kpis.activeProjects} subtext="Episodes in production" icon={Briefcase} trend={8} />
-        <KPICard label="Published (30d)" value={data.kpis.publishedLast30d} subtext="Last 30 days" icon={Radio} trend={12} />
-        <KPICard label="Total Assets" value={data.kpis.totalAssets} subtext="Video, audio, and design" icon={FolderOpen} />
-        <KPICard label="Est. ROI (30d)" value={`$${data.kpis.roiLast30d.toLocaleString()}`} subtext="At a glance ROI" icon={DollarSign} trend={15} tooltip="Estimated revenue based on views, CPM rates, and sponsorship value across all published content in the last 30 days." />
+        <KPICard label="Active Projects" value={data.kpis.activeProjects} subtext="Episodes in production" icon={Briefcase} trend={8} tooltipKey="activeProjects" />
+        <KPICard label="Published (30d)" value={data.kpis.publishedLast30d} subtext="Last 30 days" icon={Radio} trend={12} tooltipKey="publishedLast30d" />
+        <KPICard label="Total Assets" value={data.kpis.totalAssets} subtext="Video, audio, and design" icon={FolderOpen} tooltipKey="totalAssets" />
+        <KPICard label="Est. ROI (30d)" value={`$${data.kpis.roiLast30d.toLocaleString()}`} subtext="At a glance ROI" icon={DollarSign} trend={15} tooltipKey="estRoi" />
       </div>
 
       {/* Middle Section: Pipeline + Schedule/Actions */}
@@ -200,9 +200,11 @@ export default function OverviewPage() {
         {/* Production Pipeline */}
         <Card className="lg:col-span-8 bg-[#0B1120] border-[#1F2933]" data-testid="pipeline-board" data-tour="pipeline">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>
-              Production Pipeline
-            </CardTitle>
+            <AuraTooltip content={tooltipContent.overview.productionPipeline} position="right">
+              <CardTitle className="text-sm font-semibold text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                Production Pipeline
+              </CardTitle>
+            </AuraTooltip>
             <p className="text-xs text-zinc-500 mt-0.5">Track every episode from intake to publish.</p>
           </CardHeader>
           <CardContent>

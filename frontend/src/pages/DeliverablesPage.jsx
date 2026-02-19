@@ -94,9 +94,11 @@ export default function DeliverablesPage() {
     <div data-testid="deliverables-page" className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
-          Deliverables
-        </h1>
+        <AuraTooltip content={tooltipContent.deliverables.deliverableStatus} position="right">
+          <h1 className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
+            Deliverables
+          </h1>
+        </AuraTooltip>
         <p className="text-sm text-zinc-500 mt-0.5">Track assets for each episode and their production status.</p>
       </div>
 
@@ -189,10 +191,22 @@ export default function DeliverablesPage() {
                 <TableRow className="border-[#1F2933] hover:bg-transparent">
                   <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Episode</TableHead>
                   <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Deliverable</TableHead>
-                  <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Type</TableHead>
-                  <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Status</TableHead>
+                  <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
+                    <AuraTooltip content={tooltipContent.deliverables.deliverableType} position="top">
+                      <span>Type</span>
+                    </AuraTooltip>
+                  </TableHead>
+                  <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
+                    <AuraTooltip content={tooltipContent.deliverables.markComplete} position="top">
+                      <span>Status</span>
+                    </AuraTooltip>
+                  </TableHead>
                   <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Content</TableHead>
-                  <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Release</TableHead>
+                  <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
+                    <AuraTooltip content={tooltipContent.deliverables.dueDate} position="top">
+                      <span>Release</span>
+                    </AuraTooltip>
+                  </TableHead>
                   <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold w-10"></TableHead>
                 </TableRow>
               </TableHeader>

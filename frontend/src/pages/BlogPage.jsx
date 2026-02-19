@@ -84,9 +84,11 @@ export default function BlogPage() {
     <div data-testid="blog-page" className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
-          Insights & Blog
-        </h1>
+        <AuraTooltip content={tooltipContent.blog.generateWithAi} position="right">
+          <h1 className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
+            Insights & Blog
+          </h1>
+        </AuraTooltip>
         <p className="text-sm text-zinc-500 mt-0.5">Best practices for content, AI, and analytics.</p>
       </div>
 
@@ -182,14 +184,18 @@ export default function BlogPage() {
                 </div>
 
                 {/* Title */}
-                <h3 className="text-base font-semibold text-white mb-2 line-clamp-2 group-hover:text-indigo-400 transition-colors">
-                  {post.title}
-                </h3>
+                <AuraTooltip content={tooltipContent.blog.blogTitle} position="top">
+                  <h3 className="text-base font-semibold text-white mb-2 line-clamp-2 group-hover:text-indigo-400 transition-colors">
+                    {post.title}
+                  </h3>
+                </AuraTooltip>
 
                 {/* Excerpt */}
-                <p className="text-xs text-zinc-400 line-clamp-3 mb-4">
-                  {post.excerpt}
-                </p>
+                <AuraTooltip content={tooltipContent.blog.excerpt} position="top">
+                  <p className="text-xs text-zinc-400 line-clamp-3 mb-4">
+                    {post.excerpt}
+                  </p>
+                </AuraTooltip>
 
                 {/* Footer */}
                 <div className="flex items-center justify-between">

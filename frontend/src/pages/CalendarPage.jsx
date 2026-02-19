@@ -131,9 +131,11 @@ export default function CalendarPage() {
     <div data-testid="calendar-page" className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
-          Content calendar
-        </h1>
+        <AuraTooltip content={tooltipContent.calendar.calendarView} position="right">
+          <h1 className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
+            Content calendar
+          </h1>
+        </AuraTooltip>
         <p className="text-sm text-zinc-500 mt-0.5">Visualize and adjust your publishing schedule.</p>
       </div>
 
@@ -315,7 +317,9 @@ export default function CalendarPage() {
 
                 {/* Editable Release Date */}
                 <div>
-                  <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold mb-2">Release Date</p>
+                  <AuraTooltip content={tooltipContent.calendar.addToCalendar} position="right">
+                    <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold mb-2">Release Date</p>
+                  </AuraTooltip>
                   <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                     <PopoverTrigger asChild>
                       <Button

@@ -150,6 +150,38 @@ export default function SettingsPage() {
       contentPillars: (channelProfile?.contentPillars || []).filter(p => p !== pillar)
     });
   };
+  
+  // Connect platform (mock OAuth)
+  const handleConnectPlatform = async (platform) => {
+    setConnectingPlatform(platform);
+    try {
+      const res = await axios.post(`${API}/platform-connections/${platform}/connect`, {}, { headers: authHeaders });
+      setPlatformConnections(prev => 
+        prev.map(p => p.platform === platform ? res.data : p)
+      );
+      toast.success(`${platformCfg[platform]?.label || platform} connected!`);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to connect platform');
+    } finally {
+      setConnectingPlatform(null);
+    }
+  };
+  
+  // Disconnect platform
+  const handleDisconnectPlatform = async (platform) => {
+    setConnectingPlatform(platform);
+    try {
+      await axios.post(`${API}/platform-connections/${platform}/disconnect`, {}, { headers: authHeaders });
+      setPlatformConnections(prev => 
+        prev.map(p => p.platform === platform ? { ...p, connected: false, accountName: null, accountHandle: null } : p)
+      );
+      toast.success(`${platformCfg[platform]?.label || platform} disconnected`);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to disconnect platform');
+    } finally {
+      setConnectingPlatform(null);
+    }
+  };
 
   if (loading) {
     return (

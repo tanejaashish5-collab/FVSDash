@@ -252,7 +252,7 @@ export default function AnalyticsPage() {
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="h-6 w-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <AuraSpinner size="md" />
         </div>
       ) : !data || chartData.length === 0 ? (
         <Card className="bg-[#0B1120] border-[#1F2933]">
@@ -272,12 +272,14 @@ export default function AnalyticsPage() {
               subtext="In selected period"
               icon={Download}
               tooltipContent={tooltipContent.analytics.views30d}
+              delay={0}
             />
             <KPICard
               label="Total Views"
               value={data.summary.totalViews.toLocaleString()}
               subtext="Across all content"
               icon={Eye}
+              delay={0.05}
               tooltipContent={tooltipContent.analytics.watchTime}
             />
             <KPICard

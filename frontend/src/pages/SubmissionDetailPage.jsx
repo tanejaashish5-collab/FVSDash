@@ -87,6 +87,7 @@ export default function SubmissionDetailPage() {
   const [fvsIdea, setFvsIdea] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectingThumbnail, setSelectingThumbnail] = useState(null); // ID of thumbnail being selected
 
   const fetchSubmission = useCallback(async () => {
     if (!token || !submissionId) return;

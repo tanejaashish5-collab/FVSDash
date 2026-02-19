@@ -666,6 +666,174 @@ export default function SubmissionDetailPage() {
             </Card>
           )}
 
+          {/* Publishing Panel */}
+          <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="publishing-panel">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Send className="h-5 w-5 text-indigo-400" />
+                  <CardTitle className="text-base font-medium text-white">Publish</CardTitle>
+                </div>
+              </div>
+              <CardDescription className="text-xs text-zinc-500">
+                Post to connected platforms
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {Object.keys(platformCfg).map((platform) => {
+                const cfg = platformCfg[platform];
+                const PlatformIcon = cfg.icon;
+                const connection = platformConnections.find(c => c.platform === platform);
+                const isConnected = connection?.connected;
+                const task = publishingTasks.find(t => t.platform === platform);
+                const taskStatus = task?.status;
+                const statusCfg = publishStatusCfg[taskStatus] || {};
+                const isPosting = postingPlatform === platform;
+                const isScheduling = schedulingPlatform === platform;
+                
+                return (
+                  <div 
+                    key={platform}
+                    className={`p-3 rounded-lg border ${isConnected ? 'border-zinc-700 bg-zinc-900/30' : 'border-zinc-800 bg-zinc-900/10 opacity-60'}`}
+                    data-testid={`publish-platform-${platform}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`h-8 w-8 rounded-lg ${cfg.bg} flex items-center justify-center`}>
+                          <PlatformIcon className={`h-4 w-4 ${cfg.color}`} />
+                        </div>
+                        <div>
+                          <span className="text-sm text-white font-medium">{cfg.label}</span>
+                          {taskStatus && (
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <Badge className={`text-[10px] px-1.5 py-0 ${statusCfg.bg} ${statusCfg.color} border ${statusCfg.border}`}>
+                                {statusCfg.label}
+                              </Badge>
+                              {taskStatus === 'scheduled' && task?.scheduledAt && (
+                                <span className="text-[10px] text-zinc-500">
+                                  {formatScheduledDate(task.scheduledAt)}
+                                </span>
+                              )}
+                              {taskStatus === 'posted' && task?.postedAt && (
+                                <span className="text-[10px] text-zinc-500">
+                                  {formatScheduledDate(task.postedAt)}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {!isConnected ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 text-xs text-zinc-500 hover:text-white"
+                          onClick={() => navigate('/dashboard/settings')}
+                          data-testid={`connect-hint-${platform}`}
+                        >
+                          <Settings className="h-3 w-3 mr-1" />
+                          Connect
+                        </Button>
+                      ) : taskStatus === 'posted' ? (
+                        <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                          <Check className="h-3 w-3 mr-1" />
+                          Live
+                        </Badge>
+                      ) : taskStatus === 'scheduled' ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                          onClick={() => handleCancelTask(task.id)}
+                          data-testid={`cancel-${platform}-btn`}
+                        >
+                          <X className="h-3 w-3 mr-1" />
+                          Cancel
+                        </Button>
+                      ) : isScheduling ? (
+                        <div className="flex items-center gap-2">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" size="sm" className="h-8 text-xs">
+                                <Calendar className="h-3 w-3 mr-1" />
+                                {selectedDate ? selectedDate.toLocaleDateString() : 'Pick date'}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0 bg-zinc-900 border-zinc-700" align="end">
+                              <CalendarComponent
+                                mode="single"
+                                selected={selectedDate}
+                                onSelect={setSelectedDate}
+                                disabled={(date) => date < new Date()}
+                                className="rounded-md"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <input
+                            type="time"
+                            value={selectedTime}
+                            onChange={(e) => setSelectedTime(e.target.value)}
+                            className="h-8 px-2 text-xs bg-zinc-900 border border-zinc-700 rounded-md text-white"
+                          />
+                          <Button
+                            size="sm"
+                            className="h-8 text-xs bg-blue-600 hover:bg-blue-700"
+                            onClick={() => handleSchedule(platform)}
+                            disabled={isPosting || !selectedDate}
+                          >
+                            {isPosting ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Set'}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2"
+                            onClick={() => setSchedulingPlatform(null)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700"
+                            onClick={() => handlePostNow(platform)}
+                            disabled={isPosting}
+                            data-testid={`post-now-${platform}-btn`}
+                          >
+                            {isPosting ? (
+                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                            ) : (
+                              <Send className="h-3 w-3 mr-1" />
+                            )}
+                            Post Now
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={() => setSchedulingPlatform(platform)}
+                            disabled={isPosting}
+                            data-testid={`schedule-${platform}-btn`}
+                          >
+                            <CalendarClock className="h-3 w-3 mr-1" />
+                            Schedule
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              
+              <p className="text-[10px] text-zinc-600 text-center pt-2">
+                Manage platform connections in{' '}
+                <Link to="/dashboard/settings" className="text-indigo-400 hover:underline">Settings</Link>
+              </p>
+            </CardContent>
+          </Card>
+
           {/* Quick Actions */}
           <Card className="bg-[#0B1120] border-[#1F2933]">
             <CardHeader className="pb-3">

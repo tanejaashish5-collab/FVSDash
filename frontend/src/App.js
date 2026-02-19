@@ -71,6 +71,7 @@ function AppRoutes() {
         <Route path="/dashboard/calendar" element={<CalendarPage />} />
         <Route path="/dashboard/deliverables" element={<DeliverablesPage />} />
         <Route path="/dashboard/assets" element={<AssetsPage />} />
+        <Route path="/dashboard/publishing" element={<PublishingDashboardPage />} />
         <Route path="/dashboard/blog" element={<BlogPage />} />
         <Route path="/dashboard/strategy" element={<StrategyPage />} />
         <Route path="/dashboard/video-lab" element={<VideoLabPage />} />

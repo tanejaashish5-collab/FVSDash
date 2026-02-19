@@ -10,6 +10,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Search, FileBox, ChevronDown, ExternalLink, FileVideo, FileAudio, FileImage, FileText as FileTextIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { AuraTooltip } from '@/components/ui/AuraTooltip';
+import { tooltipContent } from '@/constants/tooltipContent';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 

@@ -13,6 +13,8 @@ import { ChevronLeft, ChevronRight, CalendarIcon, ExternalLink, Loader2 } from '
 import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, addMonths, subMonths } from 'date-fns';
 import axios from 'axios';
+import { AuraTooltip } from '@/components/ui/AuraTooltip';
+import { tooltipContent } from '@/constants/tooltipContent';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const STATUSES = ['INTAKE', 'EDITING', 'DESIGN', 'SCHEDULED', 'PUBLISHED'];

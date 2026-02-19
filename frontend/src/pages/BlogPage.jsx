@@ -9,6 +9,8 @@ import { Separator } from '@/components/ui/separator';
 import { Search, BookOpen, Calendar, Tag, ArrowRight, X } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { AuraTooltip } from '@/components/ui/AuraTooltip';
+import { tooltipContent } from '@/constants/tooltipContent';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 

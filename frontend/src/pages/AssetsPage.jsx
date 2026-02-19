@@ -177,17 +177,19 @@ export default function AssetsPage() {
               />
             </div>
 
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger data-testid="filter-type" className="w-[130px] h-8 text-xs bg-zinc-950 border-zinc-800 text-zinc-300">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-[#0B1120] border-[#1F2933]">
-                <SelectItem value="all" className="text-xs text-zinc-300">All Types</SelectItem>
-                {ASSET_TYPES.map(t => (
-                  <SelectItem key={t} value={t} className="text-xs text-zinc-300">{t}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <AuraTooltip content={tooltipContent.assets.assetTypeFilter} position="bottom">
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger data-testid="filter-type" className="w-[130px] h-8 text-xs bg-zinc-950 border-zinc-800 text-zinc-300">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0B1120] border-[#1F2933]">
+                  <SelectItem value="all" className="text-xs text-zinc-300">All Types</SelectItem>
+                  {ASSET_TYPES.map(t => (
+                    <SelectItem key={t} value={t} className="text-xs text-zinc-300">{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </AuraTooltip>
 
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger data-testid="filter-status" className="w-[120px] h-8 text-xs bg-zinc-950 border-zinc-800 text-zinc-300">

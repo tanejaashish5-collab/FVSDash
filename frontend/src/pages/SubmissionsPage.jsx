@@ -973,24 +973,42 @@ export default function SubmissionsPage() {
                             </div>
                           ) : (
                             <div className="flex items-center gap-1">
-                              <Button
-                                size="sm"
-                                className="h-7 text-[10px] bg-indigo-600 hover:bg-indigo-700 px-2"
-                                onClick={() => handlePostNow(platform)}
-                                disabled={isPosting}
-                              >
-                                {isPosting ? <Loader2 className="h-3 w-3 animate-spin" /> : <><Send className="h-3 w-3 mr-1" />Post</>}
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 text-[10px] px-2"
-                                onClick={() => setSchedulingPlatform(platform)}
-                                disabled={isPosting}
-                              >
-                                <CalendarClock className="h-3 w-3 mr-1" />
-                                Schedule
-                              </Button>
+                              <TooltipProvider delayDuration={300}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      className="h-7 text-[10px] bg-indigo-600 hover:bg-indigo-700 px-2"
+                                      onClick={() => handlePostNow(platform)}
+                                      disabled={isPosting}
+                                    >
+                                      {isPosting ? <Loader2 className="h-3 w-3 animate-spin" /> : <><Send className="h-3 w-3 mr-1" />Post</>}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="max-w-[240px] bg-zinc-900 text-white border-zinc-700">
+                                    Simulate posting to this platform. Connect real OAuth in Settings → Publishing to go live.
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              <TooltipProvider delayDuration={300}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-7 text-[10px] px-2"
+                                      onClick={() => setSchedulingPlatform(platform)}
+                                      disabled={isPosting}
+                                    >
+                                      <CalendarClock className="h-3 w-3 mr-1" />
+                                      Schedule
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="max-w-[240px] bg-zinc-900 text-white border-zinc-700">
+                                    Set a future date and time to auto-publish. Requires platform connection.
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </div>
                           )}
                         </div>

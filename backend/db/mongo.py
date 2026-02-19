@@ -92,3 +92,9 @@ def fvs_scripts_collection():
 
 def channel_profiles_collection():
     return get_db().channel_profiles
+
+def publishing_tasks_collection():
+    return get_db().publishing_tasks
+
+def platform_connections_collection():
+    return get_db().platform_connections

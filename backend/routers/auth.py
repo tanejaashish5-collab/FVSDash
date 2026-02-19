@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime, timezone
 import uuid
 
-from models.auth import UserCreate, UserLogin, UserResponse, TokenResponse
+from models.auth import UserCreate, UserLogin, UserResponse, TokenResponse, OnboardingUpdate
 from services.auth_service import (
     hash_password, verify_password, create_token, get_current_user
 )
@@ -29,6 +29,7 @@ async def signup(data: UserCreate):
         "name": data.name,
         "role": data.role,
         "clientId": data.clientId,
+        "onboardingComplete": False,  # New users start with onboarding incomplete
         "createdAt": now,
         "updatedAt": now
     }
@@ -37,7 +38,14 @@ async def signup(data: UserCreate):
     token = create_token(user_id, data.email, data.role, data.clientId)
     return TokenResponse(
         token=token,
-        user=UserResponse(id=user_id, email=data.email, name=data.name, role=data.role, clientId=data.clientId)
+        user=UserResponse(
+            id=user_id, 
+            email=data.email, 
+            name=data.name, 
+            role=data.role, 
+            clientId=data.clientId,
+            onboardingComplete=False
+        )
     )
 
 
@@ -49,12 +57,55 @@ async def login(data: UserLogin):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     token = create_token(user["id"], user["email"], user["role"], user.get("clientId"))
+    # Existing users without the field default to True (onboarding complete)
+    onboarding_complete = user.get("onboardingComplete", True)
     return TokenResponse(
         token=token,
-        user=UserResponse(id=user["id"], email=user["email"], name=user["name"], role=user["role"], clientId=user.get("clientId"))
+        user=UserResponse(
+            id=user["id"], 
+            email=user["email"], 
+            name=user["name"], 
+            role=user["role"], 
+            clientId=user.get("clientId"),
+            onboardingComplete=onboarding_complete
+        )
     )
 
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(user: dict = Depends(get_current_user)):
-    return UserResponse(id=user["id"], email=user["email"], name=user["name"], role=user["role"], clientId=user.get("clientId"))
+    # Existing users without the field default to True (onboarding complete)
+    onboarding_complete = user.get("onboardingComplete", True)
+    return UserResponse(
+        id=user["id"], 
+        email=user["email"], 
+        name=user["name"], 
+        role=user["role"], 
+        clientId=user.get("clientId"),
+        onboardingComplete=onboarding_complete
+    )
+
+
+@router.patch("/me/onboarding", response_model=UserResponse)
+async def update_onboarding(data: OnboardingUpdate, user: dict = Depends(get_current_user)):
+    """Update the current user's onboarding completion status."""
+    db = users_collection()
+    now = datetime.now(timezone.utc).isoformat()
+    
+    await db.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "onboardingComplete": data.onboarding_complete,
+            "updatedAt": now
+        }}
+    )
+    
+    # Return updated user
+    return UserResponse(
+        id=user["id"],
+        email=user["email"],
+        name=user["name"],
+        role=user["role"],
+        clientId=user.get("clientId"),
+        onboardingComplete=data.onboarding_complete
+    )

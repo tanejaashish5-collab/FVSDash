@@ -12,10 +12,57 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 - **Storage**: S3/S3-compatible (optional, with graceful fallback to data URLs)
 - **Brand Brain**: Channel Profile system for AI content customization
 - **Publishing**: Mock platform connections with background scheduler
+- **Notifications**: Real-time notification engine for status updates and FVS events
 
 ## What's Been Implemented
 
-### Phase 19 — Admin Publishing Dashboard (Cross-Client View) (Feb 19, 2026)
+### Phase 21 — Notification Engine (Sprint 2) (Feb 19, 2026)
+
+#### Backend Implementation:
+- **Notification Model** (`/app/backend/models/notification.py`):
+  - `NotificationType` enum: SUBMISSION, STATUS_CHANGE, DEADLINE, SYSTEM, FVS_IDEA
+  - `NotificationPriority` enum: LOW, MEDIUM, HIGH
+  - Full Pydantic models for create/response
+
+- **Notification API Endpoints** (`/app/backend/routers/notifications.py`):
+  - `GET /api/notifications` - List user's 20 most recent notifications
+  - `GET /api/notifications/unread-count` - Get unread notification count
+  - `PATCH /api/notifications/{id}/read` - Mark single notification as read
+  - `POST /api/notifications/read-all` - Mark all notifications as read
+  - `create_notification()` helper function for other services
+
+- **Notification Triggers**:
+  - Submission status change creates STATUS_CHANGE notification (in `submissions.py`)
+  - FVS idea proposal creates FVS_IDEA notification (in `fvs_service.py`)
+
+#### Frontend Implementation:
+- **NotificationPanel Component** (`/app/frontend/src/components/NotificationPanel.jsx`):
+  - Glass-morphic "Aura" styling with `aura-glass` class
+  - Slide-down animation from header
+  - Priority-based left border colors (rose/amber/zinc)
+  - Type-based icons (Sparkles for FVS, AlertCircle for status change)
+  - "Mark all as read" button
+  - Click notification to navigate and mark as read
+  - Empty state with helpful message
+
+- **Header Notification Bell** (`/app/frontend/src/components/layout/Header.jsx`):
+  - Unread count badge with shadow glow
+  - Pulse animation when unread notifications exist
+  - Click to toggle NotificationPanel
+  - Auto-polling every 30 seconds for new notifications
+
+- **CSS Animations** (`/app/frontend/src/index.css`):
+  - `animate-notification-pulse` keyframe for bell icon
+
+#### Database:
+- **notifications** collection: `id`, `user_id`, `type`, `title`, `message`, `link`, `is_read`, `priority`, `created_at`
+
+#### Test Results (Feb 19, 2026):
+- Backend: 100% (10/10 tests passed)
+- Frontend: 100% (all notification UI tests passed)
+- Test file: `/app/backend/tests/test_notifications.py`
+
+### Phase 20 — The Aura Update: Sprint 1 (Feb 19, 2026)
 
 #### Backend Changes:
 - `GET /api/publishing-tasks` accepts optional `?clientId=<uuid>` param

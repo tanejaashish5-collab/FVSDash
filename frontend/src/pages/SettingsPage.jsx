@@ -68,7 +68,7 @@ const tokenStatusBadge = {
 };
 
 export default function SettingsPage() {
-  const { user, authHeaders } = useAuth();
+  const { user, authHeaders, buildApiUrl } = useAuth();
   
   // Client Settings (legacy)
   const [settings, setSettings] = useState(null);
@@ -81,10 +81,28 @@ export default function SettingsPage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [newPillar, setNewPillar] = useState('');
   
-  // Platform Connections state
-  const [platformConnections, setPlatformConnections] = useState([]);
+  // OAuth Platform Connections state
+  const [oauthStatus, setOauthStatus] = useState({});
   const [connectingPlatform, setConnectingPlatform] = useState(null);
+  const [refreshingToken, setRefreshingToken] = useState(null);
   const [noClientId, setNoClientId] = useState(false);
+  
+  // Platform Connections state (legacy, for backward compatibility)
+  const [platformConnections, setPlatformConnections] = useState([]);
+  
+  // OAuth popup ref
+  const oauthPopupRef = useRef(null);
+  
+  // Fetch OAuth status
+  const fetchOAuthStatus = useCallback(async () => {
+    if (!authHeaders) return;
+    try {
+      const res = await axios.get(buildApiUrl(`${API}/oauth/status`), { headers: authHeaders });
+      setOauthStatus(res.data);
+    } catch (err) {
+      console.error('Failed to fetch OAuth status:', err);
+    }
+  }, [authHeaders, buildApiUrl]);
   
   // Fetch both client settings and channel profile
   const fetchData = useCallback(async () => {

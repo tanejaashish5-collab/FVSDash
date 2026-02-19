@@ -79,7 +79,12 @@ export default function PublishingDashboardPage() {
     const fetchClients = async () => {
       try {
         const res = await axios.get(`${API}/admin/clients`, { headers: authHeaders });
-        setClients(res.data);
+        // Map to expected format: id is the client id, name comes from response
+        const mapped = res.data.map(c => ({
+          id: c.id,
+          fullName: c.name || c.primaryContactName || 'Unknown'
+        }));
+        setClients(mapped);
       } catch (err) {
         console.error('Failed to fetch clients:', err);
       }

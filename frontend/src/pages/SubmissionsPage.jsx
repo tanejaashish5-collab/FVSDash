@@ -133,8 +133,8 @@ export default function SubmissionsPage() {
       try {
         const [assetsRes, connectionsRes, tasksRes] = await Promise.all([
           axios.get(`${API}/assets/library`, { headers: authHeaders }),
-          axios.get(`${API}/platform-connections`, { headers: authHeaders }),
-          axios.get(`${API}/publishing-tasks?submissionId=${selected.id}`, { headers: authHeaders })
+          axios.get(`${API}/platform-connections`, { headers: authHeaders }).catch(() => ({ data: [] })),
+          axios.get(`${API}/publishing-tasks?submissionId=${selected.id}`, { headers: authHeaders }).catch(() => ({ data: [] }))
         ]);
         
         // Filter thumbnails for this submission
@@ -142,10 +142,34 @@ export default function SubmissionsPage() {
           a => a.submissionId === selected.id && a.type === 'Thumbnail'
         );
         setThumbnails(subThumbnails);
-        setPlatformConnections(connectionsRes.data);
-        setPublishingTasks(tasksRes.data);
+        
+        // Ensure all platforms are represented with a connection status
+        const platforms = ['youtube_shorts', 'tiktok', 'instagram_reels'];
+        const existingConnections = connectionsRes.data || [];
+        const fullConnections = platforms.map(platform => {
+          const existing = existingConnections.find(c => c.platform === platform);
+          return existing || {
+            id: null,
+            platform,
+            connected: false,
+            accountName: null,
+            accountHandle: null
+          };
+        });
+        setPlatformConnections(fullConnections);
+        setPublishingTasks(tasksRes.data || []);
       } catch (err) {
         console.error('Failed to fetch detail data:', err);
+        // Set default disconnected state for all platforms on error
+        const platforms = ['youtube_shorts', 'tiktok', 'instagram_reels'];
+        setPlatformConnections(platforms.map(platform => ({
+          id: null,
+          platform,
+          connected: false,
+          accountName: null,
+          accountHandle: null
+        })));
+        setPublishingTasks([]);
       } finally {
         setLoadingThumbnails(false);
       }

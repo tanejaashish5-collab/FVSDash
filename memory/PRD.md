@@ -72,13 +72,30 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
   - "Create AI Video Task from Idea" → Creates video task with script, navigates to /dashboard/video-lab
   - "Copy Script" → Copies to clipboard with "Copied!" confirmation
 
+#### Submission Detail Modal - Thumbnail Gallery & Publishing (Feb 19, 2026)
+- **Location**: /dashboard/submissions → Click any row → Sheet modal
+- **Thumbnail Gallery Section**:
+  - 3-column grid showing all thumbnails for this submission
+  - Primary thumbnail: green ring + checkmark badge in top-right
+  - Non-primary: amber border on hover
+  - Click to set as primary → calls PATCH /api/submissions/{id}/primary-thumbnail
+  - Shows "Primary thumbnail updated!" toast on success
+  - "No thumbnails yet" placeholder if empty
+- **Publishing Section**:
+  - Platform rows for YouTube Shorts, TikTok, Instagram Reels
+  - Connected: Post Now / Schedule buttons
+  - Disconnected: "Connect" hint button → navigates to Settings
+  - Posted: "Live" badge (green)
+  - Scheduled: Badge with date + Cancel button
+  - Schedule opens date/time picker
+
 #### Idea Data Model Updates
 - Added fields: `hooks` (array), `script` (nullable), `caption`, `hashtags` (array)
 - `strategyIdeaId` added to Submission model to link submissions back to ideas
 
 #### Test Results (Feb 19, 2026):
-- Backend: 9/9 strategy idea tests passed + 17/17 publishing tests = 100%
-- Frontend: All UI components verified
+- Backend: 9/9 strategy idea tests passed
+- Frontend: 18/18 modal tests passed (100%)
 
 ### Phase 16 — Strategy Idea Detail Page (Feb 19, 2026)
 

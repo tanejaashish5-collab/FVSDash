@@ -192,7 +192,7 @@ export default function OverviewPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="kpi-row">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="kpi-row" data-tour="kpi-cards">
         <KPICard label="Active Projects" value={data.kpis.activeProjects} subtext="Episodes in production" icon={Briefcase} trend={8} />
         <KPICard label="Published (30d)" value={data.kpis.publishedLast30d} subtext="Last 30 days" icon={Radio} trend={12} />
         <KPICard label="Total Assets" value={data.kpis.totalAssets} subtext="Video, audio, and design" icon={FolderOpen} />

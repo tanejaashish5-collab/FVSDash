@@ -370,14 +370,16 @@ export default function SubmissionsPage() {
           </h1>
           <p className="text-sm text-zinc-500 mt-0.5">Submit new episodes and track their progress.</p>
         </div>
-        <Button
-          onClick={() => setIsFormOpen(true)}
-          className="bg-teal-600 hover:bg-teal-700 text-white font-medium h-9 text-sm gap-2"
-          data-testid="new-submission-btn"
-        >
-          <Plus className="h-4 w-4" />
-          New Submission
-        </Button>
+        <AuraTooltip content={tooltipContent.submissions.newSubmission} position="left">
+          <Button
+            onClick={() => setIsFormOpen(true)}
+            className="bg-teal-600 hover:bg-teal-700 text-white font-medium h-9 text-sm gap-2"
+            data-testid="new-submission-btn"
+          >
+            <Plus className="h-4 w-4" />
+            New Submission
+          </Button>
+        </AuraTooltip>
       </div>
 
       {/* Full-Width Submissions Table */}

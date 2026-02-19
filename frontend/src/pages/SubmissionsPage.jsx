@@ -460,7 +460,7 @@ export default function SubmissionsPage() {
                   return (
                     <TableRow
                       key={sub.id}
-                      className="border-[#1F2933] hover:bg-white/[0.03] cursor-pointer transition-colors"
+                      className="aura-table-row border-[#1F2933] cursor-pointer"
                       onClick={() => setSelected(sub)}
                       data-testid={`sub-row-${sub.id}`}
                     >

@@ -712,28 +712,6 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
-                          {isConnecting ? (
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          ) : (
-                            <Link2 className="h-4 w-4 mr-2" />
-                          )}
-                          Connect
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-              
-              <div className="pt-4 border-t border-zinc-800">
-                <p className="text-xs text-zinc-500">
-                  <span className="text-amber-400">Note:</span> This is a demo environment. 
-                  OAuth connections are simulated. Real platform integrations will be available in a future update.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         {/* Account Tab */}
         <TabsContent value="account" className="mt-6">

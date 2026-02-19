@@ -36,8 +36,16 @@ const mgmtNav = [
 ];
 
 function NavSection({ title, items, currentPath }) {
+  // Map labels to tour data attributes
+  const tourIds = {
+    'Submissions': 'submissions-link',
+    'Strategy Lab': 'strategy-lab-link',
+    'FVS System': 'fvs-system-link',
+    'Publishing': 'publishing-link',
+  };
+
   return (
-    <div className="mb-2">
+    <div className="mb-2" data-tour="sidebar-nav">
       {title && (
         <p className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
           {title}
@@ -46,11 +54,13 @@ function NavSection({ title, items, currentPath }) {
       {items.map(item => {
         const isActive = currentPath === item.path;
         const Icon = item.icon;
+        const tourId = tourIds[item.label];
         return (
           <Link
             key={item.path}
             to={item.path}
             data-testid={`nav-${item.label.toLowerCase().replace(/[\s/]+/g, '-')}`}
+            data-tour={tourId}
             className={`sidebar-nav-item flex items-center gap-3 mx-2 px-3 py-2 rounded-md text-sm border-l-2 ${
               isActive
                 ? 'border-l-indigo-500 bg-gradient-to-r from-indigo-500/15 to-indigo-500/5 text-white font-medium shadow-[inset_0_0_20px_rgba(99,102,241,0.1)]'

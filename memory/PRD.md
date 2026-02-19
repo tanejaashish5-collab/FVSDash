@@ -13,8 +13,51 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 - **Brand Brain**: Channel Profile system for AI content customization
 - **Publishing**: Mock platform connections with background scheduler
 - **Notifications**: Real-time notification engine for status updates and FVS events
+- **Spotlight Tour**: Guided onboarding tour with SVG mask spotlight
 
 ## What's Been Implemented
+
+### Phase 22 — Spotlight Tour (Sprint 3) (Feb 19, 2026)
+
+#### SpotlightTour Component (`/app/frontend/src/components/SpotlightTour.jsx`):
+- **SVG Mask Overlay**: Creates dark 65% opacity overlay with spotlight cutout
+- **Golden Glow Effect**: Animated border using SVG filters (`#golden-glow`)
+- **Adaptive Tooltip Positioning**: Smart placement using `getBoundingClientRect()`
+- **Auto-scrolling**: Elements scroll into view before highlighting
+- **8 Tour Steps**:
+  1. Performance Overview (KPI Cards)
+  2. Production Pipeline
+  3. Navigation Hub (Sidebar)
+  4. Submissions Center
+  5. Strategy Lab
+  6. FVS System
+  7. Publishing Dashboard
+  8. Notification Center
+
+#### Header Integration (`/app/frontend/src/components/layout/Header.jsx`):
+- **Help (?) Icon**: Subtle gray button that turns white on hover with gold glow
+- **Position**: Immediately left of the notification bell
+- **Action**: Triggers tour from Step 1
+
+#### Tour Data Attributes Added:
+- `data-tour="kpi-cards"` on OverviewPage KPI section
+- `data-tour="pipeline"` on OverviewPage Pipeline section
+- `data-tour="sidebar-nav"` on Sidebar navigation
+- `data-tour="submissions-link"`, `strategy-lab-link`, `fvs-system-link`, `publishing-link` on nav items
+- `data-tour="notifications"` on notification bell
+
+#### Persistence Logic:
+- **localStorage Key**: `fvs_tour_completed`
+- Auto-launches for users with `onboarding_complete === false`
+- Skip or Finish sets flag to prevent re-showing
+
+#### CSS Animations (`/app/frontend/src/index.css`):
+- `animate-spotlight-glow` keyframe for pulsing golden border
+
+#### Test Results (Feb 19, 2026):
+- Frontend: 100% (15/15 tests passed)
+- All tour steps working correctly
+- Persistence verified
 
 ### Phase 21 — Notification Engine (Sprint 2) (Feb 19, 2026)
 

@@ -700,6 +700,196 @@ export default function SubmissionsPage() {
                   })}
                 </div>
               </div>
+
+              <Separator className="bg-[#1F2933] my-5" />
+
+              {/* Thumbnails Section */}
+              <div data-testid="thumbnails-section">
+                <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold mb-3 flex items-center gap-2">
+                  <FileImage className="h-3.5 w-3.5" />
+                  Thumbnails
+                </p>
+                {loadingThumbnails ? (
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+                  </div>
+                ) : thumbnails.length === 0 ? (
+                  <div className="text-center py-6 border border-dashed border-zinc-800 rounded-lg">
+                    <FileImage className="h-8 w-8 text-zinc-700 mx-auto mb-2" />
+                    <p className="text-xs text-zinc-500">No thumbnails yet</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    {thumbnails.map((thumb, idx) => {
+                      const isPrimary = thumb.id === selected.primaryThumbnailAssetId || thumb.isPrimaryThumbnail;
+                      const isSelecting = selectingThumbnail === thumb.id;
+                      
+                      return (
+                        <div
+                          key={thumb.id}
+                          onClick={() => handleSelectThumbnail(thumb.id)}
+                          className={`relative aspect-video rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${
+                            isPrimary
+                              ? 'border-emerald-500 ring-2 ring-emerald-500/30'
+                              : 'border-transparent hover:border-amber-500/50'
+                          } ${isSelecting ? 'opacity-50' : ''}`}
+                          data-testid={`thumbnail-${idx}`}
+                        >
+                          {thumb.url ? (
+                            <img src={thumb.url} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
+                              <FileImage className="h-4 w-4 text-zinc-600" />
+                            </div>
+                          )}
+                          {isPrimary && (
+                            <div className="absolute top-1 right-1">
+                              <div className="h-5 w-5 rounded-full bg-emerald-500 flex items-center justify-center">
+                                <Check className="h-3 w-3 text-white" />
+                              </div>
+                            </div>
+                          )}
+                          {isSelecting && (
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                              <Loader2 className="h-4 w-4 animate-spin text-white" />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <Separator className="bg-[#1F2933] my-5" />
+
+              {/* Publishing Section */}
+              <div data-testid="publishing-section">
+                <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold mb-3 flex items-center gap-2">
+                  <Send className="h-3.5 w-3.5" />
+                  Publishing
+                </p>
+                <div className="space-y-2">
+                  {Object.keys(platformCfg).map((platform) => {
+                    const cfg = platformCfg[platform];
+                    const PlatformIcon = cfg.icon;
+                    const connection = platformConnections.find(c => c.platform === platform);
+                    const isConnected = connection?.connected;
+                    const task = publishingTasks.find(t => t.platform === platform);
+                    const taskStatus = task?.status;
+                    const statusCfgItem = publishStatusCfg[taskStatus] || {};
+                    const isPosting = postingPlatform === platform;
+                    const isScheduling = schedulingPlatform === platform;
+                    
+                    return (
+                      <div
+                        key={platform}
+                        className={`p-2.5 rounded-lg border ${isConnected ? 'border-zinc-800 bg-zinc-900/30' : 'border-zinc-800/50 bg-zinc-900/10 opacity-60'}`}
+                        data-testid={`publish-${platform}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className={`h-6 w-6 rounded ${cfg.bg} flex items-center justify-center`}>
+                              <PlatformIcon className={`h-3.5 w-3.5 ${cfg.color}`} />
+                            </div>
+                            <div>
+                              <span className="text-xs text-white font-medium">{cfg.label}</span>
+                              {taskStatus && (
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <Badge className={`text-[9px] px-1 py-0 ${statusCfgItem.bg} ${statusCfgItem.color} border ${statusCfgItem.border}`}>
+                                    {statusCfgItem.label}
+                                  </Badge>
+                                  {taskStatus === 'scheduled' && task?.scheduledAt && (
+                                    <span className="text-[9px] text-zinc-500">{formatScheduledDate(task.scheduledAt)}</span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {!isConnected ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-[10px] text-zinc-500"
+                              onClick={() => navigate('/dashboard/settings')}
+                            >
+                              <Settings className="h-3 w-3 mr-1" />
+                              Connect
+                            </Button>
+                          ) : taskStatus === 'posted' ? (
+                            <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px]">
+                              <Check className="h-2.5 w-2.5 mr-0.5" />
+                              Live
+                            </Badge>
+                          ) : taskStatus === 'scheduled' ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-[10px] text-red-400 hover:text-red-300"
+                              onClick={() => handleCancelTask(task.id)}
+                            >
+                              <X className="h-3 w-3 mr-1" />
+                              Cancel
+                            </Button>
+                          ) : isScheduling ? (
+                            <div className="flex items-center gap-1">
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button variant="outline" size="sm" className="h-7 text-[10px] px-2">
+                                    {scheduleDate ? format(scheduleDate, 'MMM d') : 'Date'}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0 bg-zinc-900 border-zinc-700" align="end">
+                                  <CalendarComponent
+                                    mode="single"
+                                    selected={scheduleDate}
+                                    onSelect={setScheduleDate}
+                                    disabled={(date) => date < new Date()}
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                              <input
+                                type="time"
+                                value={scheduleTime}
+                                onChange={(e) => setScheduleTime(e.target.value)}
+                                className="h-7 px-1.5 text-[10px] bg-zinc-900 border border-zinc-700 rounded text-white w-16"
+                              />
+                              <Button size="sm" className="h-7 text-[10px] px-2 bg-blue-600" onClick={() => handleSchedule(platform)} disabled={isPosting || !scheduleDate}>
+                                {isPosting ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Set'}
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-7 px-1" onClick={() => setSchedulingPlatform(null)}>
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1">
+                              <Button
+                                size="sm"
+                                className="h-7 text-[10px] bg-indigo-600 hover:bg-indigo-700 px-2"
+                                onClick={() => handlePostNow(platform)}
+                                disabled={isPosting}
+                              >
+                                {isPosting ? <Loader2 className="h-3 w-3 animate-spin" /> : <><Send className="h-3 w-3 mr-1" />Post</>}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-[10px] px-2"
+                                onClick={() => setSchedulingPlatform(platform)}
+                                disabled={isPosting}
+                              >
+                                <CalendarClock className="h-3 w-3 mr-1" />
+                                Schedule
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </>
           )}
         </SheetContent>

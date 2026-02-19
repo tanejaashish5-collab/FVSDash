@@ -147,6 +147,22 @@ code, .font-mono {
   animation: notification-pulse 2s ease-in-out infinite;
 }
 
+/* Spotlight Tour golden glow animation */
+@keyframes spotlight-glow {
+  0%, 100% {
+    opacity: 0.8;
+    stroke-width: 2;
+  }
+  50% {
+    opacity: 1;
+    stroke-width: 3;
+  }
+}
+
+.animate-spotlight-glow {
+  animation: spotlight-glow 2s ease-in-out infinite;
+}
+
 @layer base {
     :root {
         --background: 240 6% 4%;

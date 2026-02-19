@@ -18,7 +18,7 @@ const RANGES = [
   { value: '365d', label: '12 months' },
 ];
 
-function KPICard({ label, value, subtext, icon: Icon, color = 'indigo' }) {
+function KPICard({ label, value, subtext, icon: Icon, color = 'indigo', tooltipText }) {
   const colorClasses = {
     indigo: 'bg-indigo-500/10 text-indigo-400',
     emerald: 'bg-emerald-500/10 text-emerald-400',
@@ -26,11 +26,19 @@ function KPICard({ label, value, subtext, icon: Icon, color = 'indigo' }) {
     violet: 'bg-violet-500/10 text-violet-400',
   };
   
+  const labelElement = tooltipText ? (
+    <AuraTooltip content={tooltipText} position="top">
+      <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">{label}</span>
+    </AuraTooltip>
+  ) : (
+    <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">{label}</span>
+  );
+  
   return (
     <Card className="bg-[#0B1120] border-[#1F2933]" data-testid={`kpi-${label.toLowerCase().replace(/[\s().]+/g, '-')}`}>
       <CardContent className="p-5">
         <div className="flex items-center justify-between mb-4">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">{label}</span>
+          {labelElement}
           <div className={`h-9 w-9 rounded-md flex items-center justify-center ${colorClasses[color].split(' ')[0]}`}>
             <Icon className={`h-4 w-4 ${colorClasses[color].split(' ')[1]}`} />
           </div>
@@ -92,9 +100,11 @@ export default function ROIPage() {
     <div data-testid="roi-page" className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
-          ROI Center
-        </h1>
+        <AuraTooltip content={tooltipContent.roiCenter.roiCalculation} position="right">
+          <h1 className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
+            ROI Center
+          </h1>
+        </AuraTooltip>
         <p className="text-sm text-zinc-500 mt-0.5">Estimate the return on your investment in content.</p>
       </div>
 
@@ -152,6 +162,7 @@ export default function ROIPage() {
               subtext={`Last ${data.range.days} days`}
               icon={DollarSign}
               color="amber"
+              tooltipText={tooltipContent.roiCenter.totalInvestment}
             />
             <KPICard
               label="Total ROI"
@@ -159,6 +170,7 @@ export default function ROIPage() {
               subtext="Estimated return"
               icon={TrendingUp}
               color="emerald"
+              tooltipText={tooltipContent.roiCenter.totalReturn}
             />
             <KPICard
               label="ROI Multiple"
@@ -166,6 +178,7 @@ export default function ROIPage() {
               subtext="Return on investment"
               icon={Zap}
               color="violet"
+              tooltipText={tooltipContent.roiCenter.paybackPeriod}
             />
             <KPICard
               label="Episodes"
@@ -182,10 +195,12 @@ export default function ROIPage() {
             <div className="lg:col-span-4 space-y-6">
               <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="cost-assumptions">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-                    <Calculator className="h-4 w-4 text-zinc-400" />
-                    Cost Assumptions
-                  </CardTitle>
+                  <AuraTooltip content={tooltipContent.roiCenter.costPerVideo} position="right">
+                    <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                      <Calculator className="h-4 w-4 text-zinc-400" />
+                      Cost Assumptions
+                    </CardTitle>
+                  </AuraTooltip>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between p-3 rounded-md bg-zinc-950/50 border border-[#1F2933]">
@@ -233,10 +248,12 @@ export default function ROIPage() {
             <div className="lg:col-span-8 space-y-6">
               <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="roi-breakdown">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-zinc-400" />
-                    ROI Breakdown
-                  </CardTitle>
+                  <AuraTooltip content={tooltipContent.roiCenter.revenuePerVideo} position="right">
+                    <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-zinc-400" />
+                      ROI Breakdown
+                    </CardTitle>
+                  </AuraTooltip>
                 </CardHeader>
                 <CardContent>
                   <div className="p-4 rounded-lg bg-zinc-950/50 border border-[#1F2933] mb-6">

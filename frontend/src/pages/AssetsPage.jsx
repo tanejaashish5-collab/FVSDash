@@ -9,13 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   Search, FolderOpen, ChevronDown, ExternalLink, MoreHorizontal,
   FileVideo, FileAudio, FileImage, FileText as FileTextIcon, FileBox, Link as LinkIcon, Eye, ZoomIn, Play
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { AuraTooltip } from '@/components/ui/AuraTooltip';
+import { tooltipContent } from '@/constants/tooltipContent';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 

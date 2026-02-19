@@ -26,6 +26,7 @@ import { format } from 'date-fns';
 import axios from 'axios';
 import { AuraTooltip } from '@/components/ui/AuraTooltip';
 import { tooltipContent } from '@/constants/tooltipContent';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const STATUSES = ['INTAKE', 'EDITING', 'DESIGN', 'SCHEDULED', 'PUBLISHED'];

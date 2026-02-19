@@ -415,6 +415,102 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
+        {/* Publishing Tab */}
+        <TabsContent value="publishing" className="mt-6">
+          <Card className="bg-[#0B1120] border-[#1F2933]">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center">
+                  <Send className="h-5 w-5 text-indigo-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-white">Platform Connections</CardTitle>
+                  <CardDescription>
+                    Connect your social media accounts to publish content directly
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {platformConnections.map((conn) => {
+                const cfg = platformCfg[conn.platform] || {};
+                const PlatformIcon = cfg.icon || Send;
+                const isConnecting = connectingPlatform === conn.platform;
+                
+                return (
+                  <div 
+                    key={conn.platform}
+                    className={`p-4 rounded-lg border ${conn.connected ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-zinc-700 bg-zinc-900/30'}`}
+                    data-testid={`platform-card-${conn.platform}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className={`h-12 w-12 rounded-lg ${cfg.bg} flex items-center justify-center`}>
+                          <PlatformIcon className={`h-6 w-6 ${cfg.color}`} />
+                        </div>
+                        <div>
+                          <h4 className="text-white font-medium">{cfg.label}</h4>
+                          {conn.connected ? (
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                              <span className="text-sm text-emerald-400">Connected</span>
+                              <span className="text-sm text-zinc-500">•</span>
+                              <span className="text-sm text-zinc-400">{conn.accountHandle}</span>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-zinc-500 mt-0.5">{cfg.description}</p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {conn.connected ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDisconnectPlatform(conn.platform)}
+                          disabled={isConnecting}
+                          className="border-zinc-700 text-zinc-400 hover:text-red-400 hover:border-red-500/30"
+                          data-testid={`disconnect-${conn.platform}-btn`}
+                        >
+                          {isConnecting ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Unlink className="h-4 w-4 mr-2" />
+                              Disconnect
+                            </>
+                          )}
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => handleConnectPlatform(conn.platform)}
+                          disabled={isConnecting}
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                          data-testid={`connect-${conn.platform}-btn`}
+                        >
+                          {isConnecting ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : (
+                            <Link2 className="h-4 w-4 mr-2" />
+                          )}
+                          Connect
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              
+              <div className="pt-4 border-t border-zinc-800">
+                <p className="text-xs text-zinc-500">
+                  <span className="text-amber-400">Note:</span> This is a demo environment. 
+                  OAuth connections are simulated. Real platform integrations will be available in a future update.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Account Tab */}
         <TabsContent value="account" className="mt-6">
           <Card className="bg-[#0B1120] border-[#1F2933]">

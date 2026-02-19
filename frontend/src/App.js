@@ -2,6 +2,7 @@ import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { Toaster } from "@/components/ui/sonner";
+import { AuraSpinner } from "@/components/animations/AuraSpinner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import OnboardingModal from "@/components/OnboardingModal";
 import LoginPage from "@/pages/LoginPage";
@@ -29,8 +30,8 @@ import PlaceholderPage from "@/pages/PlaceholderPage";
 function LoadingScreen() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center" data-testid="loading-screen">
-      <div className="flex flex-col items-center gap-3">
-        <div className="h-8 w-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      <div className="flex flex-col items-center gap-4">
+        <AuraSpinner size="lg" />
         <p className="text-xs text-zinc-500">Loading...</p>
       </div>
     </div>

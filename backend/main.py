@@ -83,6 +83,9 @@ async def startup():
     await db.publishing_tasks.create_index("clientId")
     await db.publishing_tasks.create_index([("status", 1), ("scheduledAt", 1)])
     await db.platform_connections.create_index([("clientId", 1), ("platform", 1)], unique=True)
+    await db.oauth_tokens.create_index([("clientId", 1), ("platform", 1)], unique=True)
+    await db.publish_jobs.create_index("clientId")
+    await db.publish_jobs.create_index([("status", 1), ("createdAt", -1)])
     try:
         result = await run_seed()
         if result:

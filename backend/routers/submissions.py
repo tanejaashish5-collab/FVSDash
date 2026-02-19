@@ -86,6 +86,9 @@ async def update_submission_status(
     user: dict = Depends(get_current_user),
     impersonateClientId: Optional[str] = Query(None)
 ):
+    from routers.notifications import create_notification
+    from models.notification import NotificationType, NotificationPriority
+    
     client_id = get_client_id_from_user(user, impersonateClientId)
     db = submissions_collection()
     query = {"id": submission_id}
@@ -94,10 +97,36 @@ async def update_submission_status(
     valid_statuses = ["INTAKE", "EDITING", "DESIGN", "SCHEDULED", "PUBLISHED"]
     if data.status not in valid_statuses:
         raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
+    
+    # Get submission details for notification
+    submission = await db.find_one(query, {"_id": 0})
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    
+    old_status = submission.get("status", "INTAKE")
     now = datetime.now(timezone.utc).isoformat()
     result = await db.update_one(query, {"$set": {"status": data.status, "updatedAt": now}})
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Submission not found")
+    
+    # Create notification for status change
+    try:
+        # Determine priority based on status
+        priority = NotificationPriority.HIGH if data.status == "PUBLISHED" else NotificationPriority.MEDIUM
+        
+        await create_notification(
+            user_id=user["id"],
+            notification_type=NotificationType.STATUS_CHANGE,
+            title=f"Submission status updated",
+            message=f'"{submission.get("title", "Untitled")}" moved from {old_status} to {data.status}',
+            link=f"/dashboard/submissions?id={submission_id}",
+            priority=priority
+        )
+    except Exception as e:
+        # Don't fail the main operation if notification fails
+        import logging
+        logging.getLogger(__name__).warning(f"Failed to create status change notification: {e}")
+    
     return {"message": f"Status updated to {data.status}", "status": data.status}
 
 

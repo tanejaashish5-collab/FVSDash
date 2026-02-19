@@ -42,6 +42,29 @@ async def get_fvs_ideas(
     return await fvs_service.get_ideas(client_id, status)
 
 
+@router.get("/ideas/{idea_id}")
+async def get_fvs_idea_by_id(
+    idea_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """Returns a single FVS idea by ID for the Strategy Idea Detail view."""
+    client_id = get_client_id_from_user(user)
+    return await fvs_service.get_idea_by_id(client_id, idea_id)
+
+
+@router.post("/ideas/{idea_id}/generate-script")
+async def generate_idea_script(
+    idea_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Generate a full script for an FVS idea using Channel Profile.
+    Returns scriptText, title, and optional hooks.
+    """
+    client_id = get_client_id_from_user(user)
+    return await fvs_service.generate_script_for_idea_endpoint(client_id, idea_id)
+
+
 @router.patch("/ideas/{idea_id}/status")
 async def update_fvs_idea_status(idea_id: str, data: FvsIdeaStatusUpdate, user: dict = Depends(get_current_user)):
     """Update the status of an FVS idea."""

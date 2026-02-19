@@ -177,7 +177,8 @@ async def generate_voice_for_script(
             provider="elevenlabs",
             is_mocked=False,
             duration_seconds=estimated_duration,
-            storage_provider=storage_provider
+            storage_provider=storage_provider,
+            warning=warning
         )
         
     except Exception as e:

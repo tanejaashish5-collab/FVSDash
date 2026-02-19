@@ -89,3 +89,6 @@ def fvs_config_collection():
 
 def fvs_scripts_collection():
     return get_db().fvs_scripts
+
+def channel_profiles_collection():
+    return get_db().channel_profiles

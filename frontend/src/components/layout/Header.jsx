@@ -44,7 +44,7 @@ export default function Header() {
   return (
     <header
       data-testid="header"
-      className="sticky top-0 z-20 h-16 bg-[#09090b]/80 backdrop-blur-sm border-b border-zinc-800 flex items-center justify-between px-6"
+      className="sticky top-0 z-20 h-16 bg-[#09090b]/85 backdrop-blur-xl border-b border-white/[0.06] flex items-center justify-between px-6"
     >
       {/* Left: Title + Breadcrumb */}
       <div className="flex flex-col justify-center">

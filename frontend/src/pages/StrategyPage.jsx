@@ -425,10 +425,10 @@ export default function StrategyPage() {
                         key={session.id}
                         onClick={() => loadSession(session)}
                         data-testid={`session-${session.id}`}
-                        className={`group p-2.5 rounded-lg cursor-pointer transition-colors ${
+                        className={`group p-2.5 rounded-lg cursor-pointer transition-all duration-300 ${
                           isActive 
-                            ? 'bg-indigo-500/10 border border-indigo-500/30' 
-                            : 'hover:bg-white/[0.03] border border-transparent'
+                            ? 'bg-indigo-500/10 border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.1)]' 
+                            : 'hover:bg-white/[0.04] hover:translate-x-1 border border-transparent hover:border-white/[0.06]'
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2">

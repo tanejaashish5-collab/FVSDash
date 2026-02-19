@@ -10,7 +10,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   Brain, Sparkles, Zap, Play, X, Check, Loader2, RefreshCw,
   Lightbulb, TrendingUp, Clock, Activity, Settings, Radio,
@@ -19,6 +18,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { AuraTooltip } from '@/components/ui/AuraTooltip';
+import { tooltipContent } from '@/constants/tooltipContent';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 

@@ -435,19 +435,28 @@ export default function FvsSystemPage() {
                   
                   <Separator className="bg-[#1F2933] my-4" />
                   
-                  <Button
-                    onClick={handleProposeIdeas}
-                    disabled={proposing}
-                    className="w-full h-10 bg-indigo-500 hover:bg-indigo-600 text-white"
-                    data-testid="run-brain-btn"
-                  >
-                    {proposing ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-4 w-4 mr-2" />
-                    )}
-                    Run Brain Now (Propose Ideas)
-                  </Button>
+                  <TooltipProvider delayDuration={300}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={handleProposeIdeas}
+                          disabled={proposing}
+                          className="w-full h-10 bg-indigo-500 hover:bg-indigo-600 text-white"
+                          data-testid="run-brain-btn"
+                        >
+                          {proposing ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Sparkles className="h-4 w-4 mr-2" />
+                          )}
+                          Run Brain Now (Propose Ideas)
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-[240px] bg-zinc-900 text-white border-zinc-700">
+                        Analyzes your last 30 days of data to generate fresh episode ideas based on what's performing.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </CardContent>
               </Card>
 

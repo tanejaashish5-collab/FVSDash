@@ -70,6 +70,7 @@ async def create_submission(
         "priority": data.priority,
         "releaseDate": data.releaseDate,
         "sourceFileUrl": data.sourceFileUrl,
+        "strategyIdeaId": data.strategyIdeaId,  # Link to FVS idea if applicable
         "createdAt": now,
         "updatedAt": now,
     }

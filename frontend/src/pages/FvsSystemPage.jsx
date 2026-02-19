@@ -647,6 +647,150 @@ export default function FvsSystemPage() {
           </div>
         </>
       )}
+
+      {/* Idea Detail Side Panel */}
+      <Sheet open={panelOpen} onOpenChange={setPanelOpen}>
+        <SheetContent className="w-[480px] bg-[#0B1120] border-l border-[#1F2933] overflow-y-auto" data-testid="idea-detail-panel">
+          {selectedIdea && (
+            <>
+              <SheetHeader className="pb-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 pr-4">
+                    <SheetTitle className="text-xl font-semibold text-white leading-tight">
+                      {selectedIdea.topic}
+                    </SheetTitle>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge className={`${statusCfg[selectedIdea.status]?.bg} ${statusCfg[selectedIdea.status]?.text} ${statusCfg[selectedIdea.status]?.border}`}>
+                        {selectedIdea.status}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs bg-zinc-950 border-zinc-800 text-zinc-400">
+                        {selectedIdea.format}
+                      </Badge>
+                      <span className={`text-xs font-mono font-medium ${formatConviction(selectedIdea.convictionScore).color}`}>
+                        {formatConviction(selectedIdea.convictionScore).text}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <SheetDescription className="text-sm text-zinc-400 mt-2">
+                  {selectedIdea.hypothesis}
+                </SheetDescription>
+              </SheetHeader>
+
+              <Separator className="bg-[#1F2933] my-4" />
+
+              {/* Hooks Section */}
+              <div className="space-y-3 mb-6">
+                <h4 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-amber-400" />
+                  Hooks
+                </h4>
+                <div className="space-y-2">
+                  {(scriptData?.hooks || selectedIdea.hooks || []).map((hook, i) => (
+                    <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-zinc-900/50 border border-zinc-800">
+                      <span className="h-5 w-5 rounded-full bg-amber-500/20 flex items-center justify-center text-xs font-medium text-amber-400 shrink-0">
+                        {i + 1}
+                      </span>
+                      <p className="text-sm text-zinc-300 leading-relaxed">{hook}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Script Section */}
+              <div className="space-y-3 mb-6">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold text-white flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-violet-400" />
+                    Hinglish Script
+                  </h4>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCopyScript}
+                    disabled={!scriptData?.scriptText}
+                    className="h-7 px-2 text-xs text-zinc-400 hover:text-white"
+                    data-testid="copy-script-btn"
+                  >
+                    {copied ? (
+                      <Check className="h-3 w-3 mr-1 text-emerald-400" />
+                    ) : (
+                      <Copy className="h-3 w-3 mr-1" />
+                    )}
+                    {copied ? 'Copied!' : 'Copy'}
+                  </Button>
+                </div>
+                {loadingScript ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
+                    <span className="ml-2 text-sm text-zinc-400">Generating script...</span>
+                  </div>
+                ) : (
+                  <ScrollArea className="h-[200px] rounded-lg border border-zinc-800 bg-zinc-950/50">
+                    <pre className="p-4 text-sm text-zinc-300 whitespace-pre-wrap font-sans leading-relaxed">
+                      {scriptData?.scriptText || selectedIdea.script || 'Script not generated yet.'}
+                    </pre>
+                  </ScrollArea>
+                )}
+              </div>
+
+              {/* Caption & Hashtags Section */}
+              <div className="space-y-3 mb-6">
+                <h4 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <Hash className="h-4 w-4 text-pink-400" />
+                  Caption & Hashtags
+                </h4>
+                <div className="p-3 rounded-lg bg-zinc-900/50 border border-zinc-800 space-y-2">
+                  <p className="text-sm text-zinc-300">
+                    {scriptData?.caption || selectedIdea.caption || 'Caption will be generated with script.'}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(scriptData?.hashtags || selectedIdea.hashtags || []).map((tag, i) => (
+                      <Badge key={i} variant="outline" className="text-[10px] bg-pink-500/10 text-pink-400 border-pink-500/20">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <Separator className="bg-[#1F2933] my-4" />
+
+              {/* Action Buttons */}
+              <div className="space-y-3">
+                <Button
+                  onClick={handleCreateSubmissionFromIdea}
+                  disabled={creatingSubmission}
+                  className="w-full h-10 bg-indigo-600 hover:bg-indigo-700 text-white"
+                  data-testid="create-submission-from-idea-btn"
+                >
+                  {creatingSubmission ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4 mr-2" />
+                  )}
+                  Create Submission from Idea
+                </Button>
+                
+                <Button
+                  onClick={handleCreateVideoTaskFromIdea}
+                  disabled={creatingVideoTask || loadingScript || !scriptData?.scriptText}
+                  variant="outline"
+                  className="w-full h-10 border-zinc-700 text-white hover:bg-zinc-800"
+                  data-testid="create-video-task-from-idea-btn"
+                >
+                  {creatingVideoTask ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Video className="h-4 w-4 mr-2" />
+                  )}
+                  Create AI Video Task from Idea
+                </Button>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

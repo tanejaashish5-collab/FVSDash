@@ -111,9 +111,9 @@ export default function SettingsPage() {
     setNoClientId(false);
     
     try {
-      const [settingsRes, profileRes, optionsRes, connectionsRes] = await Promise.all([
-        axios.get(`${API}/settings`, { headers: authHeaders }).catch(() => ({ data: null })),
-        axios.get(`${API}/channel-profile`, { headers: authHeaders }).catch((e) => {
+      const [settingsRes, profileRes, optionsRes, oauthRes] = await Promise.all([
+        axios.get(buildApiUrl(`${API}/settings`), { headers: authHeaders }).catch(() => ({ data: null })),
+        axios.get(buildApiUrl(`${API}/channel-profile`), { headers: authHeaders }).catch((e) => {
           // If 400 error (no client ID), handle gracefully
           if (e.response?.status === 400) {
             setNoClientId(true);
@@ -121,8 +121,8 @@ export default function SettingsPage() {
           }
           throw e;
         }),
-        axios.get(`${API}/channel-profile/options`, { headers: authHeaders }),
-        axios.get(`${API}/platform-connections`, { headers: authHeaders }).catch(() => ({ data: [] }))
+        axios.get(buildApiUrl(`${API}/channel-profile/options`), { headers: authHeaders }),
+        axios.get(buildApiUrl(`${API}/oauth/status`), { headers: authHeaders }).catch(() => ({ data: {} }))
       ]);
       
       setSettings(settingsRes.data || {
@@ -133,29 +133,14 @@ export default function SettingsPage() {
       });
       setChannelProfile(profileRes.data);
       setProfileOptions(optionsRes.data);
-      
-      // Ensure all platforms are represented
-      const platforms = ['youtube_shorts', 'tiktok', 'instagram_reels'];
-      const existingConnections = connectionsRes.data || [];
-      const fullConnections = platforms.map(platform => {
-        const existing = existingConnections.find(c => c.platform === platform);
-        return existing || {
-          id: null,
-          platform,
-          connected: false,
-          accountName: null,
-          accountHandle: null,
-          connectedAt: null
-        };
-      });
-      setPlatformConnections(fullConnections);
+      setOauthStatus(oauthRes.data || {});
     } catch (err) {
       console.error('Failed to load settings:', err);
       toast.error('Failed to load settings');
     } finally {
       setLoading(false);
     }
-  }, [authHeaders]);
+  }, [authHeaders, buildApiUrl]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 

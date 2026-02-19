@@ -146,24 +146,23 @@ export default function SubmissionDetailPage() {
       setLoading(true);
       setError(null);
       
-      // Fetch submission details
-      const subRes = await axios.get(`${API}/submissions/${submissionId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setSubmission(subRes.data);
+      // Fetch submission details, assets, platform connections, and publishing tasks in parallel
+      const [subRes, assetsRes, connectionsRes, tasksRes] = await Promise.all([
+        axios.get(`${API}/submissions/${submissionId}`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${API}/assets/library`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${API}/platform-connections`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${API}/publishing-tasks?submissionId=${submissionId}`, { headers: { Authorization: `Bearer ${token}` } })
+      ]);
       
-      // Fetch assets for this submission
-      const assetsRes = await axios.get(`${API}/assets/library`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      setSubmission(subRes.data);
       const submissionAssets = assetsRes.data.filter(a => a.submissionId === submissionId);
       setAssets(submissionAssets);
+      setPlatformConnections(connectionsRes.data);
+      setPublishingTasks(tasksRes.data);
       
       // Try to fetch related FVS idea if this is an FVS-generated submission
       try {
-        const ideasRes = await axios.get(`${API}/fvs/ideas`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const ideasRes = await axios.get(`${API}/fvs/ideas`, { headers: { Authorization: `Bearer ${token}` } });
         const relatedIdea = ideasRes.data.find(i => i.producedSubmissionId === submissionId);
         if (relatedIdea) {
           setFvsIdea(relatedIdea);

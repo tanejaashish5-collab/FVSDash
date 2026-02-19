@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,12 +13,13 @@ import { Separator } from '@/components/ui/separator';
 import { 
   Settings, User, Palette, Brain, Globe, Sparkles, 
   Save, Loader2, Plus, X, Tag, Send, Youtube, Instagram,
-  CheckCircle2, XCircle, Link2, Unlink
+  CheckCircle2, XCircle, Link2, Unlink, RefreshCw, AlertTriangle, Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { AuraTooltip } from '@/components/ui/AuraTooltip';
 import { tooltipContent } from '@/constants/tooltipContent';
+import { AuraSpinner } from '@/components/animations/AuraSpinner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -28,14 +30,15 @@ const TikTokIcon = ({ className }) => (
   </svg>
 );
 
+// Platform configuration for OAuth
 const platformCfg = {
-  youtube_shorts: { 
-    label: 'YouTube Shorts', 
+  youtube: { 
+    label: 'YouTube', 
     icon: Youtube, 
     color: 'text-red-400', 
     bg: 'bg-red-500/10',
     border: 'border-red-500/20',
-    description: 'Post short-form videos to YouTube'
+    description: 'Upload Shorts and videos to YouTube'
   },
   tiktok: { 
     label: 'TikTok', 
@@ -43,16 +46,25 @@ const platformCfg = {
     color: 'text-pink-400', 
     bg: 'bg-pink-500/10',
     border: 'border-pink-500/20',
-    description: 'Share videos on TikTok'
+    description: 'Share videos on TikTok',
+    comingSoon: true
   },
-  instagram_reels: { 
+  instagram: { 
     label: 'Instagram Reels', 
     icon: Instagram, 
     color: 'text-purple-400', 
     bg: 'bg-purple-500/10',
     border: 'border-purple-500/20',
-    description: 'Publish Reels to Instagram'
+    description: 'Publish Reels to Instagram',
+    comingSoon: true
   },
+};
+
+// Token status badges
+const tokenStatusBadge = {
+  valid: { label: 'Connected', className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
+  expiring_soon: { label: 'Expiring Soon', className: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
+  expired: { label: 'Token Expired', className: 'bg-red-500/10 text-red-400 border-red-500/20' },
 };
 
 export default function SettingsPage() {

@@ -905,6 +905,17 @@ async def generate_script_for_idea_endpoint(client_id: str, idea_id: str) -> dic
     lines = [line.strip() for line in script_text.split('\n') if line.strip()]
     hooks = lines[:3] if len(lines) >= 3 else lines
     
+    # Save script back to the idea document for persistence
+    now = datetime.now(timezone.utc).isoformat()
+    await db.update_one(
+        {"id": idea_id, "clientId": client_id},
+        {"$set": {
+            "script": script_text,
+            "generatedHooks": hooks,
+            "updatedAt": now
+        }}
+    )
+    
     return {
         "scriptText": script_text,
         "title": title,
@@ -914,5 +925,7 @@ async def generate_script_for_idea_endpoint(client_id: str, idea_id: str) -> dic
         "ideaId": idea_id,
         "topic": idea.get("topic"),
         "hypothesis": idea.get("hypothesis"),
-        "format": idea.get("format", "short")
+        "format": idea.get("format", "short"),
+        "caption": idea.get("caption"),
+        "hashtags": idea.get("hashtags")
     }

@@ -817,3 +817,86 @@ async def get_scripts(client_id: str, submission_id: Optional[str] = None) -> li
     
     scripts = await db.find(query, {"_id": 0}).sort("createdAt", -1).to_list(50)
     return scripts
+
+
+async def get_idea_by_id(client_id: str, idea_id: str) -> dict:
+    """
+    Get a single FVS idea by ID.
+    
+    Used for the Strategy Idea Detail view.
+    
+    Args:
+        client_id: The client ID
+        idea_id: The idea ID
+        
+    Returns:
+        The idea dict or raises HTTPException if not found
+    """
+    if not client_id:
+        raise HTTPException(status_code=400, detail="Client ID required")
+    
+    db = fvs_ideas_collection()
+    idea = await db.find_one({"id": idea_id, "clientId": client_id}, {"_id": 0})
+    
+    if not idea:
+        raise HTTPException(status_code=404, detail="Idea not found")
+    
+    return idea
+
+
+async def generate_script_for_idea_endpoint(client_id: str, idea_id: str) -> dict:
+    """
+    Generate a script for an FVS idea using Channel Profile settings.
+    
+    This is the endpoint version that fetches the idea and profile, then generates.
+    Returns the script text along with metadata for the UI.
+    
+    Args:
+        client_id: The client ID
+        idea_id: The idea ID
+        
+    Returns:
+        Dict with scriptText, title, hooks, languageStyle, etc.
+    """
+    if not client_id:
+        raise HTTPException(status_code=400, detail="Client ID required")
+    
+    # Fetch idea
+    db = fvs_ideas_collection()
+    idea = await db.find_one({"id": idea_id, "clientId": client_id}, {"_id": 0})
+    
+    if not idea:
+        raise HTTPException(status_code=404, detail="Idea not found")
+    
+    # Get channel profile
+    from services.channel_profile_service import get_channel_profile
+    channel_profile = await get_channel_profile(client_id)
+    
+    # Get brand voice from legacy settings (fallback)
+    settings_db = client_settings_collection()
+    settings = await settings_db.find_one({"clientId": client_id}, {"_id": 0})
+    brand_voice = settings.get("brandVoiceDescription", "") if settings else ""
+    
+    # Generate script using channel profile
+    logger.info(f"Generating script for idea '{idea.get('topic')}' using {channel_profile.get('languageStyle')} style")
+    script_data = await generate_script_for_idea(idea, brand_voice, channel_profile)
+    
+    # Generate a title suggestion
+    title = idea.get("topic", "Untitled")
+    
+    # Generate hooks (opening lines) - first 2-3 sentences of the script
+    script_text = script_data.get("text", "")
+    lines = [l.strip() for l in script_text.split('\n') if l.strip()]
+    hooks = lines[:3] if len(lines) >= 3 else lines
+    
+    return {
+        "scriptText": script_text,
+        "title": title,
+        "hooks": hooks,
+        "languageStyle": script_data.get("languageStyle", "english"),
+        "provider": script_data.get("provider", "mock"),
+        "ideaId": idea_id,
+        "topic": idea.get("topic"),
+        "hypothesis": idea.get("hypothesis"),
+        "format": idea.get("format", "short")
+    }

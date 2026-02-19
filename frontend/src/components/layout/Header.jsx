@@ -116,13 +116,39 @@ export default function Header() {
           />
         </div>
 
-        <button
-          data-testid="notifications-btn"
-          className="relative h-8 w-8 flex items-center justify-center rounded-sm text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
-        >
-          <Bell className="h-4 w-4" />
-          <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-indigo-500" />
-        </button>
+        {/* Notification Bell */}
+        <div className="relative">
+          <button
+            data-testid="notifications-btn"
+            onClick={() => setShowNotifications(!showNotifications)}
+            className={`
+              relative h-8 w-8 flex items-center justify-center rounded-sm transition-all duration-200
+              ${showNotifications 
+                ? 'text-indigo-400 bg-indigo-500/10' 
+                : 'text-zinc-400 hover:text-white hover:bg-white/5'
+              }
+              ${unreadCount > 0 ? 'animate-notification-pulse' : ''}
+            `}
+          >
+            <Bell className="h-4 w-4" />
+            {unreadCount > 0 && (
+              <span 
+                data-testid="notification-badge"
+                className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center px-1 text-[10px] font-bold bg-indigo-500 text-white rounded-full shadow-lg shadow-indigo-500/30"
+              >
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
+
+          {/* Notification Panel */}
+          <NotificationPanel
+            isOpen={showNotifications}
+            onClose={handleCloseNotifications}
+            unreadCount={unreadCount}
+            setUnreadCount={setUnreadCount}
+          />
+        </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

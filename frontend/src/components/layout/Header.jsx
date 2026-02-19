@@ -123,7 +123,10 @@ export default function Header() {
         {/* Help Tour Trigger */}
         <button
           data-testid="help-tour-btn"
-          onClick={() => setShowTour(true)}
+          onClick={() => {
+            console.log('Help button clicked, setting showTour to true');
+            setShowTour(true);
+          }}
           className="h-8 w-8 flex items-center justify-center rounded-sm text-zinc-500/60 hover:text-white hover:bg-white/5 transition-all duration-200 hover:shadow-[0_0_8px_rgba(241,200,122,0.3)]"
           title="Take a tour"
         >

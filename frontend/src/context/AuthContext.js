@@ -10,6 +10,9 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(localStorage.getItem('fv_token'));
   const [loading, setLoading] = useState(true);
   
+  // Onboarding state - session-level flag (resets on new login)
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  
   // Impersonation state (admin only)
   const [impersonatedClientId, setImpersonatedClientId] = useState(
     localStorage.getItem('fv_impersonated_client_id')
@@ -23,7 +26,13 @@ export function AuthProvider({ children }) {
       axios.get(`${API}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       })
-        .then(res => setUser(res.data))
+        .then(res => {
+          setUser(res.data);
+          // Check if we should show onboarding (non-admin users who haven't completed it)
+          if (res.data.role !== 'admin' && res.data.onboardingComplete === false) {
+            setShowOnboarding(true);
+          }
+        })
         .catch(() => {
           localStorage.removeItem('fv_token');
           localStorage.removeItem('fv_impersonated_client_id');
@@ -49,6 +58,12 @@ export function AuthProvider({ children }) {
     setUser(userData);
     setImpersonatedClientId(null);
     setImpersonatedClientName(null);
+    // Check if we should show onboarding for this user (non-admin who hasn't completed it)
+    if (userData.role !== 'admin' && userData.onboardingComplete === false) {
+      setShowOnboarding(true);
+    } else {
+      setShowOnboarding(false);
+    }
     return userData;
   };
 
@@ -58,6 +73,10 @@ export function AuthProvider({ children }) {
     localStorage.setItem('fv_token', newToken);
     setToken(newToken);
     setUser(userData);
+    // New signups always show onboarding (non-admin)
+    if (userData.role !== 'admin') {
+      setShowOnboarding(true);
+    }
     return userData;
   };
 
@@ -69,6 +88,14 @@ export function AuthProvider({ children }) {
     setUser(null);
     setImpersonatedClientId(null);
     setImpersonatedClientName(null);
+    setShowOnboarding(false);
+  }, []);
+
+  // Dismiss onboarding modal (called after PATCH /api/auth/me/onboarding)
+  const dismissOnboarding = useCallback(() => {
+    setShowOnboarding(false);
+    // Update local user state to reflect onboarding complete
+    setUser(prev => prev ? { ...prev, onboardingComplete: true } : prev);
   }, []);
 
   // Impersonation functions (admin only)
@@ -128,6 +155,9 @@ export function AuthProvider({ children }) {
       signup, 
       logout, 
       authHeaders,
+      // Onboarding
+      showOnboarding,
+      dismissOnboarding,
       // Impersonation
       impersonatedClientId,
       impersonatedClientName,

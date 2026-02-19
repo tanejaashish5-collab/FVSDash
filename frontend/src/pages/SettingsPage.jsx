@@ -67,16 +67,21 @@ export default function SettingsPage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [newPillar, setNewPillar] = useState('');
   
+  // Platform Connections state
+  const [platformConnections, setPlatformConnections] = useState([]);
+  const [connectingPlatform, setConnectingPlatform] = useState(null);
+  
   // Fetch both client settings and channel profile
   const fetchData = useCallback(async () => {
     if (!authHeaders) return;
     setLoading(true);
     
     try {
-      const [settingsRes, profileRes, optionsRes] = await Promise.all([
+      const [settingsRes, profileRes, optionsRes, connectionsRes] = await Promise.all([
         axios.get(`${API}/settings`, { headers: authHeaders }).catch(() => ({ data: null })),
         axios.get(`${API}/channel-profile`, { headers: authHeaders }),
-        axios.get(`${API}/channel-profile/options`, { headers: authHeaders })
+        axios.get(`${API}/channel-profile/options`, { headers: authHeaders }),
+        axios.get(`${API}/platform-connections`, { headers: authHeaders })
       ]);
       
       setSettings(settingsRes.data || {
@@ -87,6 +92,7 @@ export default function SettingsPage() {
       });
       setChannelProfile(profileRes.data);
       setProfileOptions(optionsRes.data);
+      setPlatformConnections(connectionsRes.data);
     } catch (err) {
       console.error('Failed to load settings:', err);
       toast.error('Failed to load settings');

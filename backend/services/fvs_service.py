@@ -247,10 +247,8 @@ async def generate_script_for_idea(idea: dict, brand_voice: str, channel_profile
     # Get script instructions from channel profile
     if channel_profile:
         script_instructions = get_script_instructions(channel_profile)
-        effective_brand_voice = channel_profile.get("brandDescription", brand_voice)
     else:
         script_instructions = "Write in clear, conversational English."
-        effective_brand_voice = brand_voice
     
     try:
         if api_key:

@@ -288,6 +288,7 @@ export default function AnalyticsPage() {
               subtext="In this range"
               icon={Radio}
               tooltipContent={tooltipContent.analytics.ctr}
+              delay={0.1}
             />
             <KPICard
               label="Avg ROI / Episode"
@@ -295,6 +296,7 @@ export default function AnalyticsPage() {
               subtext="Estimated return"
               icon={TrendingUp}
               tooltipContent={tooltipContent.analytics.revenue}
+              delay={0.15}
             />
           </div>
 

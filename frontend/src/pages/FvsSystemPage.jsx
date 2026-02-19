@@ -530,7 +530,18 @@ export default function FvsSystemPage() {
                         <TableRow className="border-[#1F2933] hover:bg-transparent">
                           <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Topic</TableHead>
                           <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold w-20">Format</TableHead>
-                          <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold w-20">Score</TableHead>
+                          <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold w-20">
+                            <TooltipProvider delayDuration={300}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="cursor-help border-b border-dashed border-zinc-600">Score</span>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-[240px] bg-zinc-900 text-white border-zinc-700">
+                                  Relevance score (0–100) based on audience trends, engagement patterns, and topic fit.
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableHead>
                           <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold w-20">Source</TableHead>
                           <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold w-24">Status</TableHead>
                           <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold w-32">Actions</TableHead>

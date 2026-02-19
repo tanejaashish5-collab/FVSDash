@@ -652,16 +652,6 @@ export default function SettingsPage() {
                   className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-600"
                 />
               </div>
-              <div className="space-y-2">
-                <Label className="text-zinc-300">Brand Voice (Legacy)</Label>
-                <Textarea
-                  value={settings?.brandVoiceDescription || ''}
-                  onChange={(e) => setSettings({ ...settings, brandVoiceDescription: e.target.value })}
-                  placeholder="Describe your brand voice..."
-                  className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-600 min-h-[100px]"
-                />
-                <p className="text-xs text-zinc-500">Legacy field. Use Channel Profile above for AI settings.</p>
-              </div>
               <div className="flex justify-end">
                 <Button
                   onClick={handleSaveSettings}

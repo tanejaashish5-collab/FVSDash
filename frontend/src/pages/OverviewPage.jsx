@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,9 +18,18 @@ import { toast } from 'sonner';
 import axios from 'axios';
 import { AuraTooltip } from '@/components/ui/AuraTooltip';
 import { tooltipContent } from '@/constants/tooltipContent';
+import { AnimatedNumber } from '@/components/animations/AnimatedNumber';
+import { AuraSpinner } from '@/components/animations/AuraSpinner';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const STATUSES = ['INTAKE', 'EDITING', 'DESIGN', 'SCHEDULED', 'PUBLISHED'];
+
+// Silk easing
+const silkEase = [0.22, 1, 0.36, 1];
+
+// Check reduced motion preference
+const getPrefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const statusCfg = {
   INTAKE: { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20', dot: 'bg-amber-400' },
@@ -36,8 +46,14 @@ const typeCfg = {
   Webinar: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
 };
 
-function KPICard({ label, value, subtext, icon: Icon, trend, tooltipKey }) {
+function KPICard({ label, value, subtext, icon: Icon, trend, tooltipKey, delay = 0 }) {
   const tooltipText = tooltipKey ? tooltipContent.overview[tooltipKey] : null;
+  const prefersReducedMotion = getPrefersReducedMotion();
+  
+  // Parse numeric value for animation
+  const isNumeric = typeof value === 'number' || (typeof value === 'string' && !value.startsWith('$'));
+  const numericValue = typeof value === 'string' ? parseFloat(value.replace(/[^0-9.-]+/g, '')) : value;
+  const isCurrency = typeof value === 'string' && value.includes('$');
   
   const labelElement = tooltipText ? (
     <AuraTooltip content={tooltipText} position="top">
@@ -48,27 +64,42 @@ function KPICard({ label, value, subtext, icon: Icon, trend, tooltipKey }) {
   );
 
   return (
-    <Card className="bg-[#0B1120] border-[#1F2933] stat-card" data-testid={`kpi-${label.toLowerCase().replace(/[\s().]+/g, '-').replace(/-+/g, '-').replace(/-$/, '')}`}>
-      <CardContent className="p-5">
-        <div className="flex items-center justify-between mb-4">
-          {labelElement}
-          <div className="h-9 w-9 rounded-md bg-indigo-500/10 flex items-center justify-center">
-            <Icon className="h-4 w-4 text-indigo-400" />
+    <motion.div
+      initial={prefersReducedMotion ? {} : { opacity: 0, y: 15, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.35, ease: silkEase, delay }}
+      whileHover={prefersReducedMotion ? {} : { y: -2 }}
+      style={{ willChange: prefersReducedMotion ? 'auto' : 'transform, opacity' }}
+    >
+      <Card className="bg-[#0B1120] border-[#1F2933] glass-flutter card-lift" data-testid={`kpi-${label.toLowerCase().replace(/[\s().]+/g, '-').replace(/-+/g, '-').replace(/-$/, '')}`}>
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between mb-4">
+            {labelElement}
+            <div className="h-9 w-9 rounded-md bg-indigo-500/10 flex items-center justify-center">
+              <Icon className="h-4 w-4 text-indigo-400" />
+            </div>
           </div>
-        </div>
-        <p className="text-3xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
-          {value}
-        </p>
-        <div className="flex items-center gap-2 mt-1.5">
-          <span className="text-xs text-zinc-500">{subtext}</span>
-          {trend != null && (
-            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${trend > 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-              {trend > 0 ? '+' : ''}{trend}%
-            </span>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+          <p className="text-3xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
+            {isNumeric ? (
+              <AnimatedNumber 
+                value={numericValue} 
+                prefix={isCurrency ? '$' : ''} 
+                delay={delay + 0.2}
+                duration={2}
+              />
+            ) : value}
+          </p>
+          <div className="flex items-center gap-2 mt-1.5">
+            <span className="text-xs text-zinc-500">{subtext}</span>
+            {trend != null && (
+              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${trend > 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                {trend > 0 ? '+' : ''}{trend}%
+              </span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }
 

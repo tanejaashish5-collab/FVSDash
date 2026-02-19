@@ -380,9 +380,6 @@ export default function SubmissionDetailPage() {
                           ))}
                         </div>
                       )}
-                          <AssetCard key={asset.id} asset={asset} onView={handleViewAsset} />
-                        ))}
-                      </div>
                     </div>
                   )}
 

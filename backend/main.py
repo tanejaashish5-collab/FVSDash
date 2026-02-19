@@ -49,6 +49,7 @@ api_router.include_router(ai.router)
 api_router.include_router(video_tasks.router)
 api_router.include_router(fvs.router)
 api_router.include_router(admin.router)
+api_router.include_router(channel_profile.router)
 
 # Include API router in app
 app.include_router(api_router)

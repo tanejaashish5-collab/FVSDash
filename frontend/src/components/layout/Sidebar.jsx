@@ -5,7 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   LayoutDashboard, FileText, Calendar, Package, FolderOpen,
   BookOpen, FlaskConical, Video, BarChart3, TrendingUp,
-  CreditCard, Settings, HelpCircle, ShieldCheck, Mic, Brain
+  CreditCard, Settings, HelpCircle, ShieldCheck, Mic, Brain, Send
 } from 'lucide-react';
 
 const mainNav = [

@@ -14,6 +14,7 @@ const mainNav = [
   { label: 'Calendar', path: '/dashboard/calendar', icon: Calendar },
   { label: 'Deliverables', path: '/dashboard/deliverables', icon: Package },
   { label: 'Assets', path: '/dashboard/assets', icon: FolderOpen },
+  { label: 'Publishing', path: '/dashboard/publishing', icon: Send },
   { label: 'Blog', path: '/dashboard/blog', icon: BookOpen },
 ];
 

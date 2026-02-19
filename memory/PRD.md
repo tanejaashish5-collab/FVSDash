@@ -56,14 +56,28 @@ Complete workflow from FVS idea → script generation → submission/video task 
 - `GET /api/fvs/ideas/{idea_id}` - Fetch single idea
 - `POST /api/fvs/ideas/{idea_id}/generate-script` - Generate script with Channel Profile
 - `POST /api/fvs/produce-episode` - Full production pipeline (existing)
+- `PATCH /api/submissions/{id}/primary-thumbnail` - Set primary thumbnail
+
+#### S3 Storage Integration (Enhanced)
+- S3 is now the PRIMARY storage destination for all generated media
+- Audio, thumbnails uploaded to S3 if configured
+- Graceful fallback to data URLs with warning if S3 not configured
+- Warning added to response when using fallback
+
+#### Primary Thumbnail Selection
+- New endpoint: `PATCH /api/submissions/{id}/primary-thumbnail`
+- Validates asset exists and belongs to submission
+- Updates `isPrimaryThumbnail` flag on all related thumbnails
+- Updates `primaryThumbnailAssetId` on submission
 
 #### FVS System Page Updates
 - Added "View" button for proposed ideas → navigates to detail page
 - Fixed "View Episode" button field reference (`submissionId` not `producedSubmissionId`)
 
 #### Test Results (Feb 19, 2026):
-- Backend: 9/9 tests passed (100%)
+- Backend: All endpoints verified working
 - Quick Produce: Successfully generates episode with Hinglish script, ElevenLabs audio (real), 3 OpenAI thumbnails (real), video task (mocked)
+- Primary Thumbnail Selection: Verified working via curl
 - Frontend: All UI components working
 - Script generation uses Anthropic Claude with Hinglish style
 

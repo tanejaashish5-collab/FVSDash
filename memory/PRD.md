@@ -10,8 +10,43 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 - **Auth**: JWT-based with admin/client roles
 - **AI**: Multi-provider LLM (Gemini/OpenAI/Anthropic via Emergent key)
 - **Storage**: S3/S3-compatible (optional, with graceful fallback to data URLs)
+- **Brand Brain**: Channel Profile system for AI content customization
 
 ## What's Been Implemented
+
+### Phase 15 — Channel Profile & Brand Brain (Feb 18, 2026)
+
+#### Channel Profile Data Model
+- **Collection**: `channel_profiles` in MongoDB
+- **Fields**:
+  - `languageStyle`: "english", "hinglish", "hindi", "spanish"
+  - `thumbnailStyle`: "modern_clean", "black_minimal", "vibrant_bold", "cinematic", "custom"
+  - `brandDescription`: Channel identity text
+  - `tone`: Writing tone description
+  - `contentPillars`: Array of content themes (e.g., ["War", "Money", "Power"])
+  - `thumbnailPromptTemplate`: Custom prompt for thumbnails
+  - `thumbnailsPerShort`: 1-4 thumbnail options to generate
+
+#### API Endpoints
+- `GET /api/channel-profile` - Get client's profile
+- `PUT /api/channel-profile` - Update profile
+- `GET /api/channel-profile/options` - Get available styles
+
+#### Frontend Settings UI
+- **Location**: `/app/frontend/src/pages/SettingsPage.jsx`
+- **Tabs**: Channel Profile, Account, ROI Settings
+- **Fields**: Language dropdown, Thumbnail style, Brand description, Tone, Content pillars (tags), Thumbnails per episode
+
+#### AI Integration
+- **FVS Scripts**: Uses `languageStyle` for Hinglish scripts with performance cues
+- **Thumbnails**: Uses `thumbnailStyle` and `thumbnailPromptTemplate` for brand-consistent images
+- **Multiple Thumbnails**: Generates N thumbnails based on `thumbnailsPerShort`
+
+#### Hinglish Script Style (Chanakya Sutra)
+- Scripts in Hindi using Latin characters
+- Short punchy lines (5-10 words)
+- Performance cues: [pause], [emphatic], [chuckles], [dramatic whisper]
+- Brand context from content pillars
 
 ### Phase 14 — Demo Data Cleanup & Asset Visibility (Feb 18, 2026)
 

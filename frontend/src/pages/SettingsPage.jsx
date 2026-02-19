@@ -70,18 +70,27 @@ export default function SettingsPage() {
   // Platform Connections state
   const [platformConnections, setPlatformConnections] = useState([]);
   const [connectingPlatform, setConnectingPlatform] = useState(null);
+  const [noClientId, setNoClientId] = useState(false);
   
   // Fetch both client settings and channel profile
   const fetchData = useCallback(async () => {
     if (!authHeaders) return;
     setLoading(true);
+    setNoClientId(false);
     
     try {
       const [settingsRes, profileRes, optionsRes, connectionsRes] = await Promise.all([
         axios.get(`${API}/settings`, { headers: authHeaders }).catch(() => ({ data: null })),
-        axios.get(`${API}/channel-profile`, { headers: authHeaders }),
+        axios.get(`${API}/channel-profile`, { headers: authHeaders }).catch((e) => {
+          // If 400 error (no client ID), handle gracefully
+          if (e.response?.status === 400) {
+            setNoClientId(true);
+            return { data: null };
+          }
+          throw e;
+        }),
         axios.get(`${API}/channel-profile/options`, { headers: authHeaders }),
-        axios.get(`${API}/platform-connections`, { headers: authHeaders })
+        axios.get(`${API}/platform-connections`, { headers: authHeaders }).catch(() => ({ data: [] }))
       ]);
       
       setSettings(settingsRes.data || {
@@ -92,7 +101,22 @@ export default function SettingsPage() {
       });
       setChannelProfile(profileRes.data);
       setProfileOptions(optionsRes.data);
-      setPlatformConnections(connectionsRes.data);
+      
+      // Ensure all platforms are represented
+      const platforms = ['youtube_shorts', 'tiktok', 'instagram_reels'];
+      const existingConnections = connectionsRes.data || [];
+      const fullConnections = platforms.map(platform => {
+        const existing = existingConnections.find(c => c.platform === platform);
+        return existing || {
+          id: null,
+          platform,
+          connected: false,
+          accountName: null,
+          accountHandle: null,
+          connectedAt: null
+        };
+      });
+      setPlatformConnections(fullConnections);
     } catch (err) {
       console.error('Failed to load settings:', err);
       toast.error('Failed to load settings');

@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useRef, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -35,6 +36,39 @@ const mgmtNav = [
   { label: 'Help / Support', path: '/dashboard/help', icon: HelpCircle },
 ];
 
+// Nav item with gold glow trail effect
+function NavItem({ item, isActive, tourId }) {
+  const itemRef = useRef(null);
+  const Icon = item.icon;
+
+  const handleMouseMove = useCallback((e) => {
+    if (!itemRef.current) return;
+    const rect = itemRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    itemRef.current.style.setProperty('--mouse-x', `${x}%`);
+    itemRef.current.style.setProperty('--mouse-y', `${y}%`);
+  }, []);
+
+  return (
+    <Link
+      ref={itemRef}
+      to={item.path}
+      data-testid={`nav-${item.label.toLowerCase().replace(/[\s/]+/g, '-')}`}
+      data-tour={tourId}
+      onMouseMove={handleMouseMove}
+      className={`nav-glow-item flex items-center gap-3 mx-2 px-3 py-2 rounded-md text-sm ${
+        isActive
+          ? 'nav-active-glow bg-gradient-to-r from-indigo-500/15 to-indigo-500/5 text-white font-medium shadow-[inset_0_0_20px_rgba(99,102,241,0.1)]'
+          : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+      }`}
+    >
+      <Icon className={`h-4 w-4 shrink-0 transition-all duration-200 ${isActive ? 'text-indigo-400 drop-shadow-[0_0_4px_rgba(99,102,241,0.5)] scale-105' : ''}`} />
+      <span>{item.label}</span>
+    </Link>
+  );
+}
+
 function NavSection({ title, items, currentPath }) {
   // Map labels to tour data attributes
   const tourIds = {
@@ -53,23 +87,14 @@ function NavSection({ title, items, currentPath }) {
       )}
       {items.map(item => {
         const isActive = currentPath === item.path;
-        const Icon = item.icon;
         const tourId = tourIds[item.label];
         return (
-          <Link
-            key={item.path}
-            to={item.path}
-            data-testid={`nav-${item.label.toLowerCase().replace(/[\s/]+/g, '-')}`}
-            data-tour={tourId}
-            className={`sidebar-nav-item flex items-center gap-3 mx-2 px-3 py-2 rounded-md text-sm border-l-2 ${
-              isActive
-                ? 'border-l-indigo-500 bg-gradient-to-r from-indigo-500/15 to-indigo-500/5 text-white font-medium shadow-[inset_0_0_20px_rgba(99,102,241,0.1)]'
-                : 'border-l-transparent text-zinc-400 hover:text-white hover:bg-white/[0.04]'
-            }`}
-          >
-            <Icon className={`h-4 w-4 shrink-0 transition-all duration-200 ${isActive ? 'text-indigo-400 drop-shadow-[0_0_4px_rgba(99,102,241,0.5)] scale-105' : ''}`} />
-            <span>{item.label}</span>
-          </Link>
+          <NavItem 
+            key={item.path} 
+            item={item} 
+            isActive={isActive} 
+            tourId={tourId}
+          />
         );
       })}
     </div>

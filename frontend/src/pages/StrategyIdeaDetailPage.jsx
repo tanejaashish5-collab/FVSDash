@@ -333,67 +333,137 @@ export default function StrategyIdeaDetailPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {/* Create Submission */}
-              <div className="space-y-2">
-                <Button
-                  onClick={handleCreateSubmission}
-                  disabled={creatingSubmission || !scriptData || createdSubmissionId}
-                  className="w-full h-10 bg-indigo-500 hover:bg-indigo-600 text-white disabled:opacity-50"
-                  data-testid="create-submission-btn"
-                >
-                  {creatingSubmission ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4 mr-2" />
-                  )}
-                  {createdSubmissionId ? 'Submission Created' : 'Create Submission'}
-                </Button>
-                {createdSubmissionId && (
-                  <Link
-                    to={`/dashboard/submissions/${createdSubmissionId}`}
-                    className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
-                    data-testid="view-submission-link"
+              {/* Quick Produce - Full Pipeline */}
+              {idea.status !== 'completed' && !produceResult && (
+                <div className="space-y-3">
+                  <Button
+                    onClick={handleQuickProduce}
+                    disabled={quickProducing || idea.status === 'completed'}
+                    className="w-full h-12 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-medium disabled:opacity-50"
+                    data-testid="quick-produce-btn"
                   >
-                    <ExternalLink className="h-3 w-3" />
-                    View in Submissions
-                  </Link>
-                )}
-              </div>
-
-              <Separator className="bg-[#1F2933]" />
-
-              {/* Create AI Video Task */}
-              <div className="space-y-2">
-                <Button
-                  onClick={handleCreateVideoTask}
-                  disabled={creatingVideoTask || !scriptData || createdVideoTaskId}
-                  variant="outline"
-                  className="w-full h-10 border-[#1F2933] bg-zinc-950/50 hover:bg-zinc-900 text-white disabled:opacity-50"
-                  data-testid="create-video-task-btn"
-                >
-                  {creatingVideoTask ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Film className="h-4 w-4 mr-2" />
+                    {quickProducing ? (
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    ) : (
+                      <Zap className="h-5 w-5 mr-2" />
+                    )}
+                    Quick Produce
+                  </Button>
+                  
+                  {/* Progress indicator */}
+                  {quickProducing && produceProgress && (
+                    <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 bg-emerald-400 rounded-full animate-pulse" />
+                        <span className="text-xs text-emerald-400">{produceProgress}</span>
+                      </div>
+                      <div className="mt-2 flex items-center gap-4 text-[10px] text-zinc-500">
+                        <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> Script</span>
+                        <span className="flex items-center gap-1"><Music className="h-3 w-3" /> Audio</span>
+                        <span className="flex items-center gap-1"><Image className="h-3 w-3" /> 3 Thumbnails</span>
+                        <span className="flex items-center gap-1"><Video className="h-3 w-3" /> Video</span>
+                      </div>
+                    </div>
                   )}
-                  {createdVideoTaskId ? 'Video Task Created' : 'Create AI Video Task'}
-                </Button>
-                {createdVideoTaskId && (
+                  
+                  <p className="text-[10px] text-zinc-600 text-center">
+                    Full pipeline: Script + Audio + Video + 3 Thumbnails
+                  </p>
+                  
+                  <Separator className="bg-[#1F2933]" />
+                </div>
+              )}
+              
+              {/* Quick Produce Result */}
+              {produceResult && (
+                <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Check className="h-5 w-5 text-emerald-400" />
+                    <span className="text-sm font-medium text-emerald-400">Episode Produced!</span>
+                  </div>
+                  <div className="space-y-1 text-xs text-zinc-400">
+                    <p>• Script generated ({produceResult.channelProfile?.languageStyle || 'english'})</p>
+                    <p>• Audio created ({produceResult.audioAsset?.provider || 'mock'})</p>
+                    <p>• {produceResult.thumbnailAssets?.length || 1} thumbnail(s) generated</p>
+                    <p>• Video task queued</p>
+                  </div>
                   <Link
-                    to="/dashboard/video-lab"
-                    className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
-                    data-testid="view-video-task-link"
+                    to={`/dashboard/submissions/${produceResult.submission?.id}`}
+                    className="flex items-center justify-center gap-2 w-full h-9 rounded-md bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium transition-colors"
+                    data-testid="view-produced-submission-link"
                   >
-                    <ExternalLink className="h-3 w-3" />
-                    View in AI Video Lab
+                    <ExternalLink className="h-4 w-4" />
+                    View Submission & Assets
                   </Link>
-                )}
-              </div>
+                </div>
+              )}
+              
+              {/* Manual actions (hidden when Quick Produce completed) */}
+              {!produceResult && (
+                <>
+                  {/* Create Submission */}
+                  <div className="space-y-2">
+                    <Button
+                      onClick={handleCreateSubmission}
+                      disabled={creatingSubmission || !scriptData || createdSubmissionId || quickProducing}
+                      className="w-full h-10 bg-indigo-500 hover:bg-indigo-600 text-white disabled:opacity-50"
+                      data-testid="create-submission-btn"
+                    >
+                      {creatingSubmission ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4 mr-2" />
+                      )}
+                      {createdSubmissionId ? 'Submission Created' : 'Create Submission'}
+                    </Button>
+                    {createdSubmissionId && (
+                      <Link
+                        to={`/dashboard/submissions/${createdSubmissionId}`}
+                        className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                        data-testid="view-submission-link"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        View in Submissions
+                      </Link>
+                    )}
+                  </div>
 
-              {!scriptData && (
-                <p className="text-[10px] text-zinc-600 text-center">
-                  Generating script... Actions will be available shortly.
-                </p>
+                  <Separator className="bg-[#1F2933]" />
+
+                  {/* Create AI Video Task */}
+                  <div className="space-y-2">
+                    <Button
+                      onClick={handleCreateVideoTask}
+                      disabled={creatingVideoTask || !scriptData || createdVideoTaskId || quickProducing}
+                      variant="outline"
+                      className="w-full h-10 border-[#1F2933] bg-zinc-950/50 hover:bg-zinc-900 text-white disabled:opacity-50"
+                      data-testid="create-video-task-btn"
+                    >
+                      {creatingVideoTask ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Film className="h-4 w-4 mr-2" />
+                      )}
+                      {createdVideoTaskId ? 'Video Task Created' : 'Create AI Video Task'}
+                    </Button>
+                    {createdVideoTaskId && (
+                      <Link
+                        to="/dashboard/video-lab"
+                        className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                        data-testid="view-video-task-link"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        View in AI Video Lab
+                      </Link>
+                    )}
+                  </div>
+
+                  {!scriptData && !quickProducing && (
+                    <p className="text-[10px] text-zinc-600 text-center">
+                      Generating script... Actions will be available shortly.
+                    </p>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>

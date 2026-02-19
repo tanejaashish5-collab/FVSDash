@@ -499,7 +499,8 @@ export default function FvsSystemPage() {
                           return (
                             <TableRow
                               key={idea.id}
-                              className="border-[#1F2933] hover:bg-white/[0.02]"
+                              className="border-[#1F2933] hover:bg-white/[0.02] cursor-pointer"
+                              onClick={() => handleOpenIdeaPanel(idea)}
                               data-testid={`idea-row-${idea.id}`}
                             >
                               <TableCell>

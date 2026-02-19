@@ -104,3 +104,9 @@ def strategy_sessions_collection():
 
 def notifications_collection():
     return get_db().notifications
+
+def oauth_tokens_collection():
+    return get_db().oauth_tokens
+
+def publish_jobs_collection():
+    return get_db().publish_jobs

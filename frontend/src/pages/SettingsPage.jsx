@@ -544,7 +544,7 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        {/* Publishing Tab */}
+        {/* Publishing Tab - Connected Accounts */}
         <TabsContent value="publishing" className="mt-6">
           <Card className="bg-[#0B1120] border-[#1F2933]">
             <CardHeader>
@@ -553,38 +553,74 @@ export default function SettingsPage() {
                   <Send className="h-5 w-5 text-indigo-400" />
                 </div>
                 <div>
-                  <CardTitle className="text-white">Platform Connections</CardTitle>
+                  <CardTitle className="text-white">Connected Accounts</CardTitle>
                   <CardDescription>
-                    Connect your social media accounts to publish content directly
+                    Connect your social media accounts via OAuth to publish content directly
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {platformConnections.map((conn) => {
-                const cfg = platformCfg[conn.platform] || {};
+              {['youtube', 'tiktok', 'instagram'].map((platform) => {
+                const cfg = platformCfg[platform] || {};
                 const PlatformIcon = cfg.icon || Send;
-                const isConnecting = connectingPlatform === conn.platform;
+                const status = oauthStatus[platform] || {};
+                const isConnected = status.connected;
+                const isConnecting = connectingPlatform === platform;
+                const isRefreshing = refreshingToken === platform;
+                const tokenStatus = status.tokenStatus;
+                const statusBadge = tokenStatus ? tokenStatusBadge[tokenStatus] : null;
                 
                 return (
-                  <div 
-                    key={conn.platform}
-                    className={`p-4 rounded-lg border ${conn.connected ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-zinc-700 bg-zinc-900/30'}`}
-                    data-testid={`platform-card-${conn.platform}`}
+                  <motion.div 
+                    key={platform}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`p-4 rounded-lg border transition-all ${
+                      isConnected 
+                        ? tokenStatus === 'expired' 
+                          ? 'border-amber-500/30 bg-amber-500/5' 
+                          : 'border-emerald-500/30 bg-emerald-500/5' 
+                        : 'border-zinc-700 bg-zinc-900/30'
+                    } ${cfg.comingSoon ? 'opacity-60' : ''}`}
+                    data-testid={`platform-card-${platform}`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className={`h-12 w-12 rounded-lg ${cfg.bg} flex items-center justify-center`}>
+                        <div className={`h-12 w-12 rounded-lg ${cfg.bg} flex items-center justify-center relative`}>
                           <PlatformIcon className={`h-6 w-6 ${cfg.color}`} />
+                          {isConnected && tokenStatus === 'valid' && (
+                            <div className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-emerald-500 border-2 border-[#0B1120] flex items-center justify-center">
+                              <Check className="h-2.5 w-2.5 text-white" />
+                            </div>
+                          )}
                         </div>
                         <div>
-                          <h4 className="text-white font-medium">{cfg.label}</h4>
-                          {conn.connected ? (
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                              <span className="text-sm text-emerald-400">Connected</span>
-                              <span className="text-sm text-zinc-500">•</span>
-                              <span className="text-sm text-zinc-400">{conn.accountHandle}</span>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-white font-medium">{cfg.label}</h4>
+                            {cfg.comingSoon && (
+                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-zinc-800 text-zinc-400 border-zinc-700">
+                                Coming Soon
+                              </Badge>
+                            )}
+                          </div>
+                          {isConnected ? (
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              {statusBadge && (
+                                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${statusBadge.className}`}>
+                                  {tokenStatus === 'valid' && <CheckCircle2 className="h-3 w-3 mr-1" />}
+                                  {tokenStatus === 'expiring_soon' && <Clock className="h-3 w-3 mr-1" />}
+                                  {tokenStatus === 'expired' && <AlertTriangle className="h-3 w-3 mr-1" />}
+                                  {statusBadge.label}
+                                </Badge>
+                              )}
+                              <span className="text-sm text-zinc-400">{status.accountHandle}</span>
+                              {status.accountMeta?.subscriberCount && (
+                                <>
+                                  <span className="text-zinc-600">·</span>
+                                  <span className="text-xs text-zinc-500">{status.accountMeta.subscriberCount} subscribers</span>
+                                </>
+                              )}
                             </div>
                           ) : (
                             <p className="text-sm text-zinc-500 mt-0.5">{cfg.description}</p>
@@ -592,31 +628,90 @@ export default function SettingsPage() {
                         </div>
                       </div>
                       
-                      {conn.connected ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDisconnectPlatform(conn.platform)}
-                          disabled={isConnecting}
-                          className="border-zinc-700 text-zinc-400 hover:text-red-400 hover:border-red-500/30"
-                          data-testid={`disconnect-${conn.platform}-btn`}
-                        >
-                          {isConnecting ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <>
-                              <Unlink className="h-4 w-4 mr-2" />
-                              Disconnect
-                            </>
-                          )}
-                        </Button>
-                      ) : (
-                        <Button
-                          onClick={() => handleConnectPlatform(conn.platform)}
-                          disabled={isConnecting}
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                          data-testid={`connect-${conn.platform}-btn`}
-                        >
+                      <div className="flex items-center gap-2">
+                        {isConnected && (tokenStatus === 'expired' || tokenStatus === 'expiring_soon') && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRefreshToken(platform)}
+                            disabled={isRefreshing}
+                            className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                            data-testid={`refresh-${platform}-btn`}
+                          >
+                            {isRefreshing ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <RefreshCw className="h-4 w-4 mr-1.5" />
+                                Refresh
+                              </>
+                            )}
+                          </Button>
+                        )}
+                        
+                        {isConnected ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDisconnectPlatform(platform)}
+                            disabled={isConnecting}
+                            className="border-zinc-700 text-zinc-400 hover:text-red-400 hover:border-red-500/30"
+                            data-testid={`disconnect-${platform}-btn`}
+                          >
+                            {isConnecting ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Unlink className="h-4 w-4 mr-2" />
+                                Disconnect
+                              </>
+                            )}
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={() => handleConnectPlatform(platform)}
+                            disabled={isConnecting || cfg.comingSoon}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                            data-testid={`connect-${platform}-btn`}
+                          >
+                            {isConnecting ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                              <Link2 className="h-4 w-4 mr-2" />
+                            )}
+                            Connect
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+              
+              <Separator className="bg-zinc-800 my-4" />
+              
+              <div className="p-3 rounded-lg bg-indigo-500/5 border border-indigo-500/20">
+                <div className="flex items-start gap-2">
+                  <Sparkles className="h-4 w-4 text-indigo-400 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm text-indigo-300 font-medium">OAuth 2.0 Secure Connection</p>
+                    <p className="text-xs text-zinc-400 mt-0.5">
+                      Your credentials are never stored. We use industry-standard OAuth 2.0 with PKCE 
+                      to securely connect to your accounts. Tokens are encrypted and automatically refreshed.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="pt-2">
+                <p className="text-xs text-zinc-500">
+                  <span className="text-amber-400">Demo Mode:</span> This is a sandbox environment. 
+                  OAuth connections are simulated with mock accounts for testing the full publishing flow.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
                           {isConnecting ? (
                             <Loader2 className="h-4 w-4 animate-spin mr-2" />
                           ) : (

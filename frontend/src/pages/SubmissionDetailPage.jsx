@@ -257,6 +257,98 @@ export default function SubmissionDetailPage() {
     }
   };
 
+  // Post Now handler
+  const handlePostNow = async (platform) => {
+    setPostingPlatform(platform);
+    try {
+      const res = await axios.post(`${API}/publishing-tasks/create-and-post`, {
+        submissionId,
+        platform
+      }, { headers: { Authorization: `Bearer ${token}` } });
+      
+      setPublishingTasks(prev => {
+        const existing = prev.findIndex(t => t.platform === platform);
+        if (existing >= 0) {
+          const updated = [...prev];
+          updated[existing] = res.data;
+          return updated;
+        }
+        return [...prev, res.data];
+      });
+      
+      toast.success(`Posted to ${platformCfg[platform]?.label}!`, {
+        description: 'Your content is now live (mock).'
+      });
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to post');
+    } finally {
+      setPostingPlatform(null);
+    }
+  };
+
+  // Schedule handler
+  const handleSchedule = async (platform) => {
+    if (!selectedDate) {
+      toast.error('Please select a date');
+      return;
+    }
+    
+    setPostingPlatform(platform);
+    try {
+      const scheduledAt = new Date(selectedDate);
+      const [hours, minutes] = selectedTime.split(':');
+      scheduledAt.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      
+      const res = await axios.post(`${API}/publishing-tasks`, {
+        submissionId,
+        platform,
+        scheduledAt: scheduledAt.toISOString()
+      }, { headers: { Authorization: `Bearer ${token}` } });
+      
+      setPublishingTasks(prev => {
+        const existing = prev.findIndex(t => t.platform === platform);
+        if (existing >= 0) {
+          const updated = [...prev];
+          updated[existing] = res.data;
+          return updated;
+        }
+        return [...prev, res.data];
+      });
+      
+      setSchedulingPlatform(null);
+      setSelectedDate(null);
+      
+      toast.success(`Scheduled for ${platformCfg[platform]?.label}!`, {
+        description: `Will post on ${scheduledAt.toLocaleString()}`
+      });
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to schedule');
+    } finally {
+      setPostingPlatform(null);
+    }
+  };
+
+  // Cancel scheduled task
+  const handleCancelTask = async (taskId) => {
+    try {
+      await axios.delete(`${API}/publishing-tasks/${taskId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setPublishingTasks(prev => prev.filter(t => t.id !== taskId));
+      toast.success('Scheduled post cancelled');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to cancel');
+    }
+  };
+
+  // Format date helper
+  const formatScheduledDate = (iso) => {
+    if (!iso) return '';
+    return new Date(iso).toLocaleString(undefined, {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]" data-testid="submission-detail-loading">

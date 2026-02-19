@@ -442,19 +442,30 @@ export default function SpotlightTour({ isOpen, onClose, autoStart = false }) {
 
   const currentStepData = TOUR_STEPS[currentStep];
 
+  // Show loading state if target not yet found
+  if (!targetRect) {
+    return createPortal(
+      <div className="fixed inset-0 z-[9998] bg-black/60 flex items-center justify-center">
+        <div className="aura-glass rounded-xl border border-white/[0.1] p-6 text-center">
+          <div className="h-6 w-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-zinc-400">Loading tour...</p>
+        </div>
+      </div>,
+      document.body
+    );
+  }
+
   return createPortal(
     <SpotlightOverlay targetRect={targetRect} onClick={handleOverlayClick}>
-      {targetRect && (
-        <TourTooltip
-          step={currentStepData}
-          stepIndex={currentStep}
-          totalSteps={TOUR_STEPS.length}
-          position={tooltipPosition}
-          onNext={handleNext}
-          onBack={handleBack}
-          onSkip={handleSkip}
-        />
-      )}
+      <TourTooltip
+        step={currentStepData}
+        stepIndex={currentStep}
+        totalSteps={TOUR_STEPS.length}
+        position={tooltipPosition}
+        onNext={handleNext}
+        onBack={handleBack}
+        onSkip={handleSkip}
+      />
     </SpotlightOverlay>,
     document.body
   );

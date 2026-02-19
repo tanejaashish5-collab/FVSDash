@@ -351,15 +351,15 @@ export default function SpotlightTour({ isOpen, onClose, autoStart = false }) {
     }
 
     if (targetElement) {
-      // Scroll element into view
+      // Scroll element into view first
       targetElement.scrollIntoView({
         behavior: 'smooth',
         block: 'center',
         inline: 'center',
       });
 
-      // Wait for scroll to complete
-      setTimeout(() => {
+      // Wait for scroll to complete, then get position
+      const updatePosition = () => {
         const rect = targetElement.getBoundingClientRect();
         setTargetRect(rect);
 
@@ -367,13 +367,26 @@ export default function SpotlightTour({ isOpen, onClose, autoStart = false }) {
         const getPosition = calculatePosition(rect);
         const pos = getPosition(step.position);
         setTooltipPosition(pos);
-      }, 300);
+      };
+
+      // Initial position update after scroll
+      setTimeout(updatePosition, 400);
+      
+      // Also update after a brief delay for any layout shifts
+      setTimeout(updatePosition, 600);
     } else {
-      // Skip to next step if target not found
-      console.warn(`Tour target not found: ${step.target}`);
-      if (currentStep < TOUR_STEPS.length - 1) {
-        setCurrentStep(prev => prev + 1);
-      }
+      // Target not found - try to find any element and show message
+      console.warn(`Tour target not found: ${step.target}, trying fallback: ${step.fallbackTarget}`);
+      
+      // Skip to next step if target not found after a delay
+      setTimeout(() => {
+        if (currentStep < TOUR_STEPS.length - 1) {
+          setCurrentStep(prev => prev + 1);
+        } else {
+          // End tour if no more steps
+          handleSkip();
+        }
+      }, 500);
     }
   }, [isActive, currentStep]);
 

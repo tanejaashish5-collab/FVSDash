@@ -9,10 +9,12 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { 
   Brain, Sparkles, Zap, Play, X, Check, Loader2, RefreshCw,
   Lightbulb, TrendingUp, Clock, Activity, Settings, Radio,
-  FileText, Video, Image, Music, ChevronRight, AlertCircle, Eye
+  FileText, Video, Image, Music, ChevronRight, AlertCircle, Eye,
+  Copy, Send, Hash
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';

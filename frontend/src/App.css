@@ -1,15 +1,107 @@
 /* ForgeVoice Studio - Global App Styles */
+/* ============================================
+   AURA HOVER & INTERACTION SYSTEM
+   ============================================ */
 
+/* Sidebar Navigation Items */
 .sidebar-nav-item {
-    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
 }
 
+.sidebar-nav-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* Active nav item glow effect */
+.sidebar-nav-item.active,
+.sidebar-nav-item[data-active="true"] {
+    background: linear-gradient(90deg, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0.05) 100%);
+    box-shadow: inset 0 0 20px rgba(99, 102, 241, 0.1);
+}
+
+.sidebar-nav-item.active svg,
+.sidebar-nav-item[data-active="true"] svg {
+    filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.5));
+    transform: scale(1.05);
+}
+
+/* ============================================
+   CARD POP HOVER SYSTEM
+   ============================================ */
+
+/* KPI/Stat Cards - "Lift & Glow" */
 .stat-card {
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: linear-gradient(180deg, rgba(26, 26, 26, 0.8) 0%, rgba(18, 18, 18, 0.9) 100%);
 }
+
 .stat-card:hover {
-    transform: translateY(-1px);
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 
+        0 10px 15px -3px rgba(0, 0, 0, 0.2),
+        0 0 20px var(--aura-gold, rgba(241, 200, 122, 0.15));
+    border-color: rgba(241, 200, 122, 0.2);
 }
+
+/* Pipeline/Content Cards */
+.aura-card-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.aura-card-hover:hover {
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 
+        0 10px 15px -3px rgba(0, 0, 0, 0.2),
+        0 0 15px var(--aura-gold, rgba(241, 200, 122, 0.15));
+    border-color: rgba(241, 200, 122, 0.15);
+}
+
+/* Table Row Hover - Subtle lift with gold accent */
+.aura-table-row {
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border-left: 2px solid transparent;
+}
+
+.aura-table-row:hover {
+    background: rgba(255, 255, 255, 0.03);
+    transform: translateX(2px);
+    border-left-color: var(--aura-gold-solid, rgba(241, 200, 122, 0.8));
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* ============================================
+   PRIMARY BUTTON GLOW (Processing State)
+   ============================================ */
+
+.aura-btn-primary {
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.aura-btn-primary:hover {
+    box-shadow: 0 0 15px var(--aura-indigo-glow, rgba(99, 102, 241, 0.35));
+}
+
+.aura-btn-primary:active,
+.aura-btn-primary.processing {
+    animation: aura-button-glow 0.6s ease-out forwards;
+}
+
+/* Teal action buttons */
+.aura-btn-teal {
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.aura-btn-teal:hover {
+    box-shadow: 0 0 15px var(--aura-teal-glow, rgba(45, 212, 191, 0.35));
+}
+
+/* ============================================
+   PAGE TRANSITIONS
+   ============================================ */
 
 .page-enter {
     animation: fadeIn 0.2s ease-out;

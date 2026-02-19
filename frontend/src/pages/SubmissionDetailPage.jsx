@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { 
   ArrowLeft, FileAudio, FileImage, FileVideo, FileText, 
   Calendar, User, Tag, Clock, ExternalLink, Play,
-  Sparkles, Brain, Loader2
+  Sparkles, Brain, Loader2, Check
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';

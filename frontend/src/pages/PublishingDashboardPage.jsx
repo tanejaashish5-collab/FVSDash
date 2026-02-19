@@ -299,7 +299,9 @@ export default function PublishingDashboardPage() {
       {/* Tasks Table */}
       <Card className="bg-[#0B1120] border-[#1F2933]">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-medium text-white">Publishing Tasks</CardTitle>
+          <AuraTooltip content={tooltipContent.publishing.publishingQueue} position="right">
+            <CardTitle className="text-lg font-medium text-white">Publishing Tasks</CardTitle>
+          </AuraTooltip>
         </CardHeader>
         <CardContent>
           {filteredTasks.length === 0 ? (

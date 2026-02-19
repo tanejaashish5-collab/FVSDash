@@ -207,6 +207,13 @@ export default function Header() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Spotlight Tour */}
+      <SpotlightTour
+        isOpen={showTour}
+        onClose={() => setShowTour(false)}
+        autoStart={user?.onboardingComplete === false}
+      />
     </header>
   );
 }

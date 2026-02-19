@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   Brain, Sparkles, Zap, Play, X, Check, Loader2, RefreshCw,
   Lightbulb, TrendingUp, Clock, Activity, Settings, Radio,
@@ -22,9 +23,9 @@ import axios from 'axios';
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const AUTOMATION_LEVELS = [
-  { value: 'manual', label: 'Manual Only', description: 'No auto runs. You control everything.' },
-  { value: 'semi_auto', label: 'Semi-Auto', description: 'Brain proposes ideas, you click to produce.' },
-  { value: 'full_auto_short', label: 'Full Auto (Shorts)', description: 'Brain auto-produces short episodes overnight.' },
+  { value: 'manual', label: 'Manual Only', description: 'No auto runs. You control everything.', tooltip: 'You control every step. No automatic runs. Best for full creative control.' },
+  { value: 'semi_auto', label: 'Semi-Auto', description: 'Brain proposes ideas, you click to produce.', tooltip: 'FVS proposes ideas automatically. You review and click to produce each one.' },
+  { value: 'full_auto_short', label: 'Full Auto (Shorts)', description: 'Brain auto-produces short episodes overnight.', tooltip: 'FVS generates and produces short episodes overnight without any input from you.' },
 ];
 
 const statusCfg = {

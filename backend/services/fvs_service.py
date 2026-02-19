@@ -151,15 +151,33 @@ async def propose_ideas(client_id: str, format: str, range: str) -> dict:
         
         ideas = []
         for idea_data in raw_ideas:
+            # Generate mock hooks, caption, and hashtags for the idea
+            topic = idea_data.get("topic", "Untitled Idea")
+            
+            # Generate hooks based on topic
+            hooks = [
+                f"Kya aap bhi yeh galti kar rahe ho? {topic} ke baare mein suno!",
+                f"Maine {topic} try kiya aur yeh hua...",
+                f"3 secrets about {topic} jo koi nahi batata!"
+            ]
+            
+            # Generate caption and hashtags
+            caption = f"🔥 {topic} - ek dum fresh perspective! Like & share if you agree 🙌"
+            hashtags = ["#shorts", "#viral", "#trending", "#hinglish", "#podcast", f"#{topic.split()[0].lower() if topic else 'content'}"]
+            
             idea = {
                 "id": str(uuid.uuid4()),
                 "clientId": client_id,
-                "topic": idea_data.get("topic", "Untitled Idea"),
+                "topic": topic,
                 "hypothesis": idea_data.get("hypothesis", ""),
                 "source": idea_data.get("source", "original"),
                 "format": idea_data.get("format", format),
                 "convictionScore": min(1.0, max(0.0, float(idea_data.get("convictionScore", 0.5)))),
                 "status": "proposed",
+                "hooks": hooks,
+                "script": None,  # Will be generated on demand via generate-script endpoint
+                "caption": caption,
+                "hashtags": hashtags,
                 "createdAt": now,
                 "updatedAt": now
             }

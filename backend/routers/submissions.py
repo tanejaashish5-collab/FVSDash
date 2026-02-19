@@ -121,6 +121,8 @@ async def update_submission(
         update_fields["status"] = data.status
     if data.releaseDate is not None:
         update_fields["releaseDate"] = data.releaseDate if data.releaseDate else None
+    if data.primaryThumbnailAssetId is not None:
+        update_fields["primaryThumbnailAssetId"] = data.primaryThumbnailAssetId if data.primaryThumbnailAssetId else None
     
     if not update_fields:
         raise HTTPException(status_code=400, detail="No fields to update")
@@ -134,6 +136,75 @@ async def update_submission(
     
     updated = await db.find_one(query, {"_id": 0})
     return updated
+
+
+@router.patch("/submissions/{submission_id}/primary-thumbnail")
+async def set_primary_thumbnail(
+    submission_id: str,
+    data: PrimaryThumbnailUpdate,
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    """
+    Set the primary thumbnail for a submission.
+    
+    Validates that the asset exists, belongs to this submission, and is a Thumbnail type.
+    Also updates the isPrimaryThumbnail flag on all related thumbnail assets.
+    """
+    client_id = get_client_id_from_user(user, impersonateClientId)
+    subs_db = submissions_collection()
+    assets_db = assets_collection()
+    
+    # Build query
+    sub_query = {"id": submission_id}
+    if client_id:
+        sub_query["clientId"] = client_id
+    
+    # Verify submission exists
+    submission = await subs_db.find_one(sub_query, {"_id": 0})
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    
+    # Verify the asset exists and belongs to this submission
+    asset = await assets_db.find_one(
+        {"id": data.assetId, "submissionId": submission_id},
+        {"_id": 0}
+    )
+    if not asset:
+        raise HTTPException(status_code=404, detail="Thumbnail asset not found for this submission")
+    
+    if asset.get("type") != "Thumbnail":
+        raise HTTPException(status_code=400, detail="Asset must be of type 'Thumbnail'")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Update all thumbnails for this submission: set isPrimaryThumbnail=False
+    await assets_db.update_many(
+        {"submissionId": submission_id, "type": "Thumbnail"},
+        {"$set": {"isPrimaryThumbnail": False, "updatedAt": now}}
+    )
+    
+    # Set the selected thumbnail as primary
+    await assets_db.update_one(
+        {"id": data.assetId},
+        {"$set": {"isPrimaryThumbnail": True, "updatedAt": now}}
+    )
+    
+    # Update the submission with primaryThumbnailAssetId
+    await subs_db.update_one(
+        sub_query,
+        {"$set": {"primaryThumbnailAssetId": data.assetId, "updatedAt": now}}
+    )
+    
+    # Return updated submission with asset info
+    updated_submission = await subs_db.find_one(sub_query, {"_id": 0})
+    updated_asset = await assets_db.find_one({"id": data.assetId}, {"_id": 0})
+    
+    return {
+        "message": "Primary thumbnail updated",
+        "submission": updated_submission,
+        "primaryThumbnail": updated_asset
+    }
 
 
 @router.get("/submissions/list")

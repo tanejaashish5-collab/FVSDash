@@ -315,14 +315,12 @@ export default function FvsSystemPage() {
           {/* Automation Controls */}
           <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="automation-card">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-                <Settings className="h-4 w-4 text-zinc-400" />
-                <AuraTooltip content={tooltipContent.fvsSystem.automationLevel} position="right">
-                  <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-                    <Settings className="h-4 w-4 text-zinc-400" />
-                    Automation Level
-                  </CardTitle>
-                </AuraTooltip>
+              <AuraTooltip content={tooltipContent.fvsSystem.automationLevel} position="right">
+                <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                  <Settings className="h-4 w-4 text-zinc-400" />
+                  Automation Level
+                </CardTitle>
+              </AuraTooltip>
               <CardDescription className="text-xs text-zinc-500">
                 Control how autonomously FVS operates for your account.
               </CardDescription>

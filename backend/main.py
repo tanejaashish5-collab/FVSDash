@@ -13,7 +13,8 @@ import logging
 from routers import (
     auth, dashboard, submissions, assets, calendar,
     deliverables, analytics, roi, billing, settings,
-    help, blog, ai, video_tasks, fvs, admin, channel_profile
+    help, blog, ai, video_tasks, fvs, admin, channel_profile,
+    publishing
 )
 
 # Import database utilities

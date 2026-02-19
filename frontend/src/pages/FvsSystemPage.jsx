@@ -63,6 +63,15 @@ export default function FvsSystemPage() {
   const [proposing, setProposing] = useState(false);
   const [producing, setProducing] = useState(null);
   const [savingConfig, setSavingConfig] = useState(false);
+  
+  // Side panel state
+  const [selectedIdea, setSelectedIdea] = useState(null);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [loadingScript, setLoadingScript] = useState(false);
+  const [scriptData, setScriptData] = useState(null);
+  const [creatingSubmission, setCreatingSubmission] = useState(false);
+  const [creatingVideoTask, setCreatingVideoTask] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Fetch all data
   const fetchData = useCallback(async () => {

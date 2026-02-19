@@ -57,6 +57,8 @@ api_router.include_router(channel_profile.router)
 api_router.include_router(publishing.router)
 api_router.include_router(strategy_session.router)
 api_router.include_router(notifications.router)
+api_router.include_router(oauth.router)
+api_router.include_router(youtube_publish.router)
 
 # Include API router in app
 app.include_router(api_router)

@@ -203,7 +203,7 @@ export default function OverviewPage() {
   if (loading || !data) {
     return (
       <div className="flex items-center justify-center h-64" data-testid="overview-loading">
-        <div className="h-6 w-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <AuraSpinner size="md" />
       </div>
     );
   }

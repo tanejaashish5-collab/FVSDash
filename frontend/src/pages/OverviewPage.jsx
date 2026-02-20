@@ -241,6 +241,90 @@ export default function OverviewPage() {
         <KPICard label="Est. ROI (30d)" value={`$${data.kpis.roiLast30d.toLocaleString()}`} subtext="At a glance ROI" icon={DollarSign} trend={15} tooltipKey="estRoi" delay={0.15} />
       </div>
 
+      {/* YouTube Channel Stats - Real Data */}
+      {analyticsOverview && (
+        <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="youtube-stats-card">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold text-white flex items-center gap-2" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                <Youtube className="h-4 w-4 text-red-500" />
+                YouTube Channel Stats
+              </CardTitle>
+              <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                Live Data
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-3 rounded-lg bg-zinc-950/50 border border-[#1F2933]">
+                <div className="flex items-center gap-2 mb-1">
+                  <Users className="h-3.5 w-3.5 text-indigo-400" />
+                  <span className="text-[10px] uppercase tracking-wider text-zinc-500">Subscribers</span>
+                </div>
+                <p className="text-xl font-bold text-white">
+                  <AnimatedNumber value={analyticsOverview.subscriberCount || 0} delay={0.2} />
+                </p>
+              </div>
+              <div className="p-3 rounded-lg bg-zinc-950/50 border border-[#1F2933]">
+                <div className="flex items-center gap-2 mb-1">
+                  <Eye className="h-3.5 w-3.5 text-emerald-400" />
+                  <span className="text-[10px] uppercase tracking-wider text-zinc-500">Total Views</span>
+                </div>
+                <p className="text-xl font-bold text-white">
+                  <AnimatedNumber value={analyticsOverview.totalViews || 0} delay={0.25} />
+                </p>
+              </div>
+              <div className="p-3 rounded-lg bg-zinc-950/50 border border-[#1F2933]">
+                <div className="flex items-center gap-2 mb-1">
+                  <Video className="h-3.5 w-3.5 text-amber-400" />
+                  <span className="text-[10px] uppercase tracking-wider text-zinc-500">Videos</span>
+                </div>
+                <p className="text-xl font-bold text-white">
+                  <AnimatedNumber value={analyticsOverview.videoCount || 0} delay={0.3} />
+                </p>
+              </div>
+              <div className="p-3 rounded-lg bg-zinc-950/50 border border-[#1F2933]">
+                <div className="flex items-center gap-2 mb-1">
+                  <TrendingUp className="h-3.5 w-3.5 text-violet-400" />
+                  <span className="text-[10px] uppercase tracking-wider text-zinc-500">Avg View Duration</span>
+                </div>
+                <p className="text-xl font-bold text-white">
+                  {Math.round(analyticsOverview.avgAvd || 0)}s
+                </p>
+              </div>
+            </div>
+
+            {/* Best Performing Short */}
+            {topPerformers.length > 0 && (
+              <div className="mt-4 p-3 rounded-lg bg-gradient-to-r from-indigo-500/10 to-violet-500/10 border border-indigo-500/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap className="h-4 w-4 text-amber-400" />
+                  <span className="text-xs font-semibold text-white">Best Performing Short</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  {topPerformers[0].thumbnailUrl && (
+                    <img 
+                      src={topPerformers[0].thumbnailUrl} 
+                      alt={topPerformers[0].title} 
+                      className="w-20 h-12 object-cover rounded"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-white font-medium truncate">{topPerformers[0].title}</p>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-xs text-emerald-400">{(topPerformers[0].views || 0).toLocaleString()} views</span>
+                      <span className="text-xs text-zinc-500">•</span>
+                      <span className="text-xs text-zinc-400">{(topPerformers[0].likes || 0).toLocaleString()} likes</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Middle Section: Pipeline + Schedule/Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Production Pipeline */}

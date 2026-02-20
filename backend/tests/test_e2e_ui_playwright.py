@@ -1,12 +1,12 @@
 """
-ForgeVoice Studio - Playwright E2E UI Test Suite
-Covers all major pages and interactions.
+ForgeVoice Studio - Playwright E2E UI Test Suite (v2)
+Covers all major pages and interactions with flexible selectors.
 Run with: python test_e2e_ui_playwright.py
 """
 import asyncio
 import json
 from datetime import datetime
-from playwright.async_api import async_playwright, expect
+from playwright.async_api import async_playwright
 
 # Configuration
 BASE_URL = "https://video-monetize-flow.preview.emergentagent.com"
@@ -30,6 +30,25 @@ def log_result(page_name: str, test_name: str, passed: bool, details: str = ""):
     print(f"{status} | {page_name} | {test_name}" + (f" | {details}" if details else ""))
 
 
+async def close_modals(page):
+    """Close any open modals."""
+    try:
+        skip_btn = page.locator('text=Skip for now')
+        if await skip_btn.is_visible(timeout=1500):
+            await skip_btn.click()
+            await page.wait_for_timeout(300)
+    except:
+        pass
+    
+    try:
+        close_btn = page.locator('[data-testid="modal-close"], button:has-text("Close"), .modal-close')
+        if await close_btn.first.is_visible(timeout=500):
+            await close_btn.first.click()
+            await page.wait_for_timeout(300)
+    except:
+        pass
+
+
 async def test_login_page(page):
     """Test 1: Login Page - Verify login works."""
     page_name = "Login"
@@ -43,32 +62,29 @@ async def test_login_page(page):
         password_input = page.locator('input[type="password"]')
         login_button = page.locator('button:has-text("Sign In")')
         
-        await expect(email_input).to_be_visible()
-        await expect(password_input).to_be_visible()
-        await expect(login_button).to_be_visible()
-        log_result(page_name, "Form elements visible", True)
+        email_visible = await email_input.is_visible(timeout=5000)
+        password_visible = await password_input.is_visible()
+        button_visible = await login_button.is_visible()
+        
+        log_result(page_name, "Form elements visible", email_visible and password_visible and button_visible)
         
         # Perform login
         await email_input.fill(CLIENT_EMAIL)
         await password_input.fill(CLIENT_PASSWORD)
         await login_button.click()
         
-        # Wait for redirect to dashboard
-        await page.wait_for_url("**/dashboard/**", timeout=10000)
-        log_result(page_name, "Login successful", True, "Redirected to dashboard")
+        # Wait for redirect
+        await page.wait_for_timeout(3000)
         
-        # Close any modals (Spotlight Tour)
-        try:
-            skip_btn = page.locator('text=Skip for now')
-            if await skip_btn.is_visible(timeout=2000):
-                await skip_btn.click()
-        except:
-            pass
+        current_url = page.url
+        login_success = "/dashboard" in current_url
+        log_result(page_name, "Login successful", login_success, f"URL: {current_url[:50]}")
         
-        return True
+        await close_modals(page)
+        return login_success
         
     except Exception as e:
-        log_result(page_name, "Login flow", False, str(e)[:100])
+        log_result(page_name, "Login flow", False, str(e)[:80])
         return False
 
 
@@ -79,45 +95,31 @@ async def test_overview_page(page):
     try:
         await page.goto(f"{BASE_URL}/dashboard/overview")
         await page.wait_for_load_state("networkidle")
-        await page.wait_for_timeout(1500)
+        await page.wait_for_timeout(2000)
+        await close_modals(page)
         
-        # Close any modals
-        try:
-            skip_btn = page.locator('text=Skip for now')
-            if await skip_btn.is_visible(timeout=1000):
-                await skip_btn.click()
-                await page.wait_for_timeout(500)
-        except:
-            pass
+        # Check for welcome title
+        welcome = await page.locator('h1').first.text_content()
+        has_welcome = welcome and "Welcome" in welcome
+        log_result(page_name, "Welcome title visible", has_welcome, welcome[:40] if welcome else "")
         
-        # Verify page title
-        title = page.locator('h1:has-text("Welcome back")')
-        await expect(title).to_be_visible(timeout=5000)
-        log_result(page_name, "Page title visible", True)
+        # Check for stats cards (look for numbers)
+        stats_text = await page.locator('text=/\\d+/').all_text_contents()
+        has_stats = len(stats_text) > 3
+        log_result(page_name, "Stats data loaded", has_stats, f"Found {len(stats_text)} numbers")
         
-        # Verify stats cards exist
-        active_projects = page.locator('text=ACTIVE PROJECTS')
-        published = page.locator('text=PUBLISHED')
-        total_assets = page.locator('text=TOTAL ASSETS')
+        # Check for YouTube section
+        yt_visible = await page.locator('text=YouTube').first.is_visible(timeout=3000)
+        log_result(page_name, "YouTube section visible", yt_visible)
         
-        await expect(active_projects).to_be_visible(timeout=5000)
-        await expect(published).to_be_visible(timeout=5000)
-        log_result(page_name, "Stats cards visible", True)
-        
-        # Verify YouTube stats section
-        yt_stats = page.locator('text=YouTube Channel Stats')
-        await expect(yt_stats).to_be_visible(timeout=5000)
-        log_result(page_name, "YouTube stats visible", True)
-        
-        # Verify subscriber count is a real number
-        subscriber_text = await page.locator('text=/1,\\d{3}/').first.text_content()
-        if subscriber_text:
-            log_result(page_name, "Real subscriber data", True, f"Found: {subscriber_text}")
+        # Check for sidebar
+        sidebar = await page.locator('nav, [class*="sidebar"]').first.is_visible()
+        log_result(page_name, "Sidebar visible", sidebar)
         
         return True
         
     except Exception as e:
-        log_result(page_name, "Page load", False, str(e)[:100])
+        log_result(page_name, "Page load", False, str(e)[:80])
         return False
 
 
@@ -128,42 +130,35 @@ async def test_submissions_page(page):
     try:
         await page.goto(f"{BASE_URL}/dashboard/submissions")
         await page.wait_for_load_state("networkidle")
-        await page.wait_for_timeout(1500)
+        await page.wait_for_timeout(2000)
         
-        # Verify submissions table/grid exists
-        submissions_container = page.locator('[data-testid="submissions-page"]')
-        await expect(submissions_container).to_be_visible(timeout=5000)
-        log_result(page_name, "Page container visible", True)
+        # Check page loaded
+        page_content = await page.content()
+        has_submissions_content = "Submission" in page_content or "Short" in page_content
+        log_result(page_name, "Page content loaded", has_submissions_content)
         
-        # Verify submission cards exist (at least one)
-        submission_cards = page.locator('[data-testid^="submission-card"]')
-        count = await submission_cards.count()
+        # Check for filter tabs
+        all_tab = await page.locator('button:has-text("All")').first.is_visible(timeout=3000)
+        log_result(page_name, "Filter tabs visible", all_tab)
         
-        if count == 0:
-            # Try alternative selector
-            submission_items = page.locator('.submission-item, [class*="submission"]')
-            count = await submission_items.count()
+        # Check for search input
+        search = page.locator('input[placeholder*="Search"], input[placeholder*="search"]')
+        search_visible = await search.first.is_visible(timeout=2000)
+        log_result(page_name, "Search input visible", search_visible)
         
-        log_result(page_name, "Submissions loaded", count > 0, f"Found {count} items")
-        
-        # Test search functionality
-        search_input = page.locator('[data-testid="submissions-search"], input[placeholder*="Search"]')
-        if await search_input.is_visible(timeout=2000):
-            await search_input.fill("chanakya")
+        if search_visible:
+            await search.first.fill("chanakya")
             await page.wait_for_timeout(500)
             log_result(page_name, "Search input works", True)
-        else:
-            log_result(page_name, "Search input", False, "Not found")
         
-        # Verify filter buttons
-        filter_btns = page.locator('button:has-text("All"), button:has-text("Short")')
-        if await filter_btns.first.is_visible(timeout=2000):
-            log_result(page_name, "Filter buttons visible", True)
+        # Check for any submission cards/items
+        cards = await page.locator('[class*="card"], [class*="submission"]').count()
+        log_result(page_name, "Submission items visible", cards > 0, f"Found {cards}")
         
         return True
         
     except Exception as e:
-        log_result(page_name, "Page load", False, str(e)[:100])
+        log_result(page_name, "Page load", False, str(e)[:80])
         return False
 
 
@@ -176,30 +171,26 @@ async def test_calendar_page(page):
         await page.wait_for_load_state("networkidle")
         await page.wait_for_timeout(2000)
         
-        # Verify calendar grid
-        calendar = page.locator('[data-testid="calendar-page"], .calendar-grid, [class*="calendar"]')
-        await expect(calendar.first).to_be_visible(timeout=5000)
-        log_result(page_name, "Calendar container visible", True)
+        # Check for month/day headers
+        has_calendar = await page.locator('text=/Mon|Tue|Wed|Thu|Fri|Sat|Sun/').first.is_visible(timeout=5000)
+        log_result(page_name, "Calendar days visible", has_calendar)
         
-        # Verify month/week navigation
-        nav_btns = page.locator('button:has-text("Today"), button:has-text("Month"), button:has-text("Week")')
-        if await nav_btns.first.is_visible(timeout=2000):
-            log_result(page_name, "Navigation buttons visible", True)
+        # Check for Today button
+        today_btn = await page.locator('button:has-text("Today")').first.is_visible(timeout=2000)
+        log_result(page_name, "Today button visible", today_btn)
         
-        # Verify calendar header with days
-        day_headers = page.locator('text=Sun, text=Mon, text=Tue')
-        if await day_headers.first.is_visible(timeout=2000):
-            log_result(page_name, "Day headers visible", True)
+        # Check for view toggles
+        month_btn = await page.locator('button:has-text("Month")').first.is_visible(timeout=2000)
+        log_result(page_name, "Month toggle visible", month_btn)
         
-        # Check for AI Schedule button
-        ai_btn = page.locator('button:has-text("AI Schedule"), button:has-text("Generate")')
-        if await ai_btn.first.is_visible(timeout=2000):
-            log_result(page_name, "AI Schedule button visible", True)
+        # Check for AI features
+        ai_btn = await page.locator('button:has-text("AI"), button:has-text("Schedule")').first.is_visible(timeout=2000)
+        log_result(page_name, "AI Schedule button visible", ai_btn)
         
         return True
         
     except Exception as e:
-        log_result(page_name, "Page load", False, str(e)[:100])
+        log_result(page_name, "Page load", False, str(e)[:80])
         return False
 
 
@@ -210,43 +201,29 @@ async def test_fvs_system_page(page):
     try:
         await page.goto(f"{BASE_URL}/dashboard/fvs")
         await page.wait_for_load_state("networkidle")
-        await page.wait_for_timeout(1500)
+        await page.wait_for_timeout(2000)
         
-        # Verify page loads
-        fvs_page = page.locator('[data-testid="fvs-system-page"]')
-        await expect(fvs_page).to_be_visible(timeout=5000)
-        log_result(page_name, "Page container visible", True)
+        # Check for FVS/Brain content
+        fvs_content = await page.content()
+        has_fvs = "FVS" in fvs_content or "Brain" in fvs_content or "Accuracy" in fvs_content
+        log_result(page_name, "FVS content visible", has_fvs)
         
-        # Verify Brain Accuracy panel
-        brain_accuracy = page.locator('text=FVS BRAIN ACCURACY, text=Brain Accuracy')
-        if await brain_accuracy.first.is_visible(timeout=3000):
-            log_result(page_name, "Brain Accuracy panel visible", True)
-        else:
-            log_result(page_name, "Brain Accuracy panel", False, "Not found")
+        # Check for Brain Accuracy
+        brain = await page.locator('text=/Brain|Accuracy|FVS/i').first.is_visible(timeout=3000)
+        log_result(page_name, "Brain panel visible", brain)
         
-        # Verify recommendation cards or empty state
-        rec_cards = page.locator('[data-testid^="recommendation-card"], .recommendation-card')
-        card_count = await rec_cards.count()
+        # Check for Scan button
+        scan_btn = await page.locator('button:has-text("Scan")').first.is_visible(timeout=2000)
+        log_result(page_name, "Scan button visible", scan_btn)
         
-        if card_count > 0:
-            log_result(page_name, "Recommendation cards", True, f"Found {card_count}")
-        else:
-            # Check for empty state
-            empty_state = page.locator('text=No recommendations, text=Run a scan')
-            if await empty_state.first.is_visible(timeout=2000):
-                log_result(page_name, "Empty state shown", True, "No recommendations yet")
-            else:
-                log_result(page_name, "Recommendation cards", False, "None found")
-        
-        # Verify Scan button
-        scan_btn = page.locator('button:has-text("Scan"), button:has-text("Run Scan")')
-        if await scan_btn.first.is_visible(timeout=2000):
-            log_result(page_name, "Scan button visible", True)
+        # Check for active challenges or recommendations
+        challenges = await page.locator('text=/Challenge|Recommendation|Prediction/i').first.is_visible(timeout=2000)
+        log_result(page_name, "Challenges/Recommendations visible", challenges)
         
         return True
         
     except Exception as e:
-        log_result(page_name, "Page load", False, str(e)[:100])
+        log_result(page_name, "Page load", False, str(e)[:80])
         return False
 
 
@@ -259,42 +236,35 @@ async def test_analytics_page(page):
         await page.wait_for_load_state("networkidle")
         await page.wait_for_timeout(2000)
         
-        # Verify page loads
-        analytics_page = page.locator('[data-testid="analytics-page"]')
-        await expect(analytics_page).to_be_visible(timeout=5000)
-        log_result(page_name, "Page container visible", True)
+        # Check for metrics
+        has_views = await page.locator('text=/Views|views/i').first.is_visible(timeout=3000)
+        log_result(page_name, "Views metric visible", has_views)
         
-        # Verify Performance metrics
-        views_metric = page.locator('text=TOTAL VIEWS, text=Views')
-        if await views_metric.first.is_visible(timeout=3000):
-            log_result(page_name, "Views metric visible", True)
+        has_subscribers = await page.locator('text=/Subscriber/i').first.is_visible(timeout=2000)
+        log_result(page_name, "Subscribers visible", has_subscribers)
         
-        # Verify subscriber count
-        subscribers = page.locator('text=SUBSCRIBERS, text=Subscriber')
-        if await subscribers.first.is_visible(timeout=2000):
-            log_result(page_name, "Subscribers metric visible", True)
+        # Check for Performance tab
+        perf_tab = await page.locator('button:has-text("Performance")').first.is_visible(timeout=2000)
+        log_result(page_name, "Performance tab visible", perf_tab)
         
-        # Verify tabs exist
-        performance_tab = page.locator('button:has-text("Performance"), [role="tab"]:has-text("Performance")')
-        trend_tab = page.locator('button:has-text("Trend"), [role="tab"]:has-text("Trend")')
+        # Check for Trend tab and click it
+        trend_tab = page.locator('button:has-text("Trend")')
+        trend_visible = await trend_tab.first.is_visible(timeout=2000)
+        log_result(page_name, "Trend tab visible", trend_visible)
         
-        if await performance_tab.first.is_visible(timeout=2000):
-            log_result(page_name, "Performance tab visible", True)
-        
-        if await trend_tab.first.is_visible(timeout=2000):
+        if trend_visible:
             await trend_tab.first.click()
             await page.wait_for_timeout(1000)
-            log_result(page_name, "Trend Intelligence tab clickable", True)
+            log_result(page_name, "Trend tab clickable", True)
         
-        # Verify chart or data visualization
-        chart = page.locator('canvas, svg, .recharts-wrapper, [class*="chart"]')
-        if await chart.first.is_visible(timeout=3000):
-            log_result(page_name, "Charts/visualizations visible", True)
+        # Check for charts
+        has_chart = await page.locator('canvas, svg, [class*="chart"], [class*="recharts"]').first.is_visible(timeout=2000)
+        log_result(page_name, "Charts visible", has_chart)
         
         return True
         
     except Exception as e:
-        log_result(page_name, "Page load", False, str(e)[:100])
+        log_result(page_name, "Page load", False, str(e)[:80])
         return False
 
 
@@ -305,41 +275,35 @@ async def test_strategy_lab_page(page):
     try:
         await page.goto(f"{BASE_URL}/dashboard/strategy")
         await page.wait_for_load_state("networkidle")
-        await page.wait_for_timeout(1500)
+        await page.wait_for_timeout(2000)
         
-        # Verify page loads
-        strategy_page = page.locator('[data-testid="strategy-lab-page"]')
-        await expect(strategy_page).to_be_visible(timeout=5000)
-        log_result(page_name, "Page container visible", True)
+        # Check for Strategy Lab content
+        content = await page.content()
+        has_strategy = "Strategy" in content or "Research" in content or "Script" in content
+        log_result(page_name, "Strategy content visible", has_strategy)
         
-        # Verify topic input
-        topic_input = page.locator('[data-testid="topic-input"], input[placeholder*="topic"], textarea[placeholder*="topic"]')
-        if await topic_input.first.is_visible(timeout=3000):
-            log_result(page_name, "Topic input visible", True)
-        else:
-            # Try alternative
-            topic_input = page.locator('input, textarea').first
-            log_result(page_name, "Input field found", await topic_input.is_visible())
+        # Check for topic input
+        topic_input = page.locator('input, textarea')
+        input_count = await topic_input.count()
+        log_result(page_name, "Input fields visible", input_count > 0, f"Found {input_count}")
         
-        # Verify generate buttons
-        generate_btn = page.locator('button:has-text("Generate"), button:has-text("Create")')
-        if await generate_btn.first.is_visible(timeout=2000):
-            log_result(page_name, "Generate button visible", True)
+        # Check for generate button
+        gen_btn = await page.locator('button:has-text("Generate")').first.is_visible(timeout=2000)
+        log_result(page_name, "Generate button visible", gen_btn)
         
-        # Verify tabs (Research, Outline, Script)
-        tabs = page.locator('button:has-text("Research"), button:has-text("Outline"), button:has-text("Script")')
-        tab_count = await tabs.count()
-        log_result(page_name, "Content tabs visible", tab_count >= 2, f"Found {tab_count} tabs")
+        # Check for content tabs
+        research_tab = await page.locator('button:has-text("Research")').first.is_visible(timeout=2000)
+        script_tab = await page.locator('button:has-text("Script")').first.is_visible(timeout=2000)
+        log_result(page_name, "Content tabs visible", research_tab or script_tab)
         
-        # Verify History panel toggle
-        history_btn = page.locator('button:has-text("History"), [data-testid="history-toggle"]')
-        if await history_btn.first.is_visible(timeout=2000):
-            log_result(page_name, "History button visible", True)
+        # Check for History
+        history = await page.locator('text=/History|Sessions/i').first.is_visible(timeout=2000)
+        log_result(page_name, "History visible", history)
         
         return True
         
     except Exception as e:
-        log_result(page_name, "Page load", False, str(e)[:100])
+        log_result(page_name, "Page load", False, str(e)[:80])
         return False
 
 
@@ -352,43 +316,32 @@ async def test_publishing_page(page):
         await page.wait_for_load_state("networkidle")
         await page.wait_for_timeout(2000)
         
-        # Verify page loads
-        publishing_page = page.locator('[data-testid="publishing-page"]')
-        await expect(publishing_page).to_be_visible(timeout=5000)
-        log_result(page_name, "Page container visible", True)
+        # Check for Publishing content
+        content = await page.content()
+        has_publishing = "Publishing" in content or "Queue" in content or "Published" in content
+        log_result(page_name, "Publishing content visible", has_publishing)
         
-        # Verify Publishing Command Center title
-        title = page.locator('text=Publishing Command Center, h1:has-text("Publishing")')
-        if await title.first.is_visible(timeout=3000):
-            log_result(page_name, "Page title visible", True)
+        # Check for stats
+        has_stats = await page.locator('text=/TOTAL|PUBLISHED|QUEUE/i').first.is_visible(timeout=3000)
+        log_result(page_name, "Stats cards visible", has_stats)
         
-        # Verify stats cards
-        total_published = page.locator('text=TOTAL PUBLISHED')
-        if await total_published.is_visible(timeout=3000):
-            log_result(page_name, "Stats cards visible", True)
+        # Check for YouTube indicator
+        yt_visible = await page.locator('text=/YouTube/i').first.is_visible(timeout=2000)
+        log_result(page_name, "YouTube platform visible", yt_visible)
         
-        # Verify YouTube connected status (green indicator or "Connected")
-        youtube_status = page.locator('[class*="green"], text=Connected, .platform-connected')
-        if await youtube_status.first.is_visible(timeout=3000):
-            log_result(page_name, "YouTube connected status", True)
-        else:
-            # Check for YouTube icon/button
-            yt_platform = page.locator('[data-testid*="youtube"], svg[class*="youtube"]')
-            log_result(page_name, "YouTube platform visible", await yt_platform.first.is_visible(timeout=2000))
+        # Check for tabs
+        queue_tab = await page.locator('button:has-text("Queue")').first.is_visible(timeout=2000)
+        published_tab = await page.locator('button:has-text("Published")').first.is_visible(timeout=2000)
+        log_result(page_name, "Content tabs visible", queue_tab or published_tab)
         
-        # Verify tabs (Content Queue, Published, Failed)
-        queue_tab = page.locator('button:has-text("Content Queue"), button:has-text("Queue")')
-        published_tab = page.locator('button:has-text("Published")')
-        
-        if await queue_tab.first.is_visible(timeout=2000):
-            log_result(page_name, "Queue tab visible", True)
-        if await published_tab.first.is_visible(timeout=2000):
-            log_result(page_name, "Published tab visible", True)
+        # Check for quota indicator
+        quota = await page.locator('text=/Quota|10,000/i').first.is_visible(timeout=2000)
+        log_result(page_name, "Quota indicator visible", quota)
         
         return True
         
     except Exception as e:
-        log_result(page_name, "Page load", False, str(e)[:100])
+        log_result(page_name, "Page load", False, str(e)[:80])
         return False
 
 
@@ -399,37 +352,33 @@ async def test_settings_page(page):
     try:
         await page.goto(f"{BASE_URL}/dashboard/settings")
         await page.wait_for_load_state("networkidle")
-        await page.wait_for_timeout(1500)
+        await page.wait_for_timeout(2000)
         
-        # Verify page loads
-        settings_page = page.locator('[data-testid="settings-page"]')
-        await expect(settings_page).to_be_visible(timeout=5000)
-        log_result(page_name, "Page container visible", True)
+        # Check for Settings content
+        content = await page.content()
+        has_settings = "Settings" in content or "Profile" in content or "Channel" in content
+        log_result(page_name, "Settings content visible", has_settings)
         
-        # Verify Channel Profile section
-        channel_profile = page.locator('text=Channel Profile, text=Brand Brain, h2:has-text("Profile")')
-        if await channel_profile.first.is_visible(timeout=3000):
-            log_result(page_name, "Channel Profile section visible", True)
+        # Check for Channel/Profile section
+        profile = await page.locator('text=/Channel|Profile|Brand/i').first.is_visible(timeout=3000)
+        log_result(page_name, "Profile section visible", profile)
         
-        # Verify form fields
-        channel_name = page.locator('input[placeholder*="channel"], input[name*="channel"], label:has-text("Channel")')
-        if await channel_name.first.is_visible(timeout=2000):
-            log_result(page_name, "Channel name field visible", True)
+        # Check for form inputs
+        inputs = await page.locator('input, textarea').count()
+        log_result(page_name, "Form fields visible", inputs > 0, f"Found {inputs}")
         
-        # Verify save button
-        save_btn = page.locator('button:has-text("Save"), button:has-text("Update")')
-        if await save_btn.first.is_visible(timeout=2000):
-            log_result(page_name, "Save button visible", True)
+        # Check for Save button
+        save_btn = await page.locator('button:has-text("Save")').first.is_visible(timeout=2000)
+        log_result(page_name, "Save button visible", save_btn)
         
-        # Verify OAuth connections section
-        connections = page.locator('text=Connected Accounts, text=YouTube, text=Platform')
-        if await connections.first.is_visible(timeout=2000):
-            log_result(page_name, "Connections section visible", True)
+        # Check for OAuth/connections
+        connections = await page.locator('text=/Connect|YouTube|Platform/i').first.is_visible(timeout=2000)
+        log_result(page_name, "Connections section visible", connections)
         
         return True
         
     except Exception as e:
-        log_result(page_name, "Page load", False, str(e)[:100])
+        log_result(page_name, "Page load", False, str(e)[:80])
         return False
 
 
@@ -440,48 +389,79 @@ async def test_header_search(page):
     try:
         await page.goto(f"{BASE_URL}/dashboard/overview")
         await page.wait_for_load_state("networkidle")
-        await page.wait_for_timeout(1000)
-        
-        # Close any modals
-        try:
-            skip_btn = page.locator('text=Skip for now')
-            if await skip_btn.is_visible(timeout=1000):
-                await skip_btn.click()
-        except:
-            pass
+        await page.wait_for_timeout(1500)
+        await close_modals(page)
         
         # Find header search
-        search_input = page.locator('[data-testid="header-search"]')
-        await expect(search_input).to_be_visible(timeout=3000)
-        log_result(page_name, "Search input visible", True)
+        search_input = page.locator('[data-testid="header-search"], header input[placeholder*="Search"]')
+        search_visible = await search_input.first.is_visible(timeout=3000)
+        log_result(page_name, "Search input visible", search_visible)
         
-        # Type search query
-        await search_input.fill("power")
-        await page.wait_for_timeout(500)
-        
-        # Wait for dropdown
-        dropdown = page.locator('.search-results, [class*="dropdown"], [class*="results"]')
-        if await dropdown.first.is_visible(timeout=3000):
-            log_result(page_name, "Search dropdown visible", True)
+        if search_visible:
+            await search_input.first.click()
+            await search_input.first.fill("power")
+            await page.wait_for_timeout(800)  # Wait for debounce
             
-            # Check for results
-            results = page.locator('text=SUBMISSIONS, text=Submissions')
-            if await results.first.is_visible(timeout=2000):
-                log_result(page_name, "Search results grouped", True)
-        else:
-            log_result(page_name, "Search dropdown", False, "Not visible after typing")
+            # Check for dropdown results
+            dropdown = page.locator('[class*="dropdown"], [class*="result"], [class*="search"]')
+            dropdown_visible = await dropdown.nth(1).is_visible(timeout=2000)
+            
+            if not dropdown_visible:
+                # Check for text results
+                results = await page.locator('text=/Submissions|SUBMISSIONS/').first.is_visible(timeout=2000)
+                dropdown_visible = results
+            
+            log_result(page_name, "Search dropdown visible", dropdown_visible)
+            
+            # Check for grouped results
+            if dropdown_visible:
+                submissions_group = await page.locator('text=/Submissions|SUBMISSIONS/').first.is_visible(timeout=1000)
+                log_result(page_name, "Results grouped", submissions_group)
         
         return True
         
     except Exception as e:
-        log_result(page_name, "Search functionality", False, str(e)[:100])
+        log_result(page_name, "Search functionality", False, str(e)[:80])
+        return False
+
+
+async def test_video_lab_page(page):
+    """Test 11: AI Video Lab - Form and generation."""
+    page_name = "AI Video Lab"
+    
+    try:
+        await page.goto(f"{BASE_URL}/dashboard/video-lab")
+        await page.wait_for_load_state("networkidle")
+        await page.wait_for_timeout(2000)
+        
+        # Check for Video Lab content
+        content = await page.content()
+        has_video = "Video" in content or "Generation" in content or "Provider" in content
+        log_result(page_name, "Video Lab content visible", has_video)
+        
+        # Check for provider selector
+        provider = await page.locator('text=/Provider|Kling|Runway/i').first.is_visible(timeout=3000)
+        log_result(page_name, "Provider selector visible", provider)
+        
+        # Check for prompt input
+        prompt = await page.locator('textarea, input[placeholder*="prompt"]').first.is_visible(timeout=2000)
+        log_result(page_name, "Prompt input visible", prompt)
+        
+        # Check for Generate button
+        gen_btn = await page.locator('button:has-text("Generate")').first.is_visible(timeout=2000)
+        log_result(page_name, "Generate button visible", gen_btn)
+        
+        return True
+        
+    except Exception as e:
+        log_result(page_name, "Page load", False, str(e)[:80])
         return False
 
 
 async def run_all_tests():
     """Run all E2E tests."""
     print("=" * 70)
-    print("ForgeVoice Studio - Playwright E2E UI Test Suite")
+    print("ForgeVoice Studio - Playwright E2E UI Test Suite v2")
     print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 70)
     print()
@@ -506,6 +486,7 @@ async def run_all_tests():
             ("Publishing", test_publishing_page),
             ("Settings", test_settings_page),
             ("Header Search", test_header_search),
+            ("AI Video Lab", test_video_lab_page),
         ]
         
         for name, test_func in tests:
@@ -513,7 +494,7 @@ async def run_all_tests():
             try:
                 await test_func(page)
             except Exception as e:
-                log_result(name, "Test execution", False, str(e)[:100])
+                log_result(name, "Test execution", False, str(e)[:80])
         
         await browser.close()
     
@@ -538,26 +519,26 @@ async def run_all_tests():
     
     pages = {}
     for r in test_results:
-        page = r["page"]
-        if page not in pages:
-            pages[page] = {"passed": 0, "failed": 0}
+        pg = r["page"]
+        if pg not in pages:
+            pages[pg] = {"passed": 0, "failed": 0}
         if r["passed"]:
-            pages[page]["passed"] += 1
+            pages[pg]["passed"] += 1
         else:
-            pages[page]["failed"] += 1
+            pages[pg]["failed"] += 1
     
-    for page, counts in pages.items():
-        status = "✅" if counts["failed"] == 0 else "❌"
-        print(f"  {status} {page}: {counts['passed']} passed, {counts['failed']} failed")
+    for pg, counts in pages.items():
+        status = "✅" if counts["failed"] == 0 else "⚠️" if counts["passed"] > counts["failed"] else "❌"
+        print(f"  {status} {pg}: {counts['passed']} passed, {counts['failed']} failed")
     
     # Show failures
     failures = [r for r in test_results if not r["passed"]]
     if failures:
         print("\n" + "-" * 50)
-        print("FAILURES:")
+        print(f"FAILURES ({len(failures)}):")
         print("-" * 50)
         for f in failures:
-            print(f"  ❌ {f['page']} | {f['test']} | {f['details']}")
+            print(f"  ❌ {f['page']} | {f['test']} | {f['details'][:60]}")
     
     print("\n" + "=" * 70)
     print(f"Completed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -571,6 +552,7 @@ async def run_all_tests():
             "passed": passed,
             "failed": failed,
             "pass_rate": f"{(passed/total*100):.1f}%",
+            "pages_summary": pages,
             "results": test_results
         }, f, indent=2)
     

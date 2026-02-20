@@ -541,8 +541,8 @@ async def refresh_token(
     if not token or not token.get("connected"):
         raise HTTPException(status_code=404, detail="Platform not connected")
     
-    # Mock token refresh
-    if MOCK_OAUTH_ENABLED:
+    # Mock token refresh for mock connections
+    if not is_real_oauth_enabled(platform) or token.get("accessToken", "").startswith("mock_"):
         now = datetime.now(timezone.utc)
         new_expires_at = (now + timedelta(hours=1)).isoformat()
         
@@ -561,8 +561,52 @@ async def refresh_token(
             "message": "Token refreshed successfully"
         }
     
-    # Production refresh would use refresh_token to get new access_token
-    raise HTTPException(status_code=501, detail="Production token refresh not implemented")
+    # Real OAuth refresh using refresh_token
+    refresh_token_value = token.get("refreshToken")
+    if not refresh_token_value:
+        raise HTTPException(status_code=400, detail="No refresh token available. Please reconnect.")
+    
+    try:
+        import httpx
+        async with httpx.AsyncClient() as http_client:
+            response = await http_client.post(
+                "https://oauth2.googleapis.com/token",
+                data={
+                    "client_id": os.environ.get("YOUTUBE_CLIENT_ID"),
+                    "client_secret": os.environ.get("YOUTUBE_CLIENT_SECRET"),
+                    "refresh_token": refresh_token_value,
+                    "grant_type": "refresh_token"
+                }
+            )
+            
+            if response.status_code != 200:
+                raise HTTPException(status_code=400, detail="Token refresh failed. Please reconnect.")
+            
+            tokens = response.json()
+            new_access_token = tokens.get("access_token")
+            expires_in = tokens.get("expires_in", 3600)
+            
+            now = datetime.now(timezone.utc)
+            new_expires_at = (now + timedelta(seconds=expires_in)).isoformat()
+            
+            await db.update_one(
+                {"clientId": client_id, "platform": platform},
+                {"$set": {
+                    "accessToken": new_access_token,
+                    "expiresAt": new_expires_at,
+                    "updatedAt": now.isoformat()
+                }}
+            )
+            
+            return {
+                "success": True,
+                "expiresAt": new_expires_at,
+                "message": "Token refreshed successfully"
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Refresh error: {str(e)}")
 
 
 # ============================================================================

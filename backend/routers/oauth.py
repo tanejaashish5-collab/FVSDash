@@ -350,9 +350,148 @@ async def oauth_callback(
             </html>
         """)
     
-    # Production: Exchange code for tokens (would implement real OAuth here)
-    # This is a placeholder for real implementation
-    return HTMLResponse(content="<html><body>Production OAuth not implemented</body></html>")
+    # Real OAuth: Exchange code for tokens
+    import httpx
+    
+    code_verifier = token_record.get("codeVerifier")
+    redirect_uri = os.environ.get("YOUTUBE_REDIRECT_URI", f"{os.environ.get('BACKEND_PUBLIC_URL')}/api/oauth/callback/youtube")
+    
+    try:
+        async with httpx.AsyncClient() as http_client:
+            token_response = await http_client.post(
+                "https://oauth2.googleapis.com/token",
+                data={
+                    "client_id": os.environ.get("YOUTUBE_CLIENT_ID"),
+                    "client_secret": os.environ.get("YOUTUBE_CLIENT_SECRET"),
+                    "code": code,
+                    "code_verifier": code_verifier,
+                    "grant_type": "authorization_code",
+                    "redirect_uri": redirect_uri
+                }
+            )
+            
+            if token_response.status_code != 200:
+                error_detail = token_response.text
+                return HTMLResponse(content=f"""
+                    <html><body>
+                    <script>
+                        window.opener.postMessage({{ type: 'oauth_error', platform: '{platform}', error: 'Token exchange failed' }}, '*');
+                        window.close();
+                    </script>
+                    <p>Token exchange failed: {error_detail}</p>
+                    </body></html>
+                """)
+            
+            tokens = token_response.json()
+            access_token = tokens.get("access_token")
+            refresh_token_value = tokens.get("refresh_token")
+            expires_in = tokens.get("expires_in", 3600)
+            
+            now = datetime.now(timezone.utc)
+            expires_at = (now + timedelta(seconds=expires_in)).isoformat()
+            
+            # Fetch channel info using the new access token
+            channel_info = None
+            try:
+                from services.youtube_sync_service import get_youtube_service_with_credentials, get_channel_info
+                youtube = get_youtube_service_with_credentials(access_token, refresh_token_value)
+                
+                # Get channel info synchronously
+                import asyncio
+                channel_info = await get_channel_info(youtube)
+            except Exception as e:
+                import logging
+                logging.error(f"Failed to fetch channel info: {e}")
+            
+            # Store tokens
+            account_name = channel_info.get("title", "YouTube Channel") if channel_info else "YouTube Channel"
+            account_handle = channel_info.get("customUrl", "@channel") if channel_info else "@channel"
+            
+            await db.update_one(
+                {"clientId": client_id, "platform": platform},
+                {"$set": {
+                    "connected": True,
+                    "accessToken": access_token,
+                    "refreshToken": refresh_token_value,
+                    "expiresAt": expires_at,
+                    "accountName": account_name,
+                    "accountHandle": account_handle,
+                    "accountMeta": {
+                        "subscriberCount": f"{channel_info.get('subscriberCount', 0):,}" if channel_info else "0",
+                        "channelId": channel_info.get("channelId") if channel_info else None,
+                        "uploadsPlaylistId": channel_info.get("uploadsPlaylistId") if channel_info else None
+                    },
+                    "channelId": channel_info.get("channelId") if channel_info else None,
+                    "connectedAt": now.isoformat(),
+                    "updatedAt": now.isoformat(),
+                    "oauthState": None,
+                    "codeVerifier": None
+                }}
+            )
+            
+            return HTMLResponse(content=f"""
+                <html>
+                <head>
+                    <style>
+                        body {{
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+                            color: white;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            height: 100vh;
+                            margin: 0;
+                        }}
+                        .success-icon {{
+                            width: 64px;
+                            height: 64px;
+                            background: rgba(34, 197, 94, 0.2);
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            margin-bottom: 16px;
+                        }}
+                        .success-icon svg {{ width: 32px; height: 32px; color: #22c55e; }}
+                        h2 {{ margin: 0 0 8px 0; font-size: 20px; }}
+                        p {{ color: #94a3b8; font-size: 14px; }}
+                    </style>
+                </head>
+                <body>
+                    <div class="success-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <h2>Connected to {account_name}!</h2>
+                    <p>You can close this window now.</p>
+                    <script>
+                        window.opener.postMessage({{ 
+                            type: 'oauth_success', 
+                            platform: '{platform}',
+                            accountName: '{account_name}',
+                            accountHandle: '{account_handle}'
+                        }}, '*');
+                        setTimeout(() => window.close(), 1500);
+                    </script>
+                </body>
+                </html>
+            """)
+            
+    except Exception as e:
+        import logging
+        logging.exception("OAuth callback error")
+        return HTMLResponse(content=f"""
+            <html><body>
+            <script>
+                window.opener.postMessage({{ type: 'oauth_error', platform: '{platform}', error: 'Server error' }}, '*');
+                window.close();
+            </script>
+            <p>Error: {str(e)}</p>
+            </body></html>
+        """)
 
 
 @router.delete("/disconnect/{platform}")

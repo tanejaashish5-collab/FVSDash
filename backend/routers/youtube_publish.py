@@ -321,6 +321,26 @@ async def get_publish_status(
     }
 
 
+@router.get("/check-video/{submission_id}")
+async def check_submission_video(
+    submission_id: str,
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    """
+    Check if a submission has a video asset attached.
+    Used by frontend to determine if publish is possible.
+    """
+    from services.youtube_upload_service import check_submission_has_video
+    
+    client_id = get_client_id_from_user(user, impersonateClientId)
+    result = await check_submission_has_video(submission_id, client_id)
+    
+    return result
+
+
+
+
 @router.get("/jobs")
 async def list_publish_jobs(
     status: Optional[str] = Query(None),

@@ -182,33 +182,27 @@ function DraggableCalendarEvent({ submission, isToday, onClick }) {
   );
 }
 
-// Droppable Day Cell - Sprint 13: Increased height, cadence watermarks
+// Droppable Day Cell - HOTFIX: Subtle watermarks, larger cells
 function DroppableDay({ day, children, isOver, isToday, cadence, draggedItem }) {
   const { setNodeRef, isOver: dropIsOver } = useDroppable({
     id: `day-${format(day, 'yyyy-MM-dd')}`,
     data: { date: format(day, 'yyyy-MM-dd') },
   });
 
-  // Use passed cadence prop or fallback to day-based watermark
-  const watermark = cadence || null;
-  
-  // Determine cadence watermark color
-  const cadenceColor = watermark?.color === 'teal' 
-    ? 'text-teal-400/30' 
-    : watermark?.color === 'purple' 
-    ? 'text-purple-400/30' 
-    : watermark?.color === 'amber'
-    ? 'text-amber-400/30'
-    : 'text-white/10';
+  // Use passed cadence prop (only for empty cells)
+  const watermark = cadence;
   
   // Check if dragged item matches the cadence recommendation
   const isCompatibleDrag = draggedItem && watermark && 
     draggedItem.contentType === watermark.type;
 
+  // Check if cell has content (children array check)
+  const hasContent = Array.isArray(children) ? children.some(c => c) : !!children;
+
   return (
     <div
       ref={setNodeRef}
-      className={`min-h-[120px] bg-[#060c17] p-2 transition-all relative ${
+      className={`min-h-[130px] bg-[#060c17] p-2 transition-all relative ${
         isToday ? 'ring-1 ring-inset ring-indigo-500/30' : ''
       } ${dropIsOver ? 'bg-indigo-500/10 ring-2 ring-indigo-500/50' : ''}`}
       data-testid={`day-cell-${format(day, 'yyyy-MM-dd')}`}
@@ -218,20 +212,18 @@ function DroppableDay({ day, children, isOver, isToday, cadence, draggedItem }) 
         {format(day, 'd')}
       </div>
       
-      {/* Cadence Watermark - centered behind content */}
-      {watermark && (
-        <div className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-all ${
-          isCompatibleDrag ? 'animate-pulse' : ''
-        }`}>
-          <span className={`text-[9px] uppercase tracking-widest font-semibold ${
-            isCompatibleDrag ? 'text-amber-400/50' : cadenceColor
+      {/* Cadence Watermark - bottom center, very subtle, only on empty cells */}
+      {watermark && !hasContent && (
+        <div className="absolute bottom-2 left-0 right-0 flex justify-center pointer-events-none">
+          <span className={`text-[10px] font-normal ${
+            isCompatibleDrag ? 'text-white/30' : 'text-white/[0.15]'
           }`}>
             {watermark.text}
           </span>
         </div>
       )}
       
-      <div className="space-y-1 relative z-10">
+      <div className="space-y-1.5 relative z-10">
         {children}
       </div>
     </div>

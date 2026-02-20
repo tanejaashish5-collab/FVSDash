@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Sparkles, Brain, FileText, ListOrdered, Youtube, Loader2, 
   Copy, Check, ChevronRight, Plus, Lightbulb, Clock, History, 
-  PanelLeftClose, PanelLeftOpen, Trash2, X
+  PanelLeftClose, PanelLeftOpen, Trash2, X, ArrowRight, Video
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';

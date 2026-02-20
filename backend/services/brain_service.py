@@ -30,8 +30,10 @@ async def create_brain_score(
 ) -> Dict[str, Any]:
     """
     Create a brain_scores record when a submission is created from a recommendation.
+    Includes 30-day challenge deadline for verdict tracking.
     """
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(timezone.utc)
+    challenge_deadline = now + timedelta(days=CHALLENGE_DAYS)
     
     score_doc = {
         "id": str(uuid.uuid4()),
@@ -45,7 +47,8 @@ async def create_brain_score(
         "performance_verdict": "pending",
         "verdict_reasoning": None,
         "scored_at": None,
-        "created_at": now
+        "created_at": now.isoformat(),
+        "challenge_deadline": challenge_deadline.isoformat()
     }
     
     await db.brain_scores.insert_one(score_doc)

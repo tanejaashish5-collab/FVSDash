@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
   Briefcase, Radio, FolderOpen, DollarSign, MoreHorizontal, Calendar,
-  ArrowRight, FlaskConical, Video, Zap, Activity, Users, TrendingUp, Eye, Youtube
+  ArrowRight, FlaskConical, Video, Zap, Activity, Users, TrendingUp, Eye, Youtube, Brain
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';

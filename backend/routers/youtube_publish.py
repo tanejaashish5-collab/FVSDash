@@ -22,6 +22,84 @@ router = APIRouter(prefix="/publish", tags=["publish"])
 
 
 # ============================================================================
+# Auto-refresh helper
+# ============================================================================
+
+async def auto_refresh_youtube_token(client_id: str) -> dict:
+    """
+    Auto-refresh an expired YouTube token.
+    Returns {"success": True, "expiresAt": ...} or {"success": False, "error": ...}
+    """
+    import os
+    import httpx
+    
+    oauth_db = oauth_tokens_collection()
+    token = await oauth_db.find_one({"clientId": client_id, "platform": "youtube"})
+    
+    if not token:
+        return {"success": False, "error": "No YouTube token found"}
+    
+    refresh_token_value = token.get("refreshToken")
+    if not refresh_token_value:
+        return {"success": False, "error": "No refresh token available"}
+    
+    # Check if this is a mock token
+    if token.get("accessToken", "").startswith("mock_"):
+        # Mock refresh
+        now = datetime.now(timezone.utc)
+        new_expires_at = (now + timedelta(hours=1)).isoformat()
+        await oauth_db.update_one(
+            {"clientId": client_id, "platform": "youtube"},
+            {"$set": {
+                "accessToken": f"mock_access_{uuid.uuid4().hex[:32]}",
+                "expiresAt": new_expires_at,
+                "updatedAt": now.isoformat()
+            }}
+        )
+        return {"success": True, "expiresAt": new_expires_at}
+    
+    # Real OAuth refresh
+    try:
+        async with httpx.AsyncClient() as http_client:
+            response = await http_client.post(
+                "https://oauth2.googleapis.com/token",
+                data={
+                    "client_id": os.environ.get("YOUTUBE_CLIENT_ID"),
+                    "client_secret": os.environ.get("YOUTUBE_CLIENT_SECRET"),
+                    "refresh_token": refresh_token_value,
+                    "grant_type": "refresh_token"
+                }
+            )
+            
+            if response.status_code != 200:
+                return {"success": False, "error": f"Refresh request failed: {response.status_code}"}
+            
+            tokens = response.json()
+            new_access_token = tokens.get("access_token")
+            expires_in = tokens.get("expires_in", 3600)
+            
+            if not new_access_token:
+                return {"success": False, "error": "No access token in refresh response"}
+            
+            now = datetime.now(timezone.utc)
+            new_expires_at = (now + timedelta(seconds=expires_in)).isoformat()
+            
+            await oauth_db.update_one(
+                {"clientId": client_id, "platform": "youtube"},
+                {"$set": {
+                    "accessToken": new_access_token,
+                    "expiresAt": new_expires_at,
+                    "updatedAt": now.isoformat()
+                }}
+            )
+            
+            return {"success": True, "expiresAt": new_expires_at}
+            
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+# ============================================================================
 # Models
 # ============================================================================
 

@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
   Briefcase, Radio, FolderOpen, DollarSign, MoreHorizontal, Calendar,
-  ArrowRight, FlaskConical, Video, Zap, Activity
+  ArrowRight, FlaskConical, Video, Zap, Activity, Users, TrendingUp, Eye, Youtube
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -180,11 +180,26 @@ export default function OverviewPage() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [analyticsOverview, setAnalyticsOverview] = useState(null);
+  const [topPerformers, setTopPerformers] = useState([]);
 
   const fetchData = useCallback(() => {
-    axios.get(buildApiUrl(`${API}/dashboard/overview`), { headers: authHeaders })
+    // Fetch dashboard overview
+    const dashboardReq = axios.get(buildApiUrl(`${API}/dashboard/overview`), { headers: authHeaders })
       .then(res => setData(res.data))
-      .catch(console.error)
+      .catch(console.error);
+    
+    // Fetch real YouTube analytics overview
+    const analyticsReq = axios.get(buildApiUrl(`${API}/analytics/overview`), { headers: authHeaders })
+      .then(res => setAnalyticsOverview(res.data))
+      .catch(() => {}); // Silently fail if no analytics
+    
+    // Fetch top performing videos
+    const topPerformersReq = axios.get(buildApiUrl(`${API}/analytics/top-performers?limit=3`), { headers: authHeaders })
+      .then(res => setTopPerformers(res.data?.videos || []))
+      .catch(() => {});
+    
+    Promise.all([dashboardReq, analyticsReq, topPerformersReq])
       .finally(() => setLoading(false));
   }, [authHeaders, buildApiUrl]);
 

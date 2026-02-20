@@ -26,6 +26,8 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 
 **Summary**: Implemented self-improving Brain Feedback Loop to track AI recommendation accuracy, built admin multi-channel onboarding system, and fixed client identity from Alex Chen to Chanakya Sutra.
 
+**Post-Sprint Fix**: Hidden client-facing "Labs" tools (FVS System, Strategy Lab, AI Video Lab) from admin sidebar. Admin tries to access these URLs directly are redirected to Admin Panel.
+
 #### Part A: Identity Fix
 **Files**: `/app/backend/migrations/versions/s12_identity_fix.py`
 - Created one-time DB migration to rename demo client

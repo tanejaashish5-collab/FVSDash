@@ -948,10 +948,22 @@ export default function CalendarPage() {
                   <AuraSpinner size="sm" />
                 </div>
               ) : pipeline.length === 0 ? (
-                <div className="text-center py-8">
-                  <CalendarIcon className="h-6 w-6 text-zinc-700 mx-auto mb-2" />
-                  <p className="text-[10px] text-zinc-500">No unscheduled content.</p>
-                  <p className="text-[9px] text-zinc-600 mt-1">Submit new content to see it here.</p>
+                <div className="text-center py-8 border border-dashed border-zinc-700 rounded-lg">
+                  <CalendarIcon className="h-8 w-8 text-zinc-700 mx-auto mb-3" />
+                  <p className="text-xs text-zinc-400">No content in pipeline</p>
+                  <p className="text-[10px] text-zinc-600 mt-1 px-4">
+                    Submit new content or generate ideas in FVS System
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate('/dashboard/fvs')}
+                    className="mt-3 text-xs text-teal-400 hover:bg-teal-500/20"
+                    data-testid="goto-fvs-btn"
+                  >
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    Go to FVS System
+                  </Button>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -962,6 +974,18 @@ export default function CalendarPage() {
                       isDragging={activeId === `pipeline-${sub.id}`}
                     />
                   ))}
+                  
+                  {/* Add New Idea button at bottom */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate('/dashboard/fvs')}
+                    className="w-full text-xs text-zinc-500 hover:text-teal-400 hover:bg-teal-500/10 border border-dashed border-zinc-700 mt-2"
+                    data-testid="add-new-idea-btn"
+                  >
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    Add New Idea
+                  </Button>
                 </div>
               )}
             </ScrollArea>

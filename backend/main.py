@@ -63,6 +63,8 @@ api_router.include_router(youtube_publish.router)
 api_router.include_router(trends.router)
 api_router.include_router(brain.router)
 api_router.include_router(dev.router)
+api_router.include_router(search.router)
+api_router.include_router(pipeline.router)
 
 # Include API router in app
 app.include_router(api_router)

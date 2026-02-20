@@ -400,129 +400,266 @@ export default function AnalyticsPage() {
             />
           </div>
 
-          {/* Charts Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Downloads Chart */}
-            <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="chart-downloads">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-                  <Download className="h-4 w-4 text-zinc-400" />
-                  Downloads Over Time
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[250px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1F2933" />
-                      <XAxis dataKey="date" tick={{ fill: '#71717a', fontSize: 10 }} axisLine={{ stroke: '#1F2933' }} />
-                      <YAxis tick={{ fill: '#71717a', fontSize: 10 }} axisLine={{ stroke: '#1F2933' }} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Line
-                        type="monotone"
-                        dataKey="downloads"
-                        name="Downloads"
-                        stroke="#6366F1"
-                        strokeWidth={2}
-                        dot={false}
-                        activeDot={{ r: 4, fill: '#6366F1' }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Tabbed Content: Performance vs Trend Intelligence */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="bg-[#0B1120] border border-[#1F2933]">
+              <TabsTrigger value="performance" className="data-[state=active]:bg-indigo-500/20">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Performance
+              </TabsTrigger>
+              <TabsTrigger value="trends" className="data-[state=active]:bg-indigo-500/20" data-testid="trend-intelligence-tab">
+                <Radar className="h-4 w-4 mr-2" />
+                Trend Intelligence
+              </TabsTrigger>
+            </TabsList>
 
-            {/* Views Chart */}
-            <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="chart-views">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-                  <Eye className="h-4 w-4 text-zinc-400" />
-                  Views Over Time
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[250px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1F2933" />
-                      <XAxis dataKey="date" tick={{ fill: '#71717a', fontSize: 10 }} axisLine={{ stroke: '#1F2933' }} />
-                      <YAxis tick={{ fill: '#71717a', fontSize: 10 }} axisLine={{ stroke: '#1F2933' }} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Line
-                        type="monotone"
-                        dataKey="views"
-                        name="Views"
-                        stroke="#10B981"
-                        strokeWidth={2}
-                        dot={false}
-                        activeDot={{ r: 4, fill: '#10B981' }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Performance Tab */}
+            <TabsContent value="performance" className="mt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Downloads Chart */}
+                <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="chart-downloads">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                      <Download className="h-4 w-4 text-zinc-400" />
+                      Downloads Over Time
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[250px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#1F2933" />
+                          <XAxis dataKey="date" tick={{ fill: '#71717a', fontSize: 10 }} axisLine={{ stroke: '#1F2933' }} />
+                          <YAxis tick={{ fill: '#71717a', fontSize: 10 }} axisLine={{ stroke: '#1F2933' }} />
+                          <Tooltip content={<CustomTooltip />} />
+                          <Line
+                            type="monotone"
+                            dataKey="downloads"
+                            name="Downloads"
+                            stroke="#6366F1"
+                            strokeWidth={2}
+                            dot={false}
+                            activeDot={{ r: 4, fill: '#6366F1' }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            {/* Episodes Published Chart */}
-            <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="chart-episodes">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-                  <Radio className="h-4 w-4 text-zinc-400" />
-                  Episodes Published
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[250px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1F2933" />
-                      <XAxis dataKey="date" tick={{ fill: '#71717a', fontSize: 10 }} axisLine={{ stroke: '#1F2933' }} />
-                      <YAxis tick={{ fill: '#71717a', fontSize: 10 }} axisLine={{ stroke: '#1F2933' }} allowDecimals={false} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="episodes" name="Episodes" fill="#F59E0B" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
+                {/* Views Chart */}
+                <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="chart-views">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                      <Eye className="h-4 w-4 text-zinc-400" />
+                      Views Over Time
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[250px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#1F2933" />
+                          <XAxis dataKey="date" tick={{ fill: '#71717a', fontSize: 10 }} axisLine={{ stroke: '#1F2933' }} />
+                          <YAxis tick={{ fill: '#71717a', fontSize: 10 }} axisLine={{ stroke: '#1F2933' }} />
+                          <Tooltip content={<CustomTooltip />} />
+                          <Line
+                            type="monotone"
+                            dataKey="views"
+                            name="Views"
+                            stroke="#10B981"
+                            strokeWidth={2}
+                            dot={false}
+                            activeDot={{ r: 4, fill: '#10B981' }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            {/* ROI Chart */}
-            <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="chart-roi">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-zinc-400" />
-                  Estimated ROI Over Time
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[250px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1F2933" />
-                      <XAxis dataKey="date" tick={{ fill: '#71717a', fontSize: 10 }} axisLine={{ stroke: '#1F2933' }} />
-                      <YAxis tick={{ fill: '#71717a', fontSize: 10 }} axisLine={{ stroke: '#1F2933' }} tickFormatter={(v) => `$${v}`} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <defs>
-                        <linearGradient id="roiGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <Area
-                        type="monotone"
-                        dataKey="roi"
-                        name="ROI"
-                        stroke="#8B5CF6"
-                        strokeWidth={2}
-                        fill="url(#roiGradient)"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                {/* Episodes Published Chart */}
+                <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="chart-episodes">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                      <Radio className="h-4 w-4 text-zinc-400" />
+                      Episodes Published
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[250px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#1F2933" />
+                          <XAxis dataKey="date" tick={{ fill: '#71717a', fontSize: 10 }} axisLine={{ stroke: '#1F2933' }} />
+                          <YAxis tick={{ fill: '#71717a', fontSize: 10 }} axisLine={{ stroke: '#1F2933' }} allowDecimals={false} />
+                          <Tooltip content={<CustomTooltip />} />
+                          <Bar dataKey="episodes" name="Episodes" fill="#F59E0B" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* ROI Chart */}
+                <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="chart-roi">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-zinc-400" />
+                      Estimated ROI Over Time
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[250px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#1F2933" />
+                          <XAxis dataKey="date" tick={{ fill: '#71717a', fontSize: 10 }} axisLine={{ stroke: '#1F2933' }} />
+                          <YAxis tick={{ fill: '#71717a', fontSize: 10 }} axisLine={{ stroke: '#1F2933' }} tickFormatter={(v) => `$${v}`} />
+                          <Tooltip content={<CustomTooltip />} />
+                          <defs>
+                            <linearGradient id="roiGradient" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3}/>
+                              <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <Area
+                            type="monotone"
+                            dataKey="roi"
+                            name="ROI"
+                            stroke="#8B5CF6"
+                            strokeWidth={2}
+                            fill="url(#roiGradient)"
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* Trend Intelligence Tab */}
+            <TabsContent value="trends" className="mt-6" data-testid="trend-intelligence-content">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Competitor Videos */}
+                <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="competitor-videos">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                      <Target className="h-4 w-4 text-red-400" />
+                      Top Competitor Shorts
+                    </CardTitle>
+                    <p className="text-xs text-zinc-500 mt-1">
+                      Viral content from channels in your niche (last 14 days)
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    {competitors.length > 0 ? (
+                      <div className="space-y-3">
+                        {competitors.slice(0, 8).map((video, i) => (
+                          <div
+                            key={video.videoId || i}
+                            className="flex items-center gap-3 p-3 rounded-lg bg-zinc-950/50 border border-[#1F2933] hover:border-zinc-700 transition-colors"
+                            data-testid={`competitor-${i}`}
+                          >
+                            {video.thumbnailUrl ? (
+                              <img 
+                                src={video.thumbnailUrl} 
+                                alt={video.title}
+                                className="w-20 h-12 object-cover rounded shrink-0"
+                              />
+                            ) : (
+                              <div className="w-20 h-12 bg-zinc-800 rounded shrink-0 flex items-center justify-center">
+                                <Video className="h-5 w-5 text-zinc-600" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-white font-medium truncate">{video.title}</p>
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                <span className="text-[10px] text-red-400 font-medium">{video.competitorName}</span>
+                                <span className="text-[10px] text-zinc-600">•</span>
+                                <span className="text-[10px] text-emerald-400 font-mono">{(video.viewCount || 0).toLocaleString()} views</span>
+                                {video.publishedAt && (
+                                  <>
+                                    <span className="text-[10px] text-zinc-600">•</span>
+                                    <span className="text-[10px] text-zinc-500">
+                                      {new Date(video.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            <a
+                              href={`https://youtube.com/watch?v=${video.videoId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 rounded hover:bg-zinc-800 transition-colors shrink-0"
+                            >
+                              <ExternalLink className="h-4 w-4 text-zinc-500 hover:text-white" />
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <Target className="h-10 w-10 text-zinc-700 mx-auto mb-3" />
+                        <p className="text-sm text-zinc-500">No competitor data yet</p>
+                        <p className="text-xs text-zinc-600 mt-1">Run a trend scan from the FVS System to analyze competitors</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Trending Keywords */}
+                <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="trending-keywords">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                      <Hash className="h-4 w-4 text-amber-400" />
+                      Trending Keywords
+                    </CardTitle>
+                    <p className="text-xs text-zinc-500 mt-1">
+                      Popular search terms and topics in your niche
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    {trending.length > 0 ? (
+                      <div className="space-y-3">
+                        {trending.slice(0, 8).map((topic, i) => (
+                          <div
+                            key={topic.keyword || i}
+                            className="p-3 rounded-lg bg-zinc-950/50 border border-[#1F2933] hover:border-zinc-700 transition-colors"
+                            data-testid={`trending-${i}`}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm text-white font-medium">{topic.keyword}</span>
+                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-amber-500/10 text-amber-400 border-amber-500/20">
+                                {topic.videoCount || topic.videos?.length || 0} videos
+                              </Badge>
+                            </div>
+                            {topic.topVideo && (
+                              <div className="flex items-center gap-2 mt-2">
+                                <Video className="h-3 w-3 text-zinc-500" />
+                                <span className="text-xs text-zinc-400 truncate">{topic.topVideo.title}</span>
+                                <span className="text-[10px] text-emerald-400 ml-auto shrink-0">
+                                  {(topic.topVideo.viewCount || 0).toLocaleString()} views
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <Hash className="h-10 w-10 text-zinc-700 mx-auto mb-3" />
+                        <p className="text-sm text-zinc-500">No trending data yet</p>
+                        <p className="text-xs text-zinc-600 mt-1">Run a trend scan to discover trending keywords</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          </Tabs>
         </>
       )}
     </div>

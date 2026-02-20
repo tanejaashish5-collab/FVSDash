@@ -126,3 +126,41 @@ async def get_dashboard_overview(
         "activities": activities[:10],
         "recentSubmissions": recent,
     }
+
+
+@router.get("/dashboard/admin-overview")
+async def get_admin_overview(user: dict = Depends(get_current_user)):
+    """
+    Admin-specific overview with cross-channel summary.
+    Returns: Total Clients, Total Videos Managed, Total Views Managed, Active Channels
+    """
+    if user.get("role") != "admin":
+        return {"error": "Not authorized"}
+    
+    users_db = users_collection()
+    submissions_db = submissions_collection()
+    channel_db = channel_snapshots_collection()
+    
+    # Count all clients (non-admin users)
+    total_clients = await users_db.count_documents({"role": {"$ne": "admin"}})
+    
+    # Count total submissions across all clients
+    total_videos = await submissions_db.count_documents({})
+    
+    # Sum views from channel snapshots
+    channel_snapshots = await channel_db.find({}, {"_id": 0, "total_views": 1, "subscriberCount": 1}).to_list(1000)
+    total_views = sum(s.get("total_views", 0) or s.get("totalViews", 0) or 0 for s in channel_snapshots)
+    
+    # Count active channels (users with youtube_connected = true)
+    active_channels = await users_db.count_documents({
+        "role": {"$ne": "admin"},
+        "youtube_connected": True
+    })
+    
+    return {
+        "totalClients": total_clients,
+        "totalVideosManaged": total_videos,
+        "totalViewsManaged": total_views,
+        "activeChannels": active_channels
+    }
+

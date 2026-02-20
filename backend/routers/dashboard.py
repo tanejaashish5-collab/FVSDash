@@ -141,21 +141,51 @@ async def get_admin_overview(user: dict = Depends(get_current_user)):
     submissions_db = submissions_collection()
     channel_db = channel_snapshots_collection()
     
-    # Count all clients (non-admin users)
-    total_clients = await users_db.count_documents({"role": {"$ne": "admin"}})
-    
-    # Count total submissions across all clients
-    total_videos = await submissions_db.count_documents({})
-    
-    # Sum views from channel snapshots
-    channel_snapshots = await channel_db.find({}, {"_id": 0, "total_views": 1, "subscriberCount": 1}).to_list(1000)
-    total_views = sum(s.get("total_views", 0) or s.get("totalViews", 0) or 0 for s in channel_snapshots)
-    
-    # Count active channels (users with youtube_connected = true)
-    active_channels = await users_db.count_documents({
-        "role": {"$ne": "admin"},
-        "youtube_connected": True
+    # Count only active clients (is_active: true AND role: "client")
+    total_clients = await users_db.count_documents({
+        "role": "client",
+        "is_active": {"$ne": False}  # Include if is_active is True or not set
     })
+    
+    # Get list of active client IDs
+    active_clients = await users_db.find(
+        {"role": "client", "is_active": {"$ne": False}},
+        {"_id": 0, "id": 1}
+    ).to_list(1000)
+    active_client_ids = [c.get("id") for c in active_clients if c.get("id")]
+    
+    # Count total submissions across active clients only
+    total_videos = await submissions_db.count_documents({
+        "clientId": {"$in": active_client_ids}
+    }) if active_client_ids else 0
+    
+    # Sum views from channel snapshots for active clients
+    total_views = 0
+    for client_id in active_client_ids:
+        # Get latest channel snapshot for this client
+        snapshot = await channel_db.find_one(
+            {"user_id": client_id},
+            {"_id": 0, "total_views": 1, "totalViews": 1, "subscriberCount": 1},
+            sort=[("snapshot_date", -1)]
+        )
+        if snapshot:
+            views = snapshot.get("total_views") or snapshot.get("totalViews") or 0
+            total_views += views
+    
+    # Count active channels - clients with valid (non-expired) OAuth token
+    from db.mongo import get_db
+    db = get_db()
+    oauth_db = db.oauth_tokens
+    
+    active_channels = 0
+    for client_id in active_client_ids:
+        # Check if client has a valid YouTube OAuth token
+        token = await oauth_db.find_one({
+            "user_id": client_id,
+            "provider": "youtube"
+        }, {"_id": 0, "expires_at": 1, "access_token": 1})
+        if token and token.get("access_token"):
+            active_channels += 1
     
     return {
         "totalClients": total_clients,

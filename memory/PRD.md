@@ -5,21 +5,76 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 
 ## Architecture
 - **Frontend**: React 19 + Tailwind CSS + shadcn/ui + Recharts + lucide-react + Framer Motion + @dnd-kit
-- **Backend**: FastAPI + Motor (async MongoDB) + PyJWT + emergentintegrations + APScheduler
+- **Backend**: FastAPI + Motor (async MongoDB) + PyJWT + emergentintegrations + APScheduler + google-api-python-client
 - **Database**: MongoDB (multi-tenant via clientId scoping)
 - **Auth**: JWT-based with admin/client roles
 - **AI**: Multi-provider LLM (Gemini/OpenAI/Anthropic via Emergent key)
 - **Storage**: S3/S3-compatible (optional, with graceful fallback to data URLs)
 - **Brand Brain**: Channel Profile system for AI content customization
-- **Publishing**: Mock platform connections with background scheduler
+- **Publishing**: Real YouTube OAuth 2.0 + mock TikTok/Instagram
 - **Notifications**: Real-time notification engine for status updates and FVS events
 - **Spotlight Tour**: Guided onboarding tour with SVG mask spotlight
 - **Universal Tooltips**: Contextual help system with glassmorphic tooltips
 - **Silk Animations**: Premium page transitions and micro-interactions via Framer Motion
 - **Mastermind Calendar**: Drag-and-drop strategic scheduling workbench
-- **OAuth Publishing Layer**: Mock OAuth 2.0 publishing pipeline for YouTube with token management
+- **OAuth Publishing Layer**: Real YouTube OAuth 2.0 with PKCE + channel sync capability
 
 ## What's Been Implemented
+
+### Phase 27 — The "Pulse" Update (Sprint 8) (Feb 2026)
+
+**Summary**: Transitioned ForgeVoice Studio from mock demo to live command center with real YouTube OAuth 2.0, database cleanup, and realistic data seeding.
+
+#### Real YouTube OAuth 2.0 (`/app/backend/routers/oauth.py`)
+- **Real OAuth Flow**: YouTube OAuth now uses actual Google OAuth 2.0 with PKCE
+  - Configured: `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_REDIRECT_URI`
+  - Scopes: `youtube.readonly`, `yt-analytics.readonly`, `youtube.upload`
+  - Returns `isMock: false` for YouTube connections
+  
+- **Token Exchange**: Real code-for-token exchange via `https://oauth2.googleapis.com/token`
+- **Refresh Token**: Real token refresh using Google's refresh_token grant
+- **Channel Info Fetch**: Automatically fetches channel name and subscriber count on connect
+
+#### YouTube Channel Sync Service (`/app/backend/services/youtube_sync_service.py`)
+- **`POST /api/oauth/youtube/sync`**: Triggers full channel import
+  - Fetches channel info (name, subscribers, uploads playlist)
+  - Imports all Shorts (videos ≤ 3 min) as submissions
+  - Creates video and thumbnail assets for each Short
+  - Updates analytics_snapshots with channel-level stats
+  
+- **`GET /api/oauth/youtube/sync/status`**: Returns last sync timestamp and totals
+
+#### Database Cleanup (`/app/backend/scripts/cleanup_and_seed.py`)
+- Deleted all `TEST_*` submissions and duplicates
+- Cleaned orphaned assets and deliverables
+- Seeded 3 "Hero Episodes":
+  1. "The Chanakya Principle" - EDITING status (In Production)
+  2. "5 AI Tools Every Content Creator Needs in 2026" - SCHEDULED (Ready to Publish)
+  3. "Why 99% of Podcasters Fail" - PUBLISHED (Live on YouTube)
+- Seeded 30 days of analytics data with realistic metrics
+
+#### Frontend Updates (`/app/frontend/src/pages/SettingsPage.jsx`)
+- Added "Sync Channel" button for YouTube connections
+- Button appears when YouTube is connected (any token status)
+- Disabled when token expired (prompts refresh first)
+- Shows loading spinner during sync
+
+#### Environment Updates (`/app/backend/.env`)
+```
+YOUTUBE_CLIENT_ID=597182844338-...
+YOUTUBE_CLIENT_SECRET=GOCSPX-...
+YOUTUBE_REDIRECT_URI=https://silk-studio-preview.preview.emergentagent.com/api/oauth/callback/youtube
+```
+
+#### Test Results (Feb 2026):
+- Backend: 100% (19/19 tests passed)
+- Frontend: 100% (all UI flows working)
+- Test report: `/app/test_reports/iteration_32.json`
+
+#### Key Fixes:
+- ROI Center now shows data (added `episodesPublished` to analytics snapshots)
+- Overview page loads without infinite spinner
+- No false error toasts on empty data states
 
 ### Phase 26 — Real OAuth Publishing Layer (Sprint 7) (Dec 2025)
 

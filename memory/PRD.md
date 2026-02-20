@@ -22,6 +22,120 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 
 ## What's Been Implemented
 
+### Phase 30 — Sprint 12: Brain Feedback Loop + Multi-Channel Foundation + Identity Fix (Feb 20, 2026)
+
+**Summary**: Implemented self-improving Brain Feedback Loop to track AI recommendation accuracy, built admin multi-channel onboarding system, and fixed client identity from Alex Chen to Chanakya Sutra.
+
+#### Part A: Identity Fix
+**Files**: `/app/backend/migrations/versions/s12_identity_fix.py`
+- Created one-time DB migration to rename demo client
+- Updated `users.name` and `users.full_name` from "Alex Chen" → "Chanakya Sutra"
+- Updated `clients.name` and `clients.primaryContactName` accordingly
+- Greeting now pulls from `currentUser.full_name` dynamically
+
+**Verification**:
+- ✅ Overview greeting shows "Welcome back, Chanakya Sutra"
+- ✅ Sidebar bottom-left shows "Chanakya Sutra"
+- ✅ Admin Panel client list shows "Chanakya Sutra"
+
+#### Part B: Admin Multi-Channel Onboarding
+**Files**: 
+- `/app/backend/routers/admin.py` - New CRUD endpoints
+- `/app/backend/services/admin_service.py` - Service with Sprint 12 fields
+- `/app/frontend/src/pages/AdminPage.jsx` - Complete rewrite with new features
+
+**Backend Endpoints**:
+- `POST /api/admin/clients` - Create new client account with channel profile
+- `PATCH /api/admin/clients/{user_id}` - Update client details
+- `DELETE /api/admin/clients/{user_id}` - Soft delete (set is_active=false)
+- `GET /api/admin/clients` - Now includes: channel_name, subscriber_count, total_videos, youtube_connected, is_active
+
+**Frontend Features**:
+- **Client Table** with columns: Client | Channel | YouTube (green/red dot) | Subs | Videos | Status | Actions
+- **"+ Add New Channel" button** (teal) opens slide-over panel with form:
+  - Channel Name, Email, Password
+  - Channel Niche, Language Style (dropdown), Content Pillars (tag input), Description
+- **Edit slide-over** for updating client details
+- **Deactivate confirmation** with inline Confirm/Cancel
+- **Actions**: Impersonate | Edit | Deactivate buttons per client
+
+#### Part C: Brain Feedback Loop
+**Files**:
+- `/app/backend/models/brain_scores.py` - Pydantic models
+- `/app/backend/services/brain_service.py` - Brain scoring logic
+- `/app/backend/routers/brain.py` - API endpoints
+- `/app/backend/db/mongo.py` - Added brain_scores_collection
+
+**Database Schema** (`brain_scores` collection):
+```python
+{
+  id: UUID,
+  user_id: UUID,
+  recommendation_id: string,
+  submission_id: UUID,
+  predicted_tier: "High" | "Medium",
+  predicted_title: string,
+  actual_views: int (nullable),
+  actual_likes: int (nullable),
+  performance_verdict: "correct" | "incorrect" | "pending",
+  verdict_reasoning: string,
+  scored_at: datetime (nullable),
+  created_at: datetime
+}
+```
+
+**Performance Thresholds**:
+- High: ≥5,000 views = correct
+- Medium: ≥1,000 views = correct
+
+**API Endpoints**:
+- `GET /api/brain/scores` - Returns summary + all scores
+- `GET /api/brain/accuracy-trend` - Weekly accuracy grouped by ISO week
+- `GET /api/brain/leaderboard` - Top 5 best-predicted Shorts
+
+**Frontend: FVS System Page** (`/app/frontend/src/pages/FvsSystemPage.jsx`):
+- **Brain Accuracy Panel at TOP** with:
+  - Accuracy percentage (gold glow ≥80%, teal ≥60%, zinc <60%)
+  - Stats: Accuracy | Total Made | Awaiting Data | This Week
+  - Progress bar with status message
+  - Collapsible Brain Scorecard table
+- **Empty state**: "Start making AI-recommended Shorts to train the Brain"
+
+**Frontend: Overview Page** (`/app/frontend/src/pages/OverviewPage.jsx`):
+- **Brain Accuracy Widget** showing current accuracy
+- Click to navigate to FVS System page
+- Empty state for no predictions
+
+**Frontend: Analytics Page** (`/app/frontend/src/pages/AnalyticsPage.jsx`):
+- **Third tab "Brain Intelligence"** added
+- Weekly Accuracy Trend line chart
+- Top Predicted Performers leaderboard
+- Full Prediction Scorecard table
+
+#### Part D: Recommendation Tracking
+**Files**: `/app/backend/routers/submissions.py`, `/app/backend/models/content.py`
+- Added `recommendation_id` field to `SubmissionCreate` model
+- When creating submission with `recommendation_id`:
+  - Creates `brain_scores` record automatically
+  - Returns `brain_score_id` in response
+- Frontend shows toast: "Submission created + Brain tracking enabled 🧠"
+
+#### Test Results (Feb 20, 2026):
+- Backend: 100% (13/13 tests passed)
+- Frontend: 100% (all Sprint 12 features verified)
+- Test report: `/app/test_reports/iteration_36.json`
+
+#### 9-Point Verification Checklist:
+1. ✅ Admin Panel → "+ Add New Channel" → creates test channel
+2. ✅ Admin Panel → Impersonate new client → empty workspace
+3. ✅ Admin Panel → client list shows "Chanakya Sutra"
+4. ✅ Overview greeting shows "Welcome back, Chanakya Sutra"
+5. ✅ FVS System → Brain Accuracy card visible at top
+6. ✅ FVS System → "Create Submission" creates brain_scores record
+7. ✅ `GET /api/brain/scores` → correct structure
+8. ✅ Analytics page → "Brain Intelligence" tab visible
+9. ✅ All tests pass
+
 ### Phase 29 — Sprint 10: UI Wiring + Foundation Fixes (Feb 20, 2026)
 
 **Summary**: Wired all remaining UI components to backend services and fixed critical bugs. All Sprint 10 objectives complete.

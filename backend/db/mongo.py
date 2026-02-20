@@ -110,3 +110,9 @@ def oauth_tokens_collection():
 
 def publish_jobs_collection():
     return get_db().publish_jobs
+
+def channel_snapshots_collection():
+    return get_db().channel_snapshots
+
+def brain_scores_collection():
+    return get_db().brain_scores

@@ -119,3 +119,9 @@ def brain_scores_collection():
 
 def calendar_suggestions_collection():
     return get_db().calendar_suggestions
+
+def fvs_recommendations_collection():
+    return get_db().fvs_recommendations
+
+def video_tasks_collection_v2():
+    return get_db().video_tasks

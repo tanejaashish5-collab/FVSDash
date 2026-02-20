@@ -16,6 +16,7 @@ class SubmissionCreate(BaseModel):
     releaseDate: Optional[str] = None
     sourceFileUrl: Optional[str] = None
     strategyIdeaId: Optional[str] = None  # Links to FVS idea if created from Strategy Lab
+    recommendation_id: Optional[str] = None  # Links to AI recommendation for Brain tracking
 
 
 class SubmissionUpdate(BaseModel):

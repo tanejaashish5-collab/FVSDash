@@ -1,43 +1,76 @@
 <analysis>**original_problem_statement:**
-The user's objective is to build a comprehensive content lifecycle management system, ForgeVoice Studio. The project is being developed in sprints.
+The user's objective is to build a comprehensive content lifecycle management system, ForgeVoice Studio.
 
-- **Sprint 4 (Gap Fill)**: Completed the universal tooltip system by adding tooltips to all remaining pages.
-- **Sprint 5 (The Silk Update)**: Implemented a full-stack animation system using Framer Motion to create a fluid, premium user experience with page transitions, component animations, and micro-interactions.
-- **Sprint 6 (The Mastermind Calendar)**: Rebuilt the calendar into a strategic, two-pane drag-and-drop workbench with a content pipeline, AI-driven gap suggestions (Ghost Pills), and multiple views.
-- **Sprint 7 (P0 — Real OAuth Publishing Layer)**: Implement a real, end-to-end OAuth 2.0 publishing pipeline for YouTube Shorts. This involves creating a Connected Accounts section in settings, a full redesign of the publishing dashboard, and backend services to handle OAuth, video uploads, status polling, and quota management. A mock OAuth flow was required for the sandbox environment.
+**Sprint 8: The Pulse Update**
+The user requested to transition the app from a mocked demo to a live command center by:
+1.  **Fixing App Health**: Resolving infinite spinners and false error toasts.
+2.  **Cleaning Data**: Wiping all dummy/seeded data and seeding a few hero episodes.
+3.  **Real YouTube Channel Sync**: Implementing a service to sync real video metadata and performance metrics from the user's YouTube channel.
+4.  **Wiring Insights**: Connecting the Analytics, ROI, and Overview pages to this real data.
+
+**Sprint 9: Real Analytics + Trend Intelligence Engine**
+The user requested a two-part sprint to build upon the real data sync:
+1.  **Part A (Analytics Engine)**: Create a backend pipeline to pull detailed performance data (views, CTR, AVD, watch time) for all synced videos using the YouTube Analytics API. This data should power the Analytics page, ROI Center, and Overview dashboard.
+2.  **Part B (Trend Intelligence Engine)**: Create a service to scan competitor channels and trending keywords on YouTube. Use an LLM (Gemini 2.0 Flash) to synthesize this data with the user's own top-performing content to generate 3 new, data-driven video ideas. The FVS System page should be upgraded to display these recommendations.
+
+Additionally, the user provided new OAuth credentials and requested a hard wipe of all mock data, preserving only the real YouTube connection and synced data.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-stack system (FastAPI, React, MongoDB) with a sophisticated Aura glass-morphic UI. Key features include content submissions, a strategic drag-and-drop calendar, a real-time notification engine, a guided tour, universal tooltips, and a comprehensive animation system.
+The application is a full-stack system (FastAPI, React, MongoDB) with an Aura glass-morphic UI. It features content submissions, a drag-and-drop calendar, a notification engine, and a real OAuth 2.0 publishing pipeline for YouTube.
 
-The most recent update introduced the foundation for a real OAuth publishing layer. This includes:
-- Backend models (, ) and API routes (, ) with a mock OAuth flow for YouTube.
-- A redesigned Connected Accounts section on the Settings page to handle OAuth connections.
-- A completely new Publishing Dashboard UI with a content queue, a publish slide-over panel, and tabs for history and failed jobs.
+The latest session successfully implemented Sprint 9, which introduced:
+-   **Real Analytics Pipeline**: A backend service () and API endpoints () that sync video performance data from the user's connected YouTube channel. A fallback to the Data API is used since the Analytics API requires channel monetization. The Analytics page UI has been wired to display this real data.
+-   **Trend Intelligence Engine**: A backend service () and API endpoints () that can scan competitor channels and trending keywords. It uses Gemini 2.0 Flash to generate content recommendations. Cron jobs have been set up for daily syncs.
+-   **Data Integrity**: All mock and seeded data has been wiped from the database, leaving only real data synced from the user's YouTube channel.
+-   **Real OAuth**: The mock OAuth flow was replaced with a real Google OAuth 2.0 implementation using user-provided credentials.
 
 **Last working item**:
-    - Last item agent was working: The agent just finished implementing the UI for Sprint 7, the **Real OAuth Publishing Layer**. The last action was manually testing the OAuth connection flow on the Settings page and viewing the new Publishing Dashboard page via screenshots.
+    - Last item agent was working: The agent just completed the full implementation of **Sprint 9 (Real Analytics + Trend Intelligence Engine)**. The final action was invoking the , which confirmed all backend functionality and fixed two minor bugs.
     - Status: IN PROGRESS
-    - Agent Testing Done: N
+    - Agent Testing Done: Y
     - Which testing method agent to use? both
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-There are no outstanding bug reports. The current focus is on completing and verifying the Sprint 7 feature.
+  - Issue 1:  Frontend wiring for Sprint 9 is incomplete (P0)
+  - Issue 2:  Trend Intelligence Engine requires validation (P1)
+
+  Issues Detail:
+  - Issue 1:
+     - Attempted fixes: The agent successfully wired the  page to the new backend endpoints. However, other pages that depend on this new data were not updated.
+     - Next debug checklist:
+        - Modify  to fetch and display the real subscriber count and Best Performing Short from .
+        - Modify  to use real watch time data from  for its calculations.
+        - Modify  to display the AI-generated recommendations from  and the competitor data from .
+     - Why fix this issue and what will be achieved with the fix?: To complete Sprint 9 and fully realize the value of the new backend services by making real-time insights visible to the user across the entire application.
+     - Status:  NOT STARTED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: frontend
+     - Blocked on other issue: None
+  - Issue 2:
+     - Attempted fixes: The agent initially faced an issue where competitor scanning failed due to using a user OAuth token for public searches instead of an API key. A fix was implemented in  to handle this.
+     - Next debug checklist:
+        - The user needs to provide a YouTube Data API v3 key for public data fetching.
+        - Add the key to  as .
+        - The  is already coded to use this key if present.
+        - Trigger a scan via  and verify that the  and  collections are populated.
+        - Verify that  returns valid ideas based on the scanned data.
+     - Why fix this issue and what will be achieved with the fix?: This will validate that the Trend Intelligence Engine, a core part of Sprint 9, is fully functional and provides the intended strategic value.
+     - Status:  BLOCKED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: backend
+     - Blocked on other issue: Requires API key from the user.
 
 **In progress Task List**:
-  - Task 1:  SPRINT 7 — Real OAuth Publishing Layer (P0)
-     - Where to resume: The backend and frontend implementation for the OAuth publishing layer is complete. The next critical step is to perform comprehensive end-to-end testing as per the sprint's acceptance criteria. This includes testing the mock OAuth flow, the Publish Now functionality, status polling, quota display, error handling, and calendar integration.
-     - What will be achieved with this?: This will validate that the most critical feature of the application is working as expected, paving the way for production deployment.
-     - Status:  IN PROGRESS
-     - Should Test frontend/backend/both after fix?: both
-     - Blocked on something: No.
+- None.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks:**
+    - P0: Complete frontend wiring for Sprint 9 (Overview, ROI Center, FVS System page).
     - P1: Implement full OAuth integration for TikTok and Instagram Reels on the Publishing page.
-    - P1: Implement full animation and page transitions for a more fluid UX. (Partially done in Sprint 5, may need further refinement).
+    - P1: Add a Quick Test Upload helper for developers to attach placeholder videos.
 - **Future Tasks:**
     - P1: Refactor media services to make S3 the primary and non-fallback storage mechanism.
     - P2: Integrate Stripe to replace the mocked billing system.
@@ -45,16 +78,24 @@ There are no outstanding bug reports. The current focus is on completing and ver
     - P2: Add a feature for admins to onboard new clients directly from the admin panel.
 
 **Completed work in this session**
-- **Sprint 4 Gap Fill (Tooltips)**: Expanded  coverage to all 11 required pages, completing the universal tooltip system. (DONE)
-- **Sprint 5 (Silk Animations)**: Integrated  to add page transitions, animated numbers, staggered card entry, sidebar glow effects, and other micro-interactions across the app. (DONE)
-- **Sprint 6 (Mastermind Calendar)**: Rebuilt the  into a two-pane, drag-and-drop interface with a Content Pipeline, multiple views (Month/Agenda/Upcoming), and an AI suggestion engine. (DONE)
-- **Sprint 7 (OAuth Publishing Layer - Implementation)**:
-    - Created backend models (, ) and API routes (, ) with a mock OAuth flow.
-    - Implemented a Connected Accounts section in .
-    - Completely redesigned  with a new UI for queuing, publishing, and tracking content. (DONE)
+- **Sprint 8 - Real OAuth & Data Wipe**:
+    - Replaced the mock OAuth flow with a real Google OAuth 2.0 implementation.
+    - Resolved user's  error by providing the correct URI.
+    - Updated the backend with new user-provided client credentials.
+    - Performed a hard wipe of all mock/seeded data from the database, preserving only the real YouTube connection and synced data. (DONE)
+- **Sprint 9A - Real Analytics Pipeline**:
+    - Created  to sync video performance data from the YouTube Data API.
+    - Added new endpoints () to serve this data.
+    - Wired the main Analytics page UI to display real-time channel statistics. (DONE)
+- **Sprint 9B - Trend Intelligence Engine**:
+    - Created  to scan competitor channels and trending topics.
+    - Integrated Gemini 2.0 Flash via Emergent LLM Key to generate data-driven content recommendations.
+    - Added new endpoints () to trigger scans and retrieve recommendations. (DONE)
+- **Cron Jobs**: Implemented daily cron jobs using APScheduler for automatic analytics and trend syncs. (DONE)
+- **Testing & Bug Fixes**: Successfully ran end-to-end tests using the testing agent, which found and fixed two bugs related to timestamp parsing and LLM import paths. (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-- None.
+- The full YouTube Analytics API () could not be used because the user's channel is not in the YouTube Partner Program (YPP). The agent correctly implemented a fallback to the YouTube Data API, which provides core metrics like views and likes, but not watch time or AVD. This is a limitation, not a bug to be fixed.
 
 **Known issue recurrence from previous fork**
   - None.
@@ -63,87 +104,79 @@ There are no outstanding bug reports. The current focus is on completing and ver
 
 
 **Key Technical Concepts**
-- **Frontend**: React, React Router, Tailwind CSS, Shadcn UI, Framer Motion, .
-- **Backend**: FastAPI, Pydantic.
+- **Frontend**: React, React Router, Tailwind CSS, Shadcn UI, Framer Motion.
+- **Backend**: FastAPI, Pydantic, APScheduler for cron jobs.
 - **Database**: MongoDB.
-- **UI/UX**: Glass-morphism, Aura theme, page transitions, drag-and-drop.
-- **Authentication**: Custom JWT, Mock OAuth 2.0 PKCE flow.
+- **Authentication**: Real Google OAuth 2.0 PKCE flow.
+- **3rd Party APIs**: YouTube Data API v3, YouTube Analytics API (fallback implemented).
+- **LLM**: Gemini 2.0 Flash via .
 
 **key DB schema**
-  - **notifications**: uid=0(root) gid=0(root) groups=0(root), , , , , , , .
-  - **oauth_tokens**: uid=0(root) gid=0(root) groups=0(root), , , , , , , , .
-  - **publish_jobs**: uid=0(root) gid=0(root) groups=0(root), , , , , , , .
+  - **youtube_analytics**: , , , , , .
+  - **channel_snapshots**: , , , , .
+  - **competitor_videos**: , , , , .
+  - **trending_topics**: , , , .
+  - **fvs_recommendations**: , , .
 
 **changes in tech stack**
-  - Added  for animations.
-  - Added , ,  for drag-and-drop functionality.
+  - Added ,  for real YouTube integration.
+  - Used  to connect with Gemini 2.0 Flash LLM.
+  - Utilized  for background job scheduling.
 
 **All files of reference**
-- **Sprint 7 Core Files:**
-  -  (New: Handles OAuth connection flow)
-  -  (New: Handles publishing logic)
-  -  (New: Mock YouTube API interaction)
-  -  (Updated for Connected Accounts)
-  -  (New: Redesigned publishing UI)
-- **Sprint 6 Core Files:**
-  -  (Rebuilt for drag-and-drop)
-  -  (New: Backend for calendar data and AI suggestions)
-- **Sprint 5 Core Files:**
-  -  (New directory with animation components)
-  -  (Updated with )
-  -  (Updated with animation keyframes)
+-  (New: Handles syncing data from YouTube Analytics/Data API)
+-  (New: Handles competitor/trend scanning and LLM recommendations)
+-  (New: API endpoints for analytics data)
+-  (New: API endpoints for trend intelligence)
+-  (Updated: Full real Google OAuth implementation)
+-  (Updated: Registered new routers and scheduler)
+-  (Updated: Added daily cron jobs for analytics and trends)
+-  (Rebuilt: Wired to live backend analytics data)
 
 **Areas that need refactoring**:
-- A future task is to refactor all media services to enforce S3 as the sole, mandatory storage solution.
+- The frontend pages , , and  need to be updated to consume the new backend endpoints created in Sprint 9. This is not a refactor but pending implementation work.
 
 **key api endpoints**
-- : Initiates the mock OAuth flow.
-- : Handles the mock OAuth redirect.
-- : Deletes stored mock tokens.
-- : Fetches connection status for all platforms.
-- : Initiates a mock video publish job.
-- : Polls the status of a publish job.
-- : Returns mock daily quota usage.
-- : Provides AI-driven scheduling suggestions.
-- : Used to update submission status and schedule date.
+- : Triggers a sync of video performance data from YouTube.
+- : Returns high-level channel stats (total views, subscribers, best video).
+- : Returns detailed performance data for all synced videos.
+- : Triggers competitor/keyword scanning and generates AI recommendations.
+- : Returns the latest AI-generated content ideas.
+- : Returns data on top-performing competitor videos.
 
 **Critical Info for New Agent**
-- Your immediate task is to thoroughly test the Sprint 7: Real OAuth Publishing Layer feature. The implementation is done, but it has not been verified against the user's comprehensive acceptance criteria.
-- Use the  to run a full end-to-end test suite covering all 10 scenarios outlined in the Sprint 7 prompt.
-- The entire OAuth and publishing flow is currently mocked on the backend (). Your testing should validate this mock flow works perfectly, as it's the foundation for the real integration.
-- Do not proceed to new features until Sprint 7 is fully tested and any bugs are fixed.
+- **Sprint 9 is partially complete.** The backend services and APIs are fully built and tested. However, only the  page on the frontend has been updated. Your immediate task is to wire up the **Overview, ROI Center, and FVS System pages** to their corresponding new backend endpoints ( and ).
+- **Trend Scanning Requires an API Key.** The competitor/trend scanning service () needs a standard YouTube Data API v3 key to search for public videos. The current implementation will fail until a key is provided. You will need to ask the user for this key and add it to  as .
+- **Analytics API has a fallback.** The app correctly falls back from the YouTube Analytics API (which requires YPP) to the Data API. This means metrics like  and  will be 0. This is expected behavior; do not try to fix it. Focus on displaying the data that is available (views, likes, comments).
 
 **documents and test reports created in this job**
--  (Continuously updated)
--  (Sprint 4 Test)
--  (Sprint 5 Test)
--  (Sprint 6 Test)
+-  (Updated with Sprint 8 & 9)
+- 
 
 **Last 10 User Messages and any pending HUMAN messages**
-- **User**: Approved the plan for Sprint 7, emphasizing the need for a fully demonstrable mock flow and zero regressions. (PENDING)
-- **Agent**: Proposed the implementation plan for Sprint 7. (RESOLVED)
-- **User**: Provided the prompt for Sprint 7: P0 — Real OAuth Publishing Layer. (RESOLVED)
-- **Agent**: Finished Sprint 6. (COMPLETE)
-- **User**: Approved the plan for Sprint 6, prioritizing the fluid drag-and-drop experience. (RESOLVED)
-- **Agent**: Proposed the implementation plan for Sprint 6. (RESOLVED)
-- **User**: Provided the prompt for Sprint 6: The Mastermind Calendar. (RESOLVED)
-- **Agent**: Finished Sprint 5. (COMPLETE)
-- **User**: Approved the plan for Sprint 5. (RESOLVED)
-- **Agent**: Proposed the implementation plan for Sprint 5. (RESOLVED)
+1.  **User**: Provided the prompt for Sprint 9 (Analytics + Trend Engine).
+2.  **Agent**: Proposed a plan to implement Sprint 9.
+3.  **User**: Instructed the agent to use Gemini 2.0 Flash and confirmed that the  scope was already active, telling the agent to proceed without re-authorization.
+4.  **Agent**: Acknowledged and began implementation.
+5.  ... (agent implementation steps) ...
+6.  **Agent**: Finished Sprint 9, ran tests, and summarized the results, noting the successful completion and minor bugs fixed by the testing agent.
+7.  **User**: Reported a 400: redirect_uri_mismatch error with Google OAuth.
+8.  **Agent**: Provided the exact redirect URI and instructions to fix the configuration in Google Cloud Console.
+9.  **User**: Provided a new Client ID and Client Secret.
+10. **Agent**: Updated the backend credentials and confirmed the fix.
+11. **User**: Requested a hard wipe of all mock and seeded data, preserving only the real YouTube connection.
 
 **Project Health Check:**
 - **Broken**: None.
 - **Mocked**:
-    - **Publishing Layer**: The entire end-to-end publishing flow is mocked at the service level () to simulate OAuth and video uploads without real credentials.
     - **Video Generation**: The  provider integration is mocked.
     - **Stripe Payments**: The billing system and Stripe integration are mocked.
 
 **3rd Party Integrations**
-- **YouTube Data API v3**: Mocked integration for video publishing.
-- **OpenAI, Gemini, Anthropic (Text Generation)**: Integrated via  — uses **Emergent LLM Key**.
-- **OpenAI GPT-Image-1 (Image Generation)**: Integrated — uses **Emergent LLM Key**.
+- **YouTube Data API v3 & Analytics API**: Live integration for channel data sync and public searches — requires User API Key for public searches.
+- **Google OAuth 2.0**: Live integration for user authentication.
+- **Gemini 2.0 Flash (Text Generation)**: Integrated via  — uses **Emergent LLM Key**.
 - **ElevenLabs (Voice Generation)**: Integrated — requires User API Key.
-- **Google Veo (Video Generation)**: Integrated — requires User API Key.
 - **Runway (Video Generation)**: Mocked — requires User API Key.
 - **Stripe (Payments)**: Mocked — requires User API Key.
 
@@ -151,11 +184,14 @@ There are no outstanding bug reports. The current focus is on completing and ver
   - Testing agent used after significant changes: YES
   - Troubleshoot agent used after agent stuck in loop: NO
   - Test files created: []
-  - Known regressions: None, but Sprint 7 is untested.
+  - Known regressions: None.
 
 **Credentials to test flow:**
 -   **Client**:  / 
 -   **Admin**:  / 
 
 **What agent forgot to execute**
-The agent has completed the implementation of Sprint 7 but has not yet performed the comprehensive end-to-end testing that was explicitly required in the user's prompt. The manual screenshots only confirm the UI renders, not that the complex workflows (OAuth connection, publishing, status polling, error handling, quota management, calendar integration) are functional. The next step must be to call the testing agent to validate all 10 acceptance criteria from the Sprint 7 prompt.</analysis>
+The agent successfully built the backend for Sprint 9 and wired up the Analytics page. However, it did not complete the full scope of the task. The following frontend components still need to be updated to use the new live data endpoints:
+-   **Overview Page**: Does not show the real subscriber count or Best Performing Short from the new  endpoint.
+-   **ROI Center**: Still uses mocked data instead of real watch time and view metrics from the  endpoint.
+-   **FVS System Page**: Has not been upgraded to display the AI-generated recommendations and competitor data from the  endpoints.</analysis>

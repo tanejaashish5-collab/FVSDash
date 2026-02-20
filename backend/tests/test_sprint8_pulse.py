@@ -6,7 +6,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://silk-studio-preview.preview.emergentagent.com")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://trend-forge-3.preview.emergentagent.com")
 
 # Test credentials
 CLIENT_EMAIL = "alex@company.com"

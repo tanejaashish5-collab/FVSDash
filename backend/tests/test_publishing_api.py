@@ -4,7 +4,7 @@ import requests
 import os
 
 # Use public URL for testing
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://feedback-analytics-1.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://video-monetize-flow.preview.emergentagent.com')
 
 
 class TestPublishingAPI:

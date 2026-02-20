@@ -539,7 +539,7 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 ```
 YOUTUBE_CLIENT_ID=597182844338-...
 YOUTUBE_CLIENT_SECRET=GOCSPX-...
-YOUTUBE_REDIRECT_URI=https://feedback-analytics-1.preview.emergentagent.com/api/oauth/callback/youtube
+YOUTUBE_REDIRECT_URI=https://video-monetize-flow.preview.emergentagent.com/api/oauth/callback/youtube
 ```
 
 #### Test Results (Feb 2026):

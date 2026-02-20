@@ -174,7 +174,7 @@ async def get_accuracy_trend(db, user_id: str) -> List[Dict[str, Any]]:
         try:
             dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
             week = dt.strftime("%Y-W%V")
-        except:
+        except (ValueError, TypeError):
             continue
         
         if week not in weekly_data:

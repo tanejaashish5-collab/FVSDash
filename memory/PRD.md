@@ -22,6 +22,90 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 
 ## What's Been Implemented
 
+### Phase 29 — Sprint 10: UI Wiring + Foundation Fixes (Feb 20, 2026)
+
+**Summary**: Wired all remaining UI components to backend services and fixed critical bugs. All Sprint 10 objectives complete.
+
+#### Part A: FVS System - Interactive AI Recommendation Cards
+**File**: `/app/frontend/src/pages/FvsSystemPage.jsx`
+- Replaced static ideas table with interactive gradient cards
+- Each card shows: title, hook/angle, performance tier badge (High/Medium)
+- Cards are clickable to open idea panel with full details
+- "Scan for New Ideas" button with gradient styling
+
+#### Part B: Analytics Page - Trend Intelligence Tab
+**File**: `/app/frontend/src/pages/AnalyticsPage.jsx`
+- Added tabbed interface (Performance | Trend Intelligence)
+- Trend Intelligence tab includes:
+  - **Top Competitor Shorts**: 8 videos with thumbnails, views, external links
+  - **Trending Keywords**: Popular search terms with video counts
+- Fetches from `/api/trends/competitors` and `/api/trends/trending`
+
+#### Part C: Overview Dashboard - Channel Health
+**File**: `/app/frontend/src/pages/OverviewPage.jsx`
+- YouTube Channel Stats showing 1,320 subscribers, 116,803 views, 73 videos
+- Best Performing Short with thumbnail and engagement metrics
+- Live Data badge
+
+#### Part D: ROI Center - YouTube-Native CPM Model
+**File**: `/app/frontend/src/pages/ROIPage.jsx`
+- Complete rework with CPM-based revenue calculation:
+  - **Ad Revenue** = (Total Views / 1000) × CPM Rate
+  - **Sponsorship Revenue** = Videos × Sponsorship per Video
+- Editable settings in ROI Settings sheet:
+  - CPM Rate: $1.50 default (realistic for Indian YouTube)
+  - Sponsorship per Video: $0 default
+- Settings persist to localStorage
+- Shows: Total Views (116,803), Est. Ad Revenue ($175.20), Revenue Breakdown chart
+
+#### Part E: Critical Bug Fixes
+1. **YouTube Token Auto-Refresh** (`/app/frontend/src/utils/youtubeApi.js`):
+   - Created utility with `refreshYouTubeToken()` function
+   - Catches 401 errors and attempts token refresh via `/api/oauth/refresh/youtube`
+   - Shows reconnect toast on failure
+   
+2. **Chanakya Sutra Blog Articles** (`/app/backend/migrations/update_blog_chanakya.py`):
+   - 5 authentic Chanakya-themed articles with real teachings:
+     1. "Saam, Daam, Dand, Bhed: The 4 Pillars of Influence for Content Creators"
+     2. "The Panchatantra Principle: Why Story-First Content Wins on Shorts"
+     3. "Karma Yoga for Creators: Detach from Views, Attach to Value"
+     4. "The Mandala Strategy: Building Your Content Kingdom Layer by Layer"
+     5. "Arthashastra Economics: Pricing Your Time and Monetizing Wisdom"
+   - Each follows format: Ancient principle → Modern application → 3 Actionable Takeaways
+   - Hinglish examples in body, English main text
+   
+3. **Help Page Error Toast** (`/app/frontend/src/pages/HelpPage.jsx`):
+   - Fixed error handling to only show toast for 5xx errors
+   - Empty data now shows clean empty state instead of error
+   
+4. **Strategy Lab Tone Pre-population** (`/app/frontend/src/pages/StrategyPage.jsx`):
+   - Now fetches from channel profile first (`/api/channel-profile`)
+   - Falls back to settings brandVoiceDescription
+   - Pre-populates with "strategic, sharp, guru-like, authoritative"
+   
+5. **Asset Thumbnail Previews** (`/app/frontend/src/pages/AssetsPage.jsx`):
+   - Improved `isImageUrl()` function to detect more image hosting patterns
+   - Fixed case-sensitivity bug (Thumbnail vs thumbnail)
+   - Shows image preview with zoom overlay for thumbnails
+
+#### Part F: Navigation Cleanup
+**File**: `/app/frontend/src/components/layout/Sidebar.jsx`
+- Renamed "Deliverables" → "Production Files"
+- Added video count badge to "Submissions" (shows 73)
+- Badge styled with indigo colors
+
+#### Test Results (Feb 20, 2026):
+- Backend: 100% (16/16 tests passed)
+- Frontend: 100% (13/13 Sprint 10 features verified)
+- Test report: `/app/test_reports/iteration_35.json`
+
+#### Live Verification (5-Point Check):
+1. ✅ FVS System shows Chanakya-specific recommendation cards
+2. ✅ Analytics Trend Intelligence tab shows competitor data
+3. ✅ Overview shows 1,320 subscribers
+4. ✅ ROI Center shows $175.20 ad revenue (116,803 views × $1.50 CPM)
+5. ✅ Blog shows 5 Chanakya articles
+
 ### Phase 28 — Real Analytics + Trend Intelligence Engine (Sprint 9) (Feb 2026)
 
 **Summary**: Wired real YouTube Analytics API into the system and built a competitor/trend scanning engine with AI-powered content recommendations.

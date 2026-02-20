@@ -5,11 +5,11 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 
 ## Architecture
 - **Frontend**: React 19 + Tailwind CSS + shadcn/ui + Recharts + lucide-react + Framer Motion + @dnd-kit
-- **Backend**: FastAPI + Motor (async MongoDB) + PyJWT + emergentintegrations + APScheduler + google-api-python-client
+- **Backend**: FastAPI + Motor (async MongoDB) + PyJWT + emergentintegrations + APScheduler + google-api-python-client + boto3
 - **Database**: MongoDB (multi-tenant via clientId scoping)
 - **Auth**: JWT-based with admin/client roles
 - **AI**: Multi-provider LLM (Gemini 2.0 Flash via Emergent key)
-- **Storage**: S3/S3-compatible (optional, with graceful fallback to data URLs)
+- **Storage**: S3/S3-compatible with graceful fallback to local filesystem
 - **Brand Brain**: Channel Profile system for AI content customization
 - **Publishing**: Real YouTube OAuth 2.0 + mock TikTok/Instagram
 - **Analytics**: Real YouTube Analytics + Data API integration
@@ -19,8 +19,90 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 - **Universal Tooltips**: Contextual help system with glassmorphic tooltips
 - **Silk Animations**: Premium page transitions and micro-interactions via Framer Motion
 - **Mastermind Calendar**: Drag-and-drop strategic scheduling workbench
+- **Pipeline**: Script-to-Short automated workflow (Strategy Lab → AI Video Lab → Submissions)
 
 ## What's Been Implemented
+
+### Phase 33 — Sprint 15: S3 Storage + E2E Tests + Reliability Fixes + Script-to-Short Pipeline (Feb 20, 2026)
+
+**Summary**: Comprehensive reliability and infrastructure sprint. Added S3 storage with local fallback, 8 E2E journey tests, global search functionality, notification optimizations, and the Script-to-Short pipeline connecting Strategy Lab to AI Video Lab to Submissions.
+
+#### Part A: S3 as Primary Storage
+**Files**:
+- `/app/backend/services/storage_service.py` - Unified storage service
+
+**Features**:
+- `StorageService` class with S3 primary, local fallback
+- Auto-detection of S3 configuration via `AWS_S3_BUCKET`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+- `upload_file()` - Uploads to S3 or local `/app/uploads/`
+- `get_file_url()` - Returns presigned URLs for S3, local paths for filesystem
+- `delete_file()` - Removes from either storage backend
+- `read_file()` - Reads from either storage backend
+- Graceful fallback with warning log when S3 not configured
+- Admin migration endpoint `POST /api/admin/migrate-assets` for moving local files to S3
+
+#### Part B: Full E2E Test Suite
+**Files**:
+- `/app/backend/tests/test_e2e_workflow.py` - 8 comprehensive tests
+- `/app/backend/pytest.ini` - pytest-asyncio configuration
+
+**Tests**:
+1. **Content Creation Journey**: Login → Create submission → Update status → Schedule → Unschedule → Delete
+2. **Brain Feedback Loop**: Scan → Recommendations → Create submission → Verify brain score
+3. **Analytics Pipeline**: Sync → Overview → Videos → Chart data
+4. **Admin Multi-Channel**: Create client → Verify list → Login as client → Deactivate
+5. **Publishing Flow**: Create submission → Attach test video → Check video → Verify publish endpoints
+6. **Pipeline Health**: Unit test for pipeline health endpoint
+7. **Search**: Unit test for global search endpoint
+8. **Storage Status**: Unit test for storage service
+
+#### Part C: Reliability Fixes
+**Files**:
+- `/app/backend/routers/search.py` - Global search API
+- `/app/frontend/src/components/layout/Header.jsx` - Search bar with dropdown
+
+**Global Search**:
+- `GET /api/search?q={query}` - Searches across submissions, assets, recommendations
+- Returns grouped results with type badges and URLs
+- 300ms debounce on frontend
+- Dropdown shows results grouped by category
+- Click result navigates to relevant page
+- Escape key closes dropdown
+
+**Notification Bell**:
+- `POST /api/notifications/read-all` called when panel closes
+- Unread count drops to 0 immediately (optimistic update)
+- Polling continues every 30 seconds
+
+#### Part D: Script-to-Short Pipeline
+**Files**:
+- `/app/backend/services/pipeline_service.py` - Pipeline orchestration
+- `/app/backend/routers/pipeline.py` - Pipeline API
+- `/app/frontend/src/pages/StrategyPage.jsx` - "Send to Production" button
+- `/app/frontend/src/pages/VideoLabPage.jsx` - Pre-load from submission
+
+**Backend Endpoints**:
+- `POST /api/pipeline/script-to-submission` - Creates submission from strategy session
+- `POST /api/pipeline/submission-to-video` - Triggers video generation for submission
+- `GET /api/pipeline/status/{submission_id}` - Full pipeline status with completion %
+- `GET /api/pipeline/health` - Pipeline health widget data
+- `GET /api/pipeline/submission-for-video/{submission_id}` - Fetch submission for Video Lab
+- `POST /api/pipeline/link-video` - Link video asset to submission
+
+**Frontend Features**:
+- "Send to Production" button (gold, full-width at bottom of Strategy Lab when script exists)
+- Success modal with "Go to AI Video Lab" navigation
+- Video Lab pre-loads submission via `?submission_id=XXX` query param
+- Blue info banner shows source submission in Video Lab
+- Auto-set aspect ratio and profile for Shorts content
+
+#### Sprint 15 Test Results (Feb 20, 2026):
+- Backend: 100% (17/17 tests passed)
+- Frontend: 100% (all features verified)
+- Test reports: `/app/test_reports/iteration_39.json`
+- Bug fixed: Pipeline ownership check for snake_case field names
+
+---
 
 ### Phase 32 — Sprint 14: Real YouTube Publishing + Stripe Billing (Skipped) + Quick Test Upload (Feb 20, 2026)
 

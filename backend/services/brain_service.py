@@ -1,10 +1,11 @@
 """
-Brain Feedback Loop Service - Sprint 12
+Brain Feedback Loop Service - Sprint 12/13
 Tracks AI recommendation predictions vs actual video performance.
+Includes Challenge tracking with 30-day deadlines.
 """
 import uuid
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Any, List
 
 logger = logging.getLogger(__name__)
@@ -14,6 +15,9 @@ TIER_THRESHOLDS = {
     "High": 5000,    # predicted High = actual views >= 5000
     "Medium": 1000,  # predicted Medium = actual views >= 1000
 }
+
+# Challenge deadline: 30 days to collect enough view data
+CHALLENGE_DAYS = 30
 
 
 async def create_brain_score(

@@ -19,6 +19,7 @@ import { AuraTooltip } from '@/components/ui/AuraTooltip';
 import { tooltipContent } from '@/constants/tooltipContent';
 import { AnimatedNumber } from '@/components/animations/AnimatedNumber';
 import { AuraSpinner } from '@/components/animations/AuraSpinner';
+import { refreshYouTubeToken } from '@/utils/youtubeApi';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 

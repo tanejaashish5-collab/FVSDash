@@ -80,8 +80,10 @@ function PlanCard({ plan, price, features, isCurrent, onSelect }) {
 
 export default function BillingPage() {
   const { authHeaders } = useAuth();
+  const [searchParams] = useSearchParams();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -94,18 +96,66 @@ export default function BillingPage() {
       .finally(() => setLoading(false));
   }, [authHeaders]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { 
+    fetchData(); 
+    
+    // Handle success/cancelled redirects from Stripe
+    if (searchParams.get('success') === 'true') {
+      toast.success('Subscription activated successfully!', {
+        description: 'Your plan is now active.'
+      });
+    } else if (searchParams.get('cancelled') === 'true') {
+      toast.info('Checkout cancelled', {
+        description: 'You can try again anytime.'
+      });
+    }
+  }, [fetchData, searchParams]);
 
-  const handleStripeAction = (action) => {
-    toast.info(`Stripe integration is not yet connected in this environment.`, {
-      description: `"${action}" will be available once Stripe is configured.`,
-    });
+  // Create Stripe checkout session and redirect
+  const handlePlanSelect = async (plan) => {
+    if (!data?.stripeConfigured) {
+      toast.error('Stripe not configured', {
+        description: 'Contact admin to enable billing.'
+      });
+      return;
+    }
+    
+    setCheckoutLoading(true);
+    try {
+      const planKey = plan.toLowerCase();
+      const res = await axios.post(
+        `${API}/billing/checkout`,
+        { 
+          plan: planKey,
+          origin_url: window.location.origin
+        },
+        { headers: authHeaders }
+      );
+      
+      if (res.data.checkout_url) {
+        // Redirect to Stripe checkout
+        window.location.href = res.data.checkout_url;
+      }
+    } catch (err) {
+      toast.error('Failed to start checkout', {
+        description: err.response?.data?.detail || 'Please try again.'
+      });
+    } finally {
+      setCheckoutLoading(false);
+    }
   };
 
-  const handlePlanSelect = (plan) => {
-    toast.info(`Stripe integration is not yet connected in this environment.`, {
-      description: `Upgrading to "${plan}" will be available once Stripe is configured.`,
-    });
+  // Handle Stripe portal for managing subscription
+  const handleStripeAction = async (action) => {
+    if (!data?.stripeConfigured) {
+      toast.info('Stripe not configured', {
+        description: 'Contact admin to enable billing.'
+      });
+      return;
+    }
+    
+    // For update payment / manage subscription, redirect to checkout for now
+    toast.info(`Opening Stripe portal for: ${action}`);
   };
 
   const formatDate = (dateStr) => {

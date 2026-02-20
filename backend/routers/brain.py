@@ -53,3 +53,14 @@ async def get_leaderboard(
     client_id = get_client_id_from_user(user)
     db = get_db()
     return await brain_service.get_leaderboard(db, client_id, limit)
+
+
+@router.get("/active-challenges")
+async def get_active_challenges(user: dict = Depends(get_current_user)):
+    """
+    Get active (pending) brain predictions ordered by days_remaining (most urgent first).
+    Returns: { active_challenges: [...], total_active: N }
+    """
+    client_id = get_client_id_from_user(user)
+    db = get_db()
+    return await brain_service.get_active_challenges(db, client_id)

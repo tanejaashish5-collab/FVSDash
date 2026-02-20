@@ -184,6 +184,7 @@ export default function OverviewPage() {
   const [topPerformers, setTopPerformers] = useState([]);
   const [brainScores, setBrainScores] = useState(null);
   const [adminOverview, setAdminOverview] = useState(null);
+  const [activeChallenges, setActiveChallenges] = useState(null);
   
   const isAdmin = user?.role === 'admin';
 
@@ -221,7 +222,14 @@ export default function OverviewPage() {
           .catch(() => {})
       : Promise.resolve();
     
-    Promise.all([dashboardReq, adminReq, analyticsReq, topPerformersReq, brainReq])
+    // Fetch active challenges count (only for clients)
+    const challengesReq = !isAdmin
+      ? axios.get(buildApiUrl(`${API}/brain/active-challenges`), { headers: authHeaders })
+          .then(res => setActiveChallenges(res.data))
+          .catch(() => {})
+      : Promise.resolve();
+    
+    Promise.all([dashboardReq, adminReq, analyticsReq, topPerformersReq, brainReq, challengesReq])
       .finally(() => setLoading(false));
   }, [authHeaders, buildApiUrl, isAdmin]);
 

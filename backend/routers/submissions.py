@@ -52,6 +52,9 @@ async def create_submission(
     user: dict = Depends(get_current_user),
     impersonateClientId: Optional[str] = Query(None)
 ):
+    from db.mongo import get_db
+    from services import brain_service
+    
     client_id = get_client_id_from_user(user, impersonateClientId)
     if not client_id:
         raise HTTPException(status_code=400, detail="Client ID required to create submissions")
@@ -71,12 +74,42 @@ async def create_submission(
         "releaseDate": data.releaseDate,
         "sourceFileUrl": data.sourceFileUrl,
         "strategyIdeaId": data.strategyIdeaId,  # Link to FVS idea if applicable
+        "recommendation_id": data.recommendation_id,  # Link to AI recommendation for Brain tracking
         "createdAt": now,
         "updatedAt": now,
     }
     await db.insert_one(doc)
     doc.pop("_id", None)
-    return doc
+    
+    # Sprint 12: Create brain_scores record if recommendation_id is provided
+    brain_score_id = None
+    if data.recommendation_id:
+        try:
+            mongo_db = get_db()
+            # Try to get recommendation details for predicted tier
+            rec = await brain_service.get_recommendation_by_id(mongo_db, client_id)
+            predicted_tier = "Medium"  # Default
+            if rec:
+                predicted_tier = rec.get("performanceTier", "Medium")
+            
+            brain_score = await brain_service.create_brain_score(
+                mongo_db,
+                user_id=client_id,
+                recommendation_id=data.recommendation_id,
+                submission_id=submission_id,
+                predicted_tier=predicted_tier,
+                predicted_title=data.title
+            )
+            brain_score_id = brain_score.get("id")
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Failed to create brain score: {e}")
+    
+    result = {**doc}
+    if brain_score_id:
+        result["brain_score_id"] = brain_score_id
+    
+    return result
 
 
 @router.patch("/submissions/{submission_id}/status")

@@ -82,7 +82,7 @@ function NavItem({ item, isActive, tourId, badgeCount }) {
   );
 }
 
-function NavSection({ title, items, currentPath }) {
+function NavSection({ title, items, currentPath, submissionCount }) {
   // Map labels to tour data attributes
   const tourIds = {
     'Submissions': 'submissions-link',
@@ -101,12 +101,14 @@ function NavSection({ title, items, currentPath }) {
       {items.map(item => {
         const isActive = currentPath === item.path;
         const tourId = tourIds[item.label];
+        const badgeCount = item.showBadge ? submissionCount : 0;
         return (
           <NavItem 
             key={item.path} 
             item={item} 
             isActive={isActive} 
             tourId={tourId}
+            badgeCount={badgeCount}
           />
         );
       })}

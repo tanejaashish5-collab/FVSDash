@@ -463,21 +463,13 @@ export default function PublishingDashboardPage() {
       setShowNoVideoModal(true);
     }
   };
-      description: item.notes || item.description || '',
-      tags: '',
-      privacyStatus: 'public',
-      scheduleEnabled: false,
-      scheduledDate: null,
-      selectedVideoId: item.videoAssets?.[0]?.id || null,
-      selectedThumbnailId: item.thumbnailAssets?.[0]?.id || null,
-    });
-    setPublishProgress(null);
-  };
   
   // Close publish slide-over
   const handleClosePublish = () => {
     setPublishItem(null);
     setPublishProgress(null);
+    setVideoCheckResult(null);
+    setShowNoVideoModal(false);
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = null;

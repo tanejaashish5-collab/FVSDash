@@ -1028,8 +1028,8 @@ export default function PublishingDashboardPage() {
                 </Button>
                 <Button
                   onClick={handlePublish}
-                  disabled={publishing || !publishForm.selectedVideoId || publishProgress?.status === 'live'}
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                  disabled={publishing || !videoCheckResult?.has_video || publishProgress?.status === 'live'}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
                   data-testid="publish-submit-btn"
                 >
                   {publishing ? (
@@ -1037,7 +1037,13 @@ export default function PublishingDashboardPage() {
                   ) : (
                     <Youtube className="h-4 w-4 mr-2" />
                   )}
-                  {publishProgress?.status === 'live' ? 'Published!' : 'Publish to YouTube'}
+                  {publishProgress?.status === 'live' 
+                    ? 'Published!' 
+                    : !videoCheckResult?.has_video 
+                    ? 'No Video' 
+                    : publishForm.privacyStatus === 'public' 
+                    ? 'Publish Public' 
+                    : 'Publish Private'}
                 </Button>
               </div>
             </>

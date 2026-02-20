@@ -106,8 +106,111 @@ def start_scheduler():
         replace_existing=True
     )
     
+    # Daily analytics sync at 6 AM UTC
+    from apscheduler.triggers.cron import CronTrigger
+    _scheduler.add_job(
+        daily_analytics_sync,
+        trigger=CronTrigger(hour=6, minute=0),
+        id="daily_analytics_sync",
+        name="Daily YouTube Analytics Sync",
+        replace_existing=True
+    )
+    
+    # Daily trend scan at 7 AM UTC
+    _scheduler.add_job(
+        daily_trend_scan,
+        trigger=CronTrigger(hour=7, minute=0),
+        id="daily_trend_scan",
+        name="Daily Competitor & Trend Scan",
+        replace_existing=True
+    )
+    
     _scheduler.start()
     logger.info("Publishing scheduler started (checking every 30 seconds)")
+    logger.info("Daily analytics sync scheduled at 6 AM UTC")
+    logger.info("Daily trend scan scheduled at 7 AM UTC")
+
+
+async def daily_analytics_sync():
+    """Run daily analytics sync for all connected YouTube accounts."""
+    from db.mongo import get_db, oauth_tokens_collection
+    from services.analytics_service import sync_channel_analytics
+    
+    logger.info("Starting daily analytics sync...")
+    
+    try:
+        oauth_db = oauth_tokens_collection()
+        db = get_db()
+        
+        # Get all connected YouTube accounts
+        tokens = await oauth_db.find({
+            "platform": "youtube",
+            "connected": True
+        }).to_list(100)
+        
+        synced = 0
+        for token in tokens:
+            client_id = token.get("clientId")
+            access_token = token.get("accessToken")
+            refresh_token = token.get("refreshToken")
+            
+            if not access_token or access_token.startswith("mock_"):
+                continue
+            
+            try:
+                result = await sync_channel_analytics(db, client_id, access_token, refresh_token)
+                if result["success"]:
+                    synced += 1
+                    logger.info(f"Synced analytics for client {client_id}: {result['synced']} videos")
+            except Exception as e:
+                logger.error(f"Failed to sync analytics for {client_id}: {e}")
+        
+        logger.info(f"Daily analytics sync complete. Synced {synced} accounts.")
+    except Exception as e:
+        logger.exception("Daily analytics sync error")
+
+
+async def daily_trend_scan():
+    """Run daily competitor and trend scan for all connected accounts."""
+    from db.mongo import get_db, oauth_tokens_collection
+    from services.trend_service import scan_competitors, scan_trending_topics, generate_recommendations
+    
+    logger.info("Starting daily trend scan...")
+    
+    try:
+        oauth_db = oauth_tokens_collection()
+        db = get_db()
+        
+        # Get all connected YouTube accounts
+        tokens = await oauth_db.find({
+            "platform": "youtube",
+            "connected": True
+        }).to_list(100)
+        
+        scanned = 0
+        for token in tokens:
+            client_id = token.get("clientId")
+            access_token = token.get("accessToken")
+            refresh_token = token.get("refreshToken")
+            
+            try:
+                # Scan competitors
+                await scan_competitors(db, client_id, access_token, refresh_token)
+                
+                # Scan trending topics
+                await scan_trending_topics(db, client_id, access_token, refresh_token)
+                
+                # Generate recommendations
+                await generate_recommendations(db, client_id)
+                
+                scanned += 1
+                logger.info(f"Completed trend scan for client {client_id}")
+            except Exception as e:
+                logger.error(f"Failed trend scan for {client_id}: {e}")
+        
+        logger.info(f"Daily trend scan complete. Scanned {scanned} accounts.")
+    except Exception as e:
+        logger.exception("Daily trend scan error")
 
 
 def stop_scheduler():

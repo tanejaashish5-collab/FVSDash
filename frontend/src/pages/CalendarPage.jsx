@@ -773,11 +773,11 @@ export default function CalendarPage() {
                         ))}
                       </div>
 
-                      {/* Calendar grid */}
+                      {/* Calendar grid - Sprint 13: Increased cell height */}
                       <div className="grid grid-cols-7 gap-px bg-[#1F2933]/50 rounded-lg overflow-hidden">
                         {/* Padding for start of month */}
                         {Array.from({ length: startPadding }).map((_, i) => (
-                          <div key={`pad-${i}`} className="min-h-[90px] bg-[#060c17]/50 p-2" />
+                          <div key={`pad-${i}`} className="min-h-[120px] bg-[#060c17]/50 p-2" />
                         ))}
 
                         {/* Days */}
@@ -785,6 +785,7 @@ export default function CalendarPage() {
                           const daySubmissions = getSubmissionsForDay(day);
                           const suggestion = getSuggestionForDay(day);
                           const isToday = isSameDay(day, new Date());
+                          const cadence = getCadenceWatermark(getDay(day));
                           
                           return (
                             <DroppableDay 
@@ -792,6 +793,7 @@ export default function CalendarPage() {
                               day={day} 
                               isToday={isToday}
                               draggedItem={draggedItem}
+                              cadence={daySubmissions.length === 0 ? cadence : null}
                             >
                               {daySubmissions.slice(0, 2).map(sub => (
                                 <DraggableCalendarEvent

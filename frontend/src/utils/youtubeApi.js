@@ -30,7 +30,7 @@ const isYouTubeEndpoint = (url) => {
 /**
  * Attempt to refresh the YouTube OAuth token
  */
-const refreshYouTubeToken = async (authHeaders) => {
+export const refreshYouTubeToken = async (authHeaders) => {
   try {
     const response = await axios.post(`${API}/api/oauth/refresh/youtube`, {}, {
       headers: authHeaders

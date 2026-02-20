@@ -94,7 +94,8 @@ async def scan_competitors(
             return result
         
         now = datetime.now(timezone.utc)
-        published_after = (now - timedelta(days=14)).isoformat() + "Z"
+        # Use RFC 3339 format without microseconds for YouTube API compatibility
+        published_after = (now - timedelta(days=14)).strftime("%Y-%m-%dT%H:%M:%SZ")
         
         for competitor in COMPETITOR_CHANNELS:
             try:
@@ -206,7 +207,8 @@ async def scan_trending_topics(
             return result
         
         now = datetime.now(timezone.utc)
-        published_after = (now - timedelta(days=7)).isoformat() + "Z"
+        # Use RFC 3339 format without microseconds for YouTube API compatibility
+        published_after = (now - timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%SZ")
         
         for keyword in TREND_KEYWORDS:
             try:

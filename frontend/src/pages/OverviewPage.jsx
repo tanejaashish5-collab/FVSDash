@@ -534,45 +534,84 @@ export default function OverviewPage() {
             </CardContent>
           </Card>
 
-          {/* Quick Actions */}
+          {/* Quick Actions - Admin sees different actions */}
           <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="quick-actions">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>
                 Quick Actions
               </CardTitle>
-              <p className="text-[10px] text-zinc-500">Create, plan, or experiment with AI in one click.</p>
+              <p className="text-[10px] text-zinc-500">
+                {isAdmin ? 'Manage clients and monitor platform.' : 'Create, plan, or experiment with AI in one click.'}
+              </p>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button
-                data-testid="action-submit-content"
-                onClick={() => navigate('/dashboard/submissions')}
-                className="w-full justify-start gap-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 h-9 text-xs"
-                variant="ghost"
-              >
-                <Zap className="h-3.5 w-3.5" />
-                Submit New Content
-                <ArrowRight className="h-3 w-3 ml-auto opacity-50" />
-              </Button>
-              <Button
-                data-testid="action-strategy-lab"
-                onClick={() => navigate('/dashboard/strategy')}
-                className="w-full justify-start gap-2 bg-white/[0.03] hover:bg-white/[0.06] text-zinc-300 border border-[#1F2933] h-9 text-xs"
-                variant="ghost"
-              >
-                <FlaskConical className="h-3.5 w-3.5" />
-                Open Strategy Lab
-                <ArrowRight className="h-3 w-3 ml-auto opacity-50" />
-              </Button>
-              <Button
-                data-testid="action-video-lab"
-                onClick={() => navigate('/dashboard/video-lab')}
-                className="w-full justify-start gap-2 bg-white/[0.03] hover:bg-white/[0.06] text-zinc-300 border border-[#1F2933] h-9 text-xs"
-                variant="ghost"
-              >
-                <Video className="h-3.5 w-3.5" />
-                Launch AI Video Lab
-                <ArrowRight className="h-3 w-3 ml-auto opacity-50" />
-              </Button>
+              {isAdmin ? (
+                <>
+                  <Button
+                    data-testid="action-view-clients"
+                    onClick={() => navigate('/dashboard/admin')}
+                    className="w-full justify-start gap-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 h-9 text-xs"
+                    variant="ghost"
+                  >
+                    <Users className="h-3.5 w-3.5" />
+                    View All Clients
+                    <ArrowRight className="h-3 w-3 ml-auto opacity-50" />
+                  </Button>
+                  <Button
+                    data-testid="action-view-submissions"
+                    onClick={() => navigate('/dashboard/submissions')}
+                    className="w-full justify-start gap-2 bg-white/[0.03] hover:bg-white/[0.06] text-zinc-300 border border-[#1F2933] h-9 text-xs"
+                    variant="ghost"
+                  >
+                    <Zap className="h-3.5 w-3.5" />
+                    View Submissions
+                    <ArrowRight className="h-3 w-3 ml-auto opacity-50" />
+                  </Button>
+                  <Button
+                    data-testid="action-view-analytics"
+                    onClick={() => navigate('/dashboard/analytics')}
+                    className="w-full justify-start gap-2 bg-white/[0.03] hover:bg-white/[0.06] text-zinc-300 border border-[#1F2933] h-9 text-xs"
+                    variant="ghost"
+                  >
+                    <TrendingUp className="h-3.5 w-3.5" />
+                    View Analytics
+                    <ArrowRight className="h-3 w-3 ml-auto opacity-50" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    data-testid="action-submit-content"
+                    onClick={() => navigate('/dashboard/submissions')}
+                    className="w-full justify-start gap-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 h-9 text-xs"
+                    variant="ghost"
+                  >
+                    <Zap className="h-3.5 w-3.5" />
+                    Submit New Content
+                    <ArrowRight className="h-3 w-3 ml-auto opacity-50" />
+                  </Button>
+                  <Button
+                    data-testid="action-strategy-lab"
+                    onClick={() => navigate('/dashboard/strategy')}
+                    className="w-full justify-start gap-2 bg-white/[0.03] hover:bg-white/[0.06] text-zinc-300 border border-[#1F2933] h-9 text-xs"
+                    variant="ghost"
+                  >
+                    <FlaskConical className="h-3.5 w-3.5" />
+                    Open Strategy Lab
+                    <ArrowRight className="h-3 w-3 ml-auto opacity-50" />
+                  </Button>
+                  <Button
+                    data-testid="action-video-lab"
+                    onClick={() => navigate('/dashboard/video-lab')}
+                    className="w-full justify-start gap-2 bg-white/[0.03] hover:bg-white/[0.06] text-zinc-300 border border-[#1F2933] h-9 text-xs"
+                    variant="ghost"
+                  >
+                    <Video className="h-3.5 w-3.5" />
+                    Launch AI Video Lab
+                    <ArrowRight className="h-3 w-3 ml-auto opacity-50" />
+                  </Button>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>

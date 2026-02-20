@@ -175,26 +175,66 @@ async def publish_to_youtube(
 async def process_youtube_upload(job_id: str, client_id: str):
     """
     Background task to process YouTube upload.
-    Mock implementation simulates upload progress.
+    Uses real YouTube API when OAuth is configured, falls back to mock for sandbox.
     """
     jobs_db = publish_jobs_collection()
     subs_db = submissions_collection()
+    assets_db = assets_collection()
     
     try:
+        # Get job details
+        job = await jobs_db.find_one({"id": job_id}, {"_id": 0})
+        if not job:
+            return
+        
         # Update status to uploading
         await jobs_db.update_one(
             {"id": job_id},
             {"$set": {"status": "uploading", "progress": 0, "updatedAt": datetime.now(timezone.utc).isoformat()}}
         )
         
-        # Simulate upload progress (in production, would track real upload)
-        if MOCK_OAUTH_ENABLED:
+        # Check if we should use real YouTube upload
+        use_real_upload = not MOCK_OAUTH_ENABLED
+        
+        if use_real_upload:
+            # Real YouTube upload
+            from services.youtube_upload_service import upload_video_to_youtube, get_video_asset_path
+            
+            # Get video file path
+            video_asset_id = job.get("videoAssetId")
+            video_path = await get_video_asset_path(video_asset_id, client_id) if video_asset_id else None
+            
+            if not video_path:
+                raise Exception("Video file not found or not accessible")
+            
+            # Perform real upload
+            result = await upload_video_to_youtube(
+                user_id=client_id,
+                job_id=job_id,
+                video_file_path=video_path,
+                title=job.get("title", "Untitled"),
+                description=job.get("description", ""),
+                tags=job.get("tags", []),
+                privacy_status=job.get("privacyStatus", "private")
+            )
+            
+            if result.get("success"):
+                video_id = result["video_id"]
+                video_url = result["url"]
+            else:
+                raise Exception(result.get("error", "Upload failed"))
+        else:
+            # Mock implementation for sandbox
             for progress in [10, 25, 45, 65, 85, 100]:
                 await asyncio.sleep(0.5)  # Simulate upload time
                 await jobs_db.update_one(
                     {"id": job_id},
                     {"$set": {"progress": progress, "updatedAt": datetime.now(timezone.utc).isoformat()}}
                 )
+            
+            # Generate mock video ID and URL
+            video_id = f"yt_{secrets.token_urlsafe(8)}"
+            video_url = f"https://youtube.com/shorts/{video_id}"
         
         # Update to processing
         await jobs_db.update_one(
@@ -202,12 +242,8 @@ async def process_youtube_upload(job_id: str, client_id: str):
             {"$set": {"status": "processing", "progress": 100, "updatedAt": datetime.now(timezone.utc).isoformat()}}
         )
         
-        # Simulate YouTube processing (usually takes 10-30 seconds)
+        # Brief delay for YouTube processing
         await asyncio.sleep(1)
-        
-        # Generate mock video ID and URL
-        mock_video_id = f"yt_{secrets.token_urlsafe(8)}"
-        mock_url = f"https://youtube.com/shorts/{mock_video_id}"
         
         now = datetime.now(timezone.utc).isoformat()
         
@@ -216,25 +252,24 @@ async def process_youtube_upload(job_id: str, client_id: str):
             {"id": job_id},
             {"$set": {
                 "status": "live",
-                "platformVideoId": mock_video_id,
-                "platformUrl": mock_url,
+                "platformVideoId": video_id,
+                "platformUrl": video_url,
                 "publishedAt": now,
-                "updatedAt": now
+                "updatedAt": now,
+                "isMockUpload": MOCK_OAUTH_ENABLED
             }}
         )
         
         # Update submission with YouTube info
-        job = await jobs_db.find_one({"id": job_id}, {"_id": 0})
-        if job:
-            await subs_db.update_one(
-                {"id": job["submissionId"]},
-                {"$set": {
-                    "youtubeVideoId": mock_video_id,
-                    "youtubeUrl": mock_url,
-                    "publishedAt": now,
-                    "publishingStatus": "published"
-                }}
-            )
+        await subs_db.update_one(
+            {"id": job["submissionId"]},
+            {"$set": {
+                "youtubeVideoId": video_id,
+                "youtubeUrl": video_url,
+                "publishedAt": now,
+                "publishingStatus": "published"
+            }}
+        )
         
         # Consume quota
         consume_quota(client_id, YOUTUBE_UPLOAD_QUOTA_COST)

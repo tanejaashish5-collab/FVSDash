@@ -8,18 +8,98 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 - **Backend**: FastAPI + Motor (async MongoDB) + PyJWT + emergentintegrations + APScheduler + google-api-python-client
 - **Database**: MongoDB (multi-tenant via clientId scoping)
 - **Auth**: JWT-based with admin/client roles
-- **AI**: Multi-provider LLM (Gemini/OpenAI/Anthropic via Emergent key)
+- **AI**: Multi-provider LLM (Gemini 2.0 Flash via Emergent key)
 - **Storage**: S3/S3-compatible (optional, with graceful fallback to data URLs)
 - **Brand Brain**: Channel Profile system for AI content customization
 - **Publishing**: Real YouTube OAuth 2.0 + mock TikTok/Instagram
-- **Notifications**: Real-time notification engine for status updates and FVS events
+- **Analytics**: Real YouTube Analytics + Data API integration
+- **Trend Intelligence**: Competitor scanning + AI recommendations (Gemini 2.0 Flash)
+- **Notifications**: Real-time notification engine for status updates
 - **Spotlight Tour**: Guided onboarding tour with SVG mask spotlight
 - **Universal Tooltips**: Contextual help system with glassmorphic tooltips
 - **Silk Animations**: Premium page transitions and micro-interactions via Framer Motion
 - **Mastermind Calendar**: Drag-and-drop strategic scheduling workbench
-- **OAuth Publishing Layer**: Real YouTube OAuth 2.0 with PKCE + channel sync capability
 
 ## What's Been Implemented
+
+### Phase 28 — Real Analytics + Trend Intelligence Engine (Sprint 9) (Feb 2026)
+
+**Summary**: Wired real YouTube Analytics API into the system and built a competitor/trend scanning engine with AI-powered content recommendations.
+
+#### Part A: Real YouTube Analytics Pipeline
+
+**Backend Services** (`/app/backend/services/analytics_service.py`):
+- `sync_channel_analytics()`: Fetches real analytics from YouTube Analytics API
+  - Falls back to Data API for non-monetized channels (YPP requirement)
+  - Stores video-level data in `youtube_analytics` collection
+  - Stores channel snapshots in `channel_snapshots` collection
+- `get_analytics_overview()`: Aggregated metrics (views, watch time, CTR, AVD)
+- `get_top_performers()`: Top videos by engagement score (CTR × AVD)
+- `get_chart_data()`: Time-series data for charts
+
+**API Endpoints** (`/app/backend/routers/analytics.py`):
+- `POST /api/analytics/sync` - Triggers YouTube Analytics sync
+- `GET /api/analytics/overview` - Aggregated analytics overview
+- `GET /api/analytics/videos` - Video-level analytics with sorting
+- `GET /api/analytics/chart-data` - Chart data by metric
+- `GET /api/analytics/top-performers` - Top performing videos
+
+**Frontend Updates** (`/app/frontend/src/pages/AnalyticsPage.jsx`):
+- **Sync Analytics button** (teal, top-right) - triggers real data sync
+- **Last synced timestamp** displayed
+- **Real KPIs**: Total Views (116K+), Videos (73), Subscribers (1,320)
+- Charts showing video-by-video performance
+
+#### Part B: Trend Intelligence Engine
+
+**Backend Services** (`/app/backend/services/trend_service.py`):
+- `scan_competitors()`: Scans 11 competitor channels for top Shorts (14 days)
+- `scan_trending_topics()`: Searches 10 trend keywords for viral content
+- `generate_recommendations()`: Gemini 2.0 Flash AI generates 3 content ideas
+
+**Competitor Channels Monitored**:
+- Chanakya Inspired, Chanakya Niti Inspire, Dark Niti, Wake Up World
+- Vayask Nazariya, WealthSutra, I Am Sun Tzu, Machiavelli Mindset
+- Alpha Stoic Hub, Capital STOIC, RedFrost Motivation
+
+**Trend Keywords Tracked**:
+- Chanakya niti, Chanakya quotes hindi, dark psychology hindi
+- dhan niti, kadwi sach, stoicism, mind control hindi
+- ancient wisdom modern life, enemy strategy, power mindset
+
+**API Endpoints** (`/app/backend/routers/trends.py`):
+- `POST /api/trends/scan` - Background scan of competitors + trends
+- `GET /api/trends/scan/status` - Scan progress/status
+- `GET /api/trends/recommendations` - AI-generated content ideas
+- `GET /api/trends/competitors` - Competitor video data
+- `GET /api/trends/trending` - Trending topics by keyword
+
+**AI Recommendations** (Gemini 2.0 Flash):
+- Returns 3 Shorts with Hinglish titles, hooks, angles
+- Example: "Silent Power: कब चुप रहना है? #ChanakyaNiti"
+- Performance tier predictions (High/Medium)
+
+#### Part C: Scheduler Integration
+
+**Daily Cron Jobs** (`/app/backend/services/publishing_scheduler.py`):
+- **6 AM UTC**: `daily_analytics_sync()` - Auto-sync YouTube Analytics
+- **7 AM UTC**: `daily_trend_scan()` - Auto-scan competitors + generate recommendations
+
+#### Database Collections Added
+- `youtube_analytics`: Video-level analytics (73 records)
+- `channel_snapshots`: Channel-level stats (subscribers, views)
+- `competitor_videos`: Competitor channel videos
+- `trending_topics`: Trending videos by keyword
+- `fvs_recommendations`: AI-generated content ideas
+
+#### Test Results (Feb 2026):
+- Backend: 100% (25/25 tests passed)
+- Frontend: 100% (all UI elements working)
+- Test report: `/app/test_reports/iteration_33.json`
+
+#### Limitations:
+- Watch Time, CTR, AVD require YouTube Partner Program monetization
+- Using Data API fallback for basic stats (views, likes)
 
 ### Phase 27 — The "Pulse" Update (Sprint 8) (Feb 2026)
 

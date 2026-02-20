@@ -54,6 +54,8 @@ const statusCfg = {
 
 export default function VideoLabPage() {
   const { authHeaders } = useAuth();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   
   // Provider & capabilities
   const [provider, setProvider] = useState('kling');
@@ -68,6 +70,10 @@ export default function VideoLabPage() {
   const [selectedAudioAsset, setSelectedAudioAsset] = useState('');
   const [selectedVideoAsset, setSelectedVideoAsset] = useState('');
   const [selectedSubmission, setSelectedSubmission] = useState('');
+  
+  // Pipeline state
+  const [pipelineSubmission, setPipelineSubmission] = useState(null);
+  const [linkingVideo, setLinkingVideo] = useState(false);
   
   // Data
   const [tasks, setTasks] = useState([]);
@@ -103,6 +109,38 @@ export default function VideoLabPage() {
     };
     fetchData();
   }, [authHeaders]);
+  
+  // Pre-load from submission via query param
+  useEffect(() => {
+    const submissionId = searchParams.get('submission_id');
+    if (submissionId && authHeaders.Authorization) {
+      // Fetch submission for pre-population
+      axios.get(`${API}/pipeline/submission-for-video/${submissionId}`, { headers: authHeaders })
+        .then(res => {
+          const sub = res.data;
+          if (sub) {
+            setPipelineSubmission(sub);
+            setSelectedSubmission(sub.id);
+            // Pre-populate fields
+            if (sub.title) {
+              setPrompt(sub.hook ? `${sub.title}\n\n${sub.hook}` : sub.title);
+            }
+            if (sub.scriptContent) {
+              setScriptText(sub.scriptContent);
+            }
+            // Set to Shorts profile for Short content
+            if (sub.contentType === 'Short') {
+              setAspectRatio('9:16');
+              setOutputProfile('shorts');
+            }
+            toast.info(`Loaded submission: "${sub.title}"`);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to load submission:', err);
+        });
+    }
+  }, [searchParams, authHeaders]);
 
   const handleCreateTask = async () => {
     if (!prompt) {

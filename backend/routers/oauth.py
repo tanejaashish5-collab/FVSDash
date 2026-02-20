@@ -214,7 +214,7 @@ async def initiate_oauth_connect(
     )
     
     return {
-        "authUrl": oauth_urls.get(platform),
+        "authUrl": auth_url,
         "state": state,
         "isMock": False,
         "popupWidth": 600,

@@ -127,21 +127,42 @@ export default function AnalyticsPage() {
   const [competitors, setCompetitors] = useState([]);
   const [trending, setTrending] = useState([]);
 
+  // Helper to handle YouTube API calls with automatic token refresh
+  const youtubeApiCall = async (url) => {
+    try {
+      const response = await axios.get(url, { headers: authHeaders });
+      return response;
+    } catch (error) {
+      // If 401, try to refresh token and retry
+      if (error.response?.status === 401) {
+        const refreshed = await refreshYouTubeToken(authHeaders);
+        if (refreshed) {
+          return await axios.get(url, { headers: authHeaders });
+        } else {
+          toast.error('YouTube session expired. Please reconnect in Settings.', {
+            duration: 5000
+          });
+        }
+      }
+      throw error;
+    }
+  };
+
   const fetchData = useCallback(() => {
     setLoading(true);
     
-    // Fetch analytics overview (real YouTube data)
-    const overviewReq = axios.get(`${API}/analytics/overview`, { headers: authHeaders })
+    // Fetch analytics overview (real YouTube data) with token refresh handling
+    const overviewReq = youtubeApiCall(`${API}/analytics/overview`)
       .then(res => setOverview(res.data))
       .catch(() => {});
     
     // Fetch video-level analytics
-    const videosReq = axios.get(`${API}/analytics/videos?limit=20`, { headers: authHeaders })
+    const videosReq = youtubeApiCall(`${API}/analytics/videos?limit=20`)
       .then(res => setVideos(res.data?.videos || []))
       .catch(() => {});
     
     // Fetch competitor data for Trend Intelligence tab
-    const competitorsReq = axios.get(`${API}/trends/competitors?limit=10`, { headers: authHeaders })
+    const competitorsReq = youtubeApiCall(`${API}/trends/competitors?limit=10`)
       .then(res => setCompetitors(res.data?.videos || []))
       .catch(() => {});
     

@@ -86,6 +86,12 @@ export default function StrategyPage() {
   const [submissionData, setSubmissionData] = useState({ title: '', contentType: 'Podcast', releaseDate: '' });
   const [creatingSubmission, setCreatingSubmission] = useState(false);
   
+  // Pipeline state
+  const [sendingToProduction, setSendingToProduction] = useState(false);
+  const [showPipelineSuccess, setShowPipelineSuccess] = useState(false);
+  const [pipelineSubmissionId, setPipelineSubmissionId] = useState(null);
+  const [pipelineSubmissionTitle, setPipelineSubmissionTitle] = useState('');
+  
   // Session history state
   const [historyOpen, setHistoryOpen] = useState(false);
   const [sessions, setSessions] = useState([]);

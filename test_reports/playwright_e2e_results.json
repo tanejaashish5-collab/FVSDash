@@ -1,0 +1,141 @@
+{
+  "timestamp": "2026-02-20T11:56:59.455267",
+  "total": 22,
+  "passed": 16,
+  "failed": 6,
+  "pass_rate": "72.7%",
+  "results": [
+    {
+      "page": "Login",
+      "test": "Form elements visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Login",
+      "test": "Login successful",
+      "passed": true,
+      "details": "Redirected to dashboard"
+    },
+    {
+      "page": "Overview",
+      "test": "Page title visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Overview",
+      "test": "Page load",
+      "passed": false,
+      "details": "Locator expected to be visible\nActual value: None\nError: strict mode violation: locator(\"text=PUBLIS"
+    },
+    {
+      "page": "Submissions",
+      "test": "Page container visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Submissions",
+      "test": "Submissions loaded",
+      "passed": false,
+      "details": "Found 0 items"
+    },
+    {
+      "page": "Submissions",
+      "test": "Search input works",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Submissions",
+      "test": "Filter buttons visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Calendar",
+      "test": "Calendar container visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Calendar",
+      "test": "Navigation buttons visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Calendar",
+      "test": "AI Schedule button visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "FVS System",
+      "test": "Page load",
+      "passed": false,
+      "details": "Locator expected to be visible\nActual value: None\nError: element(s) not found \nCall log:\n  - Expect "
+    },
+    {
+      "page": "Analytics",
+      "test": "Page container visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Analytics",
+      "test": "Performance tab visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Analytics",
+      "test": "Trend Intelligence tab clickable",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Analytics",
+      "test": "Charts/visualizations visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Strategy Lab",
+      "test": "Page load",
+      "passed": false,
+      "details": "Locator expected to be visible\nActual value: None\nError: element(s) not found \nCall log:\n  - Expect "
+    },
+    {
+      "page": "Publishing",
+      "test": "Page load",
+      "passed": false,
+      "details": "Locator expected to be visible\nActual value: None\nError: element(s) not found \nCall log:\n  - Expect "
+    },
+    {
+      "page": "Settings",
+      "test": "Page container visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Settings",
+      "test": "Save button visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Header Search",
+      "test": "Search input visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Header Search",
+      "test": "Search dropdown",
+      "passed": false,
+      "details": "Not visible after typing"
+    }
+  ]
+}

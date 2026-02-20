@@ -337,46 +337,46 @@ export default function AnalyticsPage() {
         <div className="flex items-center justify-center h-64">
           <AuraSpinner size="md" />
         </div>
-      ) : !data || chartData.length === 0 ? (
+      ) : !data && !overview ? (
         <Card className="bg-[#0B1120] border-[#1F2933]">
           <CardContent className="py-16 text-center">
             <BarChart3 className="h-12 w-12 text-zinc-700 mx-auto mb-3" />
-            <p className="text-sm text-zinc-500">No analytics data for this period yet.</p>
-            <p className="text-xs text-zinc-600 mt-1">Data will appear here as your content gets published.</p>
+            <p className="text-sm text-zinc-500">No analytics data yet.</p>
+            <p className="text-xs text-zinc-600 mt-1">Click "Sync Analytics" to fetch data from YouTube.</p>
           </CardContent>
         </Card>
       ) : (
         <>
-          {/* KPI Cards */}
+          {/* KPI Cards - Real YouTube Data */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="kpi-row">
             <KPICard
-              label="Total Downloads"
-              value={data.summary.totalDownloads.toLocaleString()}
-              subtext="In selected period"
-              icon={Download}
+              label="Total Views"
+              value={totalViews.toLocaleString()}
+              subtext="Across all Shorts"
+              icon={Eye}
               tooltipContent={tooltipContent.analytics.views30d}
               delay={0}
             />
             <KPICard
-              label="Total Views"
-              value={data.summary.totalViews.toLocaleString()}
-              subtext="Across all content"
-              icon={Eye}
+              label="Watch Time"
+              value={`${Math.round(totalWatchTime / 60)}h`}
+              subtext={`${totalWatchTime.toLocaleString()} minutes total`}
+              icon={Clock}
               delay={0.05}
               tooltipContent={tooltipContent.analytics.watchTime}
             />
             <KPICard
-              label="Episodes Published"
-              value={data.summary.totalEpisodes}
-              subtext="In this range"
+              label="Videos"
+              value={videoCount}
+              subtext={`${subscriberCount.toLocaleString()} subscribers`}
               icon={Radio}
               tooltipContent={tooltipContent.analytics.ctr}
               delay={0.1}
             />
             <KPICard
-              label="Avg ROI / Episode"
-              value={`$${data.summary.avgRoiPerEpisode.toLocaleString()}`}
-              subtext="Estimated return"
+              label="Avg View Duration"
+              value={`${Math.round(avgAvd)}s`}
+              subtext={avgCtr > 0 ? `${avgCtr.toFixed(1)}% CTR` : 'CTR not available'}
               icon={TrendingUp}
               tooltipContent={tooltipContent.analytics.revenue}
               delay={0.15}

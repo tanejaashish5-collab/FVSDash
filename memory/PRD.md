@@ -22,6 +22,142 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 
 ## What's Been Implemented
 
+### Phase 31 — Sprint 13: Content Calendar AI + Brain Prediction Challenge + Admin Role Fix (Feb 20, 2026)
+
+**Summary**: Added three major features: (1) Admin Role Fix - improved admin-specific dashboard with cross-channel summary, hidden client-facing tools from admin sidebar; (2) Content Calendar AI - optimal posting time intelligence with AI-generated 4-week schedules; (3) Brain Prediction Challenge - gamification of the Brain feedback loop with 30-day challenge deadlines.
+
+#### Part A: Admin Role Fix
+**Files**: 
+- `/app/backend/migrations/versions/s13_admin_cleanup.py` - Data cleanup script
+- `/app/backend/routers/dashboard.py` - New `/api/dashboard/admin-overview` endpoint
+- `/app/frontend/src/components/layout/Sidebar.jsx` - Conditional rendering for admin
+- `/app/frontend/src/pages/OverviewPage.jsx` - Admin-specific dashboard
+
+**Backend**:
+- `GET /api/dashboard/admin-overview` - Returns cross-channel summary:
+  - `totalClients`: Count of non-admin users
+  - `totalVideosManaged`: Sum of submissions across all clients
+  - `totalViewsManaged`: Sum of views from channel snapshots
+  - `activeChannels`: Count of users with youtube_connected=true
+
+**Frontend**:
+- Admin Overview shows "ForgeVoice Admin Dashboard" header (not "Welcome back")
+- Admin KPI cards: Total Clients | Videos Managed | Total Views | Active Channels
+- Admin sidebar hides: Labs section (FVS System, Strategy Lab, AI Video Lab) + Blog
+- Admin only sees: Overview, Submissions, Calendar, Production Files, Assets, Publishing, Analytics, ROI Center, Admin Panel, Billing, Settings, Help
+- Brain Accuracy widget hidden from admin Overview (irrelevant for admin)
+
+**Verification**:
+- ✅ Admin login → "ForgeVoice Admin Dashboard" header
+- ✅ Admin KPIs: Total Clients (11), Videos Managed (79), Total Views (0), Active Channels (0)
+- ✅ Admin sidebar hides Labs section and Blog nav
+- ✅ Client login → Full sidebar with Labs and Blog visible
+
+#### Part B: Content Calendar AI
+**Files**:
+- `/app/backend/services/calendar_intelligence_service.py` - New service (created)
+- `/app/backend/routers/calendar.py` - New endpoints added
+- `/app/frontend/src/pages/CalendarPage.jsx` - AI Schedule button and slide-over
+
+**Backend Endpoints**:
+- `GET /api/calendar/best-times` - Returns top 3 day/time slots based on historical performance:
+  - `top_slots[]`: day, time_slot, time_label, avg_views, sample_size, confidence
+  - `total_analyzed`: Number of published videos analyzed
+- `POST /api/calendar/ai-schedule` - Generates AI-powered 4-week schedule using Gemini 2.0 Flash
+- `GET /api/calendar/ai-schedule` - Returns latest generated schedule
+- `POST /api/calendar/apply-suggestion` - Applies single calendar suggestion
+
+**Frontend Features**:
+- **AI Schedule button** (teal) in Calendar page header
+- **AI Schedule slide-over panel** containing:
+  - Best Posting Times section with 🥇🥈🥉 medals
+  - Day/time slot, avg views, confidence level
+  - "Based on X published videos analysis"
+  - "Generate 4-Week Schedule" button
+  - Generated schedule list grouped by week
+  - "Apply Full Schedule" button
+- **Today button** next to month navigation
+- **Improved calendar cells** (120px height, cadence watermarks)
+- **Cadence watermarks** on empty days: "Shorts Day", "Strategy Day"
+- **Improved pipeline cards** (80px min height, description snippet)
+- **"Add New Idea" button** at bottom of pipeline
+
+**Verification**:
+- ✅ Calendar page shows AI Schedule button
+- ✅ AI Schedule opens slide-over with Best Posting Times
+- ✅ Best times shows top 3 slots with confidence levels
+- ✅ Generate Schedule button visible
+
+#### Part C: Brain Prediction Challenge
+**Files**:
+- `/app/backend/services/brain_service.py` - Updated with challenge tracking
+- `/app/backend/routers/brain.py` - New `/api/brain/active-challenges` endpoint
+- `/app/frontend/src/pages/FvsSystemPage.jsx` - Active Challenges panel
+- `/app/frontend/src/pages/OverviewPage.jsx` - Active challenges counter link
+
+**Backend**:
+- `brain_scores` now includes:
+  - `challenge_deadline`: datetime = created_at + 30 days
+  - `days_remaining`: computed (challenge_deadline - now).days
+  - `is_expired`: bool = days_remaining <= 0
+- `GET /api/brain/active-challenges` returns:
+  - `active_challenges[]`: id, predicted_title, predicted_tier, days_remaining, submission_id
+  - `total_active`: Count of pending predictions
+  - Sorted by days_remaining ASC (most urgent first)
+- `GET /api/brain/scores` now includes `days_remaining` and `is_expired` for each score
+
+**Frontend Features**:
+- **Active Predictions panel** on FVS System page:
+  - ⚔️ Active Predictions header
+  - Challenge cards with predicted title, tier badge (High/Medium)
+  - "Verdict in X days" with clock icon
+  - Progress bar showing time elapsed (30-day countdown)
+  - Gold border for High predictions, teal for Medium
+  - Pulse animation when days_remaining ≤ 3
+  - Footer: "The Brain has X active predictions. Check back as your videos collect views."
+  - Empty state: "No active predictions yet"
+- **Active challenges counter** on Overview page:
+  - "⚔️ X active predictions awaiting verdict" link
+  - Navigates to FVS System #active-challenges
+
+**Verification**:
+- ✅ FVS System shows Active Predictions panel with 4 challenges
+- ✅ Each challenge shows tier badge (High), "Verdict in 30 days"
+- ✅ Progress bars visible with gold fill
+- ✅ Overview shows "4 active predictions awaiting verdict" link
+- ✅ Brain scores include days_remaining and is_expired
+
+#### Part D: Strategic Calendar UI Upgrade
+**Files**:
+- `/app/frontend/src/pages/CalendarPage.jsx` - Visual enhancements
+
+**Changes**:
+- Calendar cells: 120px min height (doubled from 60px)
+- Date number: top-left corner, small (11px), muted
+- Cadence watermarks: centered, opacity 30%, configurable via `CADENCE_CONFIG`
+- Pipeline cards: 80px min height, 2-line titles, description snippet
+- "Add New Idea" button with dashed border at bottom of pipeline
+- Empty pipeline state with link to FVS System
+
+#### Sprint 13 Test Results (Feb 20, 2026):
+- Backend: 100% (10/10 API tests passed)
+- Frontend: 100% (all Sprint 13 features verified)
+- Test report: `/app/test_reports/iteration_37.json`
+
+#### 10-Point Verification Checklist:
+1. ✅ Admin login → FVS System, Strategy Lab, AI Video Lab not visible in sidebar
+2. ✅ Admin Overview shows cross-channel summary (Total Clients, Videos Managed)
+3. ✅ Admin FVS System page → old podcast episode ideas completely gone
+4. ✅ Calendar page → "AI Schedule" button visible top-right
+5. ✅ Click "AI Schedule" → slide-over opens showing Best Posting Times section
+6. ✅ Click "Generate Schedule" → AuraSpinner → 4-week schedule appears
+7. ✅ FVS System → "Active Challenges" section visible with 4 challenge cards
+8. ✅ Create submission from recommendation → Active Challenge card appears
+9. ✅ Brain scores include days_remaining and is_expired fields
+10. ✅ All Sprint 13 tests pass
+
+---
+
 ### Phase 30 — Sprint 12: Brain Feedback Loop + Multi-Channel Foundation + Identity Fix (Feb 20, 2026)
 
 **Summary**: Implemented self-improving Brain Feedback Loop to track AI recommendation accuracy, built admin multi-channel onboarding system, and fixed client identity from Alex Chen to Chanakya Sutra.

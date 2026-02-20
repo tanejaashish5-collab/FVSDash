@@ -249,6 +249,54 @@ async def get_leaderboard(db, user_id: str, limit: int = 5) -> List[Dict[str, An
     ]
 
 
+async def get_active_challenges(db, user_id: str) -> Dict[str, Any]:
+    """
+    Get active (pending) brain predictions ordered by days_remaining.
+    These are challenges waiting for verdict.
+    """
+    scores = await db.brain_scores.find(
+        {
+            "user_id": user_id,
+            "performance_verdict": "pending"
+        },
+        {"_id": 0}
+    ).to_list(100)
+    
+    now = datetime.now(timezone.utc)
+    active_challenges = []
+    
+    for score in scores:
+        deadline_str = score.get("challenge_deadline")
+        if deadline_str:
+            try:
+                deadline = datetime.fromisoformat(deadline_str.replace("Z", "+00:00"))
+                days_remaining = (deadline - now).days
+            except (ValueError, TypeError):
+                days_remaining = CHALLENGE_DAYS
+        else:
+            days_remaining = CHALLENGE_DAYS
+        
+        # Only include non-expired challenges
+        if days_remaining > 0:
+            active_challenges.append({
+                "id": score.get("id"),
+                "predicted_title": score.get("predicted_title", "Untitled"),
+                "predicted_tier": score.get("predicted_tier", "Medium"),
+                "days_remaining": days_remaining,
+                "created_at": score.get("created_at"),
+                "submission_id": score.get("submission_id")
+            })
+    
+    # Sort by days_remaining ascending (most urgent first)
+    active_challenges.sort(key=lambda x: x["days_remaining"])
+    
+    return {
+        "active_challenges": active_challenges,
+        "total_active": len(active_challenges)
+    }
+
+
+
 async def get_recommendation_by_id(db, client_id: str, rec_index: int = 0) -> Optional[Dict[str, Any]]:
     """
     Get a specific recommendation from the latest recommendations document.

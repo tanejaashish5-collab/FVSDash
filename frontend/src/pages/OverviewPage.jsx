@@ -360,8 +360,8 @@ export default function OverviewPage() {
         </Card>
       )}
 
-      {/* YouTube Channel Stats - Real Data */}
-      {analyticsOverview && (
+      {/* YouTube Channel Stats - Real Data - Only for clients */}
+      {!isAdmin && analyticsOverview && (
         <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="youtube-stats-card">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">

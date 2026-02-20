@@ -89,10 +89,16 @@ async def startup():
     await db.oauth_tokens.create_index([("clientId", 1), ("platform", 1)], unique=True)
     await db.publish_jobs.create_index("clientId")
     await db.publish_jobs.create_index([("status", 1), ("createdAt", -1)])
+    await db.brain_scores.create_index("user_id")
+    await db.brain_scores.create_index([("user_id", 1), ("performance_verdict", 1)])
     try:
         result = await run_seed()
         if result:
             logger.info("Demo data seeded successfully")
+        
+        # Run identity migration (Sprint 12)
+        from migrations.versions.s12_identity_fix import run_identity_migration
+        await run_identity_migration(db)
     except Exception as e:
         logger.error(f"Seed error: {e}")
     

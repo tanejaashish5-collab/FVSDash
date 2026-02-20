@@ -15,7 +15,7 @@ from routers import (
     deliverables, analytics, roi, billing, settings,
     help, blog, ai, video_tasks, fvs, admin, channel_profile,
     publishing, strategy_session, notifications, oauth, youtube_publish,
-    trends, brain, dev
+    trends, brain, dev, search, pipeline
 )
 
 # Import database utilities

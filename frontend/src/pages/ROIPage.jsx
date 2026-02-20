@@ -3,12 +3,14 @@ import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, TrendingUp, Calculator, Clock, Zap, BarChart3 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { DollarSign, TrendingUp, Calculator, Clock, Zap, BarChart3, Eye, Settings, ChevronRight, Info } from 'lucide-react';
 import { toast } from 'sonner';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import axios from 'axios';
 import { AuraTooltip } from '@/components/ui/AuraTooltip';
 import { tooltipContent } from '@/constants/tooltipContent';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 

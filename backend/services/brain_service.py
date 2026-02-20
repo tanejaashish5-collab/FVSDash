@@ -139,11 +139,31 @@ async def score_pending_predictions(db, client_id: str) -> Dict[str, Any]:
 async def get_brain_scores(db, user_id: str) -> Dict[str, Any]:
     """
     Get all brain scores for a user with summary statistics.
+    Includes days_remaining and is_expired for challenge tracking.
     """
     scores = await db.brain_scores.find(
         {"user_id": user_id},
         {"_id": 0}
     ).sort("created_at", -1).to_list(100)
+    
+    now = datetime.now(timezone.utc)
+    
+    # Add computed fields for each score
+    for score in scores:
+        deadline_str = score.get("challenge_deadline")
+        if deadline_str:
+            try:
+                deadline = datetime.fromisoformat(deadline_str.replace("Z", "+00:00"))
+                days_remaining = (deadline - now).days
+                score["days_remaining"] = max(0, days_remaining)
+                score["is_expired"] = days_remaining <= 0
+            except (ValueError, TypeError):
+                score["days_remaining"] = CHALLENGE_DAYS
+                score["is_expired"] = False
+        else:
+            # Legacy scores without deadline - assume still active
+            score["days_remaining"] = CHALLENGE_DAYS
+            score["is_expired"] = False
     
     total = len(scores)
     scored = sum(1 for s in scores if s.get("performance_verdict") != "pending")

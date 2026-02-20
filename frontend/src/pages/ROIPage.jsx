@@ -141,25 +141,43 @@ export default function ROIPage() {
   const netProfit = totalEstimatedRevenue - productionCost;
   const roiMultiple = productionCost > 0 ? (totalEstimatedRevenue / productionCost).toFixed(2) : 0;
 
+  // Chart data for revenue breakdown
+  const revenueBreakdown = [
+    { name: 'Ad Revenue', value: Math.round(estimatedAdRevenue), fill: '#10B981' },
+    { name: 'Sponsorships', value: Math.round(estimatedSponsorshipRevenue), fill: '#8B5CF6' },
+  ];
+  
   // Chart data for cost vs ROI comparison
-  const comparisonData = data ? [
-    { name: 'Total Cost', value: data.totalCost, fill: '#EF4444' },
-    { name: 'Total ROI', value: data.totalROI, fill: '#10B981' },
-  ] : [];
+  const comparisonData = [
+    { name: 'Production Cost', value: productionCost, fill: '#EF4444' },
+    { name: 'Total Revenue', value: Math.round(totalEstimatedRevenue), fill: '#10B981' },
+  ];
 
-  const roiMultipleColor = data?.roiMultiple >= 2 ? 'text-emerald-400' : data?.roiMultiple >= 1 ? 'text-amber-400' : 'text-red-400';
-  const netProfitColor = data?.netProfit >= 0 ? 'text-emerald-400' : 'text-red-400';
+  const roiMultipleColor = parseFloat(roiMultiple) >= 2 ? 'text-emerald-400' : parseFloat(roiMultiple) >= 1 ? 'text-amber-400' : 'text-red-400';
+  const netProfitColor = netProfit >= 0 ? 'text-emerald-400' : 'text-red-400';
 
   return (
     <div data-testid="roi-page" className="space-y-6">
       {/* Page Header */}
-      <div>
-        <AuraTooltip content={tooltipContent.roiCenter.roiCalculation} position="right">
-          <h1 className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
-            ROI Center
-          </h1>
-        </AuraTooltip>
-        <p className="text-sm text-zinc-500 mt-0.5">Estimate the return on your investment in content.</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <AuraTooltip content={tooltipContent.roiCenter.roiCalculation} position="right">
+            <h1 className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
+              ROI Center
+            </h1>
+          </AuraTooltip>
+          <p className="text-sm text-zinc-500 mt-0.5">YouTube-native revenue estimation based on CPM and sponsorships.</p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowSettings(true)}
+          className="bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800"
+          data-testid="roi-settings-btn"
+        >
+          <Settings className="h-4 w-4 mr-2" />
+          ROI Settings
+        </Button>
       </div>
 
       {/* Range Selector */}

@@ -241,6 +241,19 @@ export default function VideoLabPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Panel: Generation Form */}
         <div className="lg:col-span-5 space-y-4">
+          {/* Pipeline Info Banner */}
+          {pipelineSubmission && (
+            <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center gap-3">
+              <Info className="h-5 w-5 text-blue-400 shrink-0" />
+              <div className="min-w-0">
+                <p className="text-sm text-blue-300 font-medium truncate">
+                  Creating video for: "{pipelineSubmission.title}"
+                </p>
+                <p className="text-xs text-blue-400/70">From Strategy Lab</p>
+              </div>
+            </div>
+          )}
+          
           {/* Provider & Mode Selection */}
           <Card className="bg-[#0B1120] border-[#1F2933]">
             <CardHeader className="pb-3">

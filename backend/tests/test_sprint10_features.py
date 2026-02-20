@@ -6,7 +6,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://forge-voice-sprint10.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://voice-studio-preview.preview.emergentagent.com')
 
 @pytest.fixture(scope='module')
 def auth_token():

@@ -145,14 +145,15 @@ function DraggableCalendarEvent({ submission, isToday, onClick }) {
     data: { submission, source: 'calendar' },
   });
 
-  const tc = typeCfg[submission.contentType] || typeCfg.Other;
-  const sc = statusCfg[submission.status] || statusCfg.INTAKE;
-  const StatusIcon = sc.icon;
+  const borderColor = TYPE_BORDER_COLORS[submission.contentType] || TYPE_BORDER_COLORS.Other;
 
   const style = transform ? {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
     zIndex: 1000,
   } : undefined;
+
+  // Format IST time if available
+  const releaseTime = submission.releaseTime || null;
 
   return (
     <motion.button
@@ -166,20 +167,17 @@ function DraggableCalendarEvent({ submission, isToday, onClick }) {
           onClick(submission);
         }
       }}
-      className={`w-full text-left p-1.5 rounded bg-[#0B1120] border border-[#1F2933] hover:border-indigo-500/30 transition-all cursor-grab active:cursor-grabbing group ${
-        isToday ? 'animate-aura-gold ring-1 ring-amber-400/30' : ''
+      className={`w-full text-left min-h-[52px] p-2 rounded bg-[#0B1120] border border-[#1F2933] border-l-[3px] ${borderColor} hover:border-indigo-500/30 transition-all cursor-grab active:cursor-grabbing group ${
+        isToday ? 'ring-1 ring-amber-400/30' : ''
       } ${isDragging ? 'opacity-50 scale-95' : ''}`}
       data-testid={`event-${submission.id}`}
-      whileHover={{ scale: 1.02 }}
+      whileHover={{ scale: 1.01 }}
       whileTap={{ scale: 0.98 }}
     >
-      <div className="flex items-center gap-1 mb-0.5">
-        <Badge variant="outline" className={`text-[7px] px-0.5 py-0 ${tc.class}`}>
-          {submission.contentType?.substring(0, 3)}
-        </Badge>
-        <StatusIcon className={`h-2.5 w-2.5 ${sc.text}`} />
-      </div>
-      <p className="text-[9px] text-zinc-300 truncate leading-tight">{submission.title}</p>
+      <p className="text-[12px] text-zinc-200 leading-tight line-clamp-2 font-medium">{submission.title}</p>
+      {releaseTime && (
+        <p className="text-[10px] text-zinc-500 mt-1">{releaseTime} IST</p>
+      )}
     </motion.button>
   );
 }

@@ -118,8 +118,20 @@ function NavSection({ title, items, currentPath, submissionCount }) {
 
 export default function Sidebar() {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, authHeaders } = useAuth();
   const currentPath = location.pathname;
+  const [submissionCount, setSubmissionCount] = useState(0);
+  
+  // Fetch submission count for the badge
+  useEffect(() => {
+    if (!authHeaders?.Authorization) return;
+    
+    axios.get(`${API}/submissions`, { headers: authHeaders })
+      .then(res => {
+        setSubmissionCount(res.data?.length || 0);
+      })
+      .catch(() => {});
+  }, [authHeaders]);
 
   return (
     <aside

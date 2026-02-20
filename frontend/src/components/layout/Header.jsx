@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -17,7 +17,7 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
-import { Search, Bell, LogOut, Settings, User, HelpCircle } from 'lucide-react';
+import { Search, Bell, LogOut, Settings, User, HelpCircle, FileText, Image, Lightbulb, Loader2 } from 'lucide-react';
 import NotificationPanel from '@/components/NotificationPanel';
 import SpotlightTour from '@/components/SpotlightTour';
 import axios from 'axios';

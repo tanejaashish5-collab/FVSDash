@@ -306,6 +306,13 @@ export default function CalendarPage() {
   const [draggedItem, setDraggedItem] = useState(null);
   const [view, setView] = useState('month');
   const [rescheduleConfirm, setRescheduleConfirm] = useState(null);
+  
+  // AI Schedule State - Sprint 13
+  const [aiScheduleOpen, setAiScheduleOpen] = useState(false);
+  const [aiScheduleLoading, setAiScheduleLoading] = useState(false);
+  const [aiSchedule, setAiSchedule] = useState(null);
+  const [bestTimes, setBestTimes] = useState(null);
+  const [applyingSchedule, setApplyingSchedule] = useState(false);
 
   // Filters
   const [filterType, setFilterType] = useState('all');

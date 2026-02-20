@@ -541,6 +541,26 @@ async def get_publish_history(
     return jobs
 
 
+@router.get("/failed")
+async def get_failed_jobs(
+    limit: int = Query(50, le=100),
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    """
+    Get failed publishing jobs.
+    """
+    client_id = get_client_id_from_user(user, impersonateClientId)
+    db = publish_jobs_collection()
+    
+    jobs = await db.find(
+        {"clientId": client_id, "status": "failed"},
+        {"_id": 0}
+    ).sort("updatedAt", -1).limit(limit).to_list(limit)
+    
+    return jobs
+
+
 @router.get("/queue")
 async def get_publish_queue(
     user: dict = Depends(get_current_user),

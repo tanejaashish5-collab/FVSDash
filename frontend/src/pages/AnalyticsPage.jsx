@@ -187,25 +187,70 @@ export default function AnalyticsPage() {
     }
   };
 
-  // Format chart data
-  const chartData = data?.snapshots?.map(s => ({
-    date: s.date.slice(5), // MM-DD format
-    downloads: s.downloads,
-    views: s.views,
-    episodes: s.episodesPublished,
-    roi: Math.round(s.roiEstimate),
-  })) || [];
+  // Format chart data - use real YouTube analytics if available
+  const chartData = data?.youtubeAnalytics?.length > 0 
+    ? data.youtubeAnalytics.slice(0, 30).map((v, i) => ({
+        date: `Video ${i + 1}`,
+        views: v.views,
+        watchTime: Math.round(v.watchTimeMinutes),
+        ctr: v.ctr,
+      }))
+    : data?.snapshots?.map(s => ({
+        date: s.date?.slice(5) || '', // MM-DD format
+        downloads: s.downloads,
+        views: s.views,
+        episodes: s.episodesPublished,
+        roi: Math.round(s.roiEstimate || 0),
+      })) || [];
+
+  // Use real overview data for KPIs
+  const totalViews = overview?.totalViews || data?.summary?.totalViews || 0;
+  const totalWatchTime = overview?.totalWatchTimeMinutes || 0;
+  const avgCtr = overview?.avgCtr || 0;
+  const avgAvd = overview?.avgAvd || 0;
+  const subscriberCount = overview?.subscriberCount || 0;
+  const videoCount = overview?.videoCount || data?.summary?.totalEpisodes || 0;
+  const lastSyncedAt = overview?.lastSyncedAt;
 
   return (
     <div data-testid="analytics-page" className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
-          Analytics
-        </h1>
-        <AuraTooltip content={tooltipContent.analytics.views30d} position="right">
-          <p className="text-sm text-zinc-500 mt-0.5">Understand how your content performs across time.</p>
-        </AuraTooltip>
+      {/* Page Header with Sync Button */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
+            Analytics
+          </h1>
+          <AuraTooltip content={tooltipContent.analytics.views30d} position="right">
+            <p className="text-sm text-zinc-500 mt-0.5">Real YouTube Analytics for your channel.</p>
+          </AuraTooltip>
+        </div>
+        <div className="flex items-center gap-3">
+          {lastSyncedAt && (
+            <span className="text-xs text-zinc-500 flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              Last synced: {new Date(lastSyncedAt).toLocaleDateString()}
+            </span>
+          )}
+          <Button
+            onClick={handleSync}
+            disabled={syncing}
+            className="bg-teal-600 hover:bg-teal-700 text-white"
+            size="sm"
+            data-testid="sync-analytics-btn"
+          >
+            {syncing ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Syncing...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Sync Analytics
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Range Selector */}

@@ -127,6 +127,11 @@ export default function AnalyticsPage() {
   // Trend Intelligence state
   const [competitors, setCompetitors] = useState([]);
   const [trending, setTrending] = useState([]);
+  
+  // Brain Intelligence state
+  const [brainScores, setBrainScores] = useState(null);
+  const [brainTrend, setBrainTrend] = useState([]);
+  const [brainLeaderboard, setBrainLeaderboard] = useState([]);
 
   // Helper to handle YouTube API calls with automatic token refresh
   const youtubeApiCall = async (url) => {

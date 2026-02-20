@@ -299,7 +299,7 @@ export default function ROIPage() {
                 </CardContent>
               </Card>
 
-              {/* Additional Metrics */}
+              {/* Additional Metrics - Enhanced with Real Data */}
               <div className="grid grid-cols-2 gap-4">
                 <Card className="bg-[#0B1120] border-[#1F2933]">
                   <CardContent className="p-4">
@@ -311,11 +311,35 @@ export default function ROIPage() {
                 <Card className="bg-[#0B1120] border-[#1F2933]">
                   <CardContent className="p-4">
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 mb-1">Total Views</p>
-                    <p className="text-2xl font-bold text-white">{data.totalViews.toLocaleString()}</p>
-                    <p className="text-xs text-zinc-500 mt-1">Across all content</p>
+                    <p className="text-2xl font-bold text-white">
+                      {(realViews > 0 ? realViews : data.totalViews).toLocaleString()}
+                    </p>
+                    <p className="text-xs text-zinc-500 mt-1">
+                      {realViews > 0 ? 'From YouTube Analytics' : 'Across all content'}
+                    </p>
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Real YouTube Watch Time Card */}
+              {realWatchTime > 0 && (
+                <Card className="bg-gradient-to-r from-violet-500/10 to-indigo-500/10 border-violet-500/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 mb-1">Real Watch Time</p>
+                        <p className="text-3xl font-bold text-white">{Math.round(realWatchTime / 60)}h {Math.round(realWatchTime % 60)}m</p>
+                        <p className="text-xs text-violet-400 mt-1">
+                          {realWatchTime.toLocaleString()} total minutes from YouTube Analytics
+                        </p>
+                      </div>
+                      <div className="h-14 w-14 rounded-xl bg-violet-500/20 flex items-center justify-center">
+                        <Clock className="h-7 w-7 text-violet-400" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         </>

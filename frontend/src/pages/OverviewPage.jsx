@@ -183,6 +183,9 @@ export default function OverviewPage() {
   const [analyticsOverview, setAnalyticsOverview] = useState(null);
   const [topPerformers, setTopPerformers] = useState([]);
   const [brainScores, setBrainScores] = useState(null);
+  const [adminOverview, setAdminOverview] = useState(null);
+  
+  const isAdmin = user?.role === 'admin';
 
   const fetchData = useCallback(() => {
     // Fetch dashboard overview
@@ -190,24 +193,37 @@ export default function OverviewPage() {
       .then(res => setData(res.data))
       .catch(console.error);
     
-    // Fetch real YouTube analytics overview
-    const analyticsReq = axios.get(buildApiUrl(`${API}/analytics/overview`), { headers: authHeaders })
-      .then(res => setAnalyticsOverview(res.data))
-      .catch(() => {}); // Silently fail if no analytics
+    // Fetch admin-specific overview if admin
+    const adminReq = isAdmin 
+      ? axios.get(buildApiUrl(`${API}/dashboard/admin-overview`), { headers: authHeaders })
+          .then(res => setAdminOverview(res.data))
+          .catch(() => {})
+      : Promise.resolve();
     
-    // Fetch top performing videos
-    const topPerformersReq = axios.get(buildApiUrl(`${API}/analytics/top-performers?limit=3`), { headers: authHeaders })
-      .then(res => setTopPerformers(res.data?.videos || []))
-      .catch(() => {});
+    // Fetch real YouTube analytics overview (only for clients)
+    const analyticsReq = !isAdmin
+      ? axios.get(buildApiUrl(`${API}/analytics/overview`), { headers: authHeaders })
+          .then(res => setAnalyticsOverview(res.data))
+          .catch(() => {})
+      : Promise.resolve();
     
-    // Fetch brain scores for accuracy widget
-    const brainReq = axios.get(buildApiUrl(`${API}/brain/scores`), { headers: authHeaders })
-      .then(res => setBrainScores(res.data))
-      .catch(() => {});
+    // Fetch top performing videos (only for clients)
+    const topPerformersReq = !isAdmin
+      ? axios.get(buildApiUrl(`${API}/analytics/top-performers?limit=3`), { headers: authHeaders })
+          .then(res => setTopPerformers(res.data?.videos || []))
+          .catch(() => {})
+      : Promise.resolve();
     
-    Promise.all([dashboardReq, analyticsReq, topPerformersReq, brainReq])
+    // Fetch brain scores for accuracy widget (only for clients)
+    const brainReq = !isAdmin
+      ? axios.get(buildApiUrl(`${API}/brain/scores`), { headers: authHeaders })
+          .then(res => setBrainScores(res.data))
+          .catch(() => {})
+      : Promise.resolve();
+    
+    Promise.all([dashboardReq, adminReq, analyticsReq, topPerformersReq, brainReq])
       .finally(() => setLoading(false));
-  }, [authHeaders, buildApiUrl]);
+  }, [authHeaders, buildApiUrl, isAdmin]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 

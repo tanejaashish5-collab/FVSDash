@@ -120,6 +120,11 @@ export default function AnalyticsPage() {
   const [toOpen, setToOpen] = useState(false);
   const [overview, setOverview] = useState(null);
   const [videos, setVideos] = useState([]);
+  const [activeTab, setActiveTab] = useState('performance');
+  
+  // Trend Intelligence state
+  const [competitors, setCompetitors] = useState([]);
+  const [trending, setTrending] = useState([]);
 
   const fetchData = useCallback(() => {
     setLoading(true);

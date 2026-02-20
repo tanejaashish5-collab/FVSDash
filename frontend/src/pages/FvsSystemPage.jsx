@@ -67,6 +67,12 @@ export default function FvsSystemPage() {
   const [producing, setProducing] = useState(null);
   const [savingConfig, setSavingConfig] = useState(false);
   
+  // Trend Intelligence State
+  const [recommendations, setRecommendations] = useState(null);
+  const [competitors, setCompetitors] = useState([]);
+  const [scanning, setScanning] = useState(false);
+  const [scanStatus, setScanStatus] = useState(null);
+  
   // Side panel state
   const [selectedIdea, setSelectedIdea] = useState(null);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -80,16 +86,22 @@ export default function FvsSystemPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [configRes, snapshotRes, ideasRes, activityRes] = await Promise.all([
+      const [configRes, snapshotRes, ideasRes, activityRes, recsRes, compRes, statusRes] = await Promise.all([
         axios.get(`${API}/fvs/config`, { headers: authHeaders }),
         axios.get(`${API}/fvs/brain-snapshot`, { headers: authHeaders }),
         axios.get(`${API}/fvs/ideas`, { headers: authHeaders }),
         axios.get(`${API}/fvs/activity`, { headers: authHeaders }),
+        axios.get(`${API}/trends/recommendations`, { headers: authHeaders }).catch(() => ({ data: null })),
+        axios.get(`${API}/trends/competitors?limit=10`, { headers: authHeaders }).catch(() => ({ data: { videos: [] } })),
+        axios.get(`${API}/trends/scan/status`, { headers: authHeaders }).catch(() => ({ data: null })),
       ]);
       setConfig(configRes.data || { automationLevel: 'manual' });
       setSnapshot(snapshotRes.data);
       setIdeas(ideasRes.data || []);
       setActivities(activityRes.data || []);
+      setRecommendations(recsRes.data);
+      setCompetitors(compRes.data?.videos || []);
+      setScanStatus(statusRes.data);
     } catch (err) {
       console.error('Failed to fetch FVS data:', err);
     } finally {
@@ -98,6 +110,50 @@ export default function FvsSystemPage() {
   }, [authHeaders]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+  
+  // Trigger trend scan
+  const handleTrendScan = async () => {
+    setScanning(true);
+    try {
+      await axios.post(`${API}/trends/scan`, {}, { headers: authHeaders });
+      toast.success('Trend scan started', { description: 'This may take a few minutes.' });
+      
+      // Poll for status
+      const pollInterval = setInterval(async () => {
+        try {
+          const statusRes = await axios.get(`${API}/trends/scan/status`, { headers: authHeaders });
+          setScanStatus(statusRes.data);
+          
+          if (statusRes.data.status === 'complete' || statusRes.data.status === 'error') {
+            clearInterval(pollInterval);
+            setScanning(false);
+            
+            if (statusRes.data.status === 'complete') {
+              toast.success('Trend scan complete!', {
+                description: `${statusRes.data.results?.recommendationsGenerated || 0} new recommendations generated.`
+              });
+              fetchData(); // Refresh all data
+            } else {
+              toast.error('Scan failed', { description: statusRes.data.error });
+            }
+          }
+        } catch {
+          clearInterval(pollInterval);
+          setScanning(false);
+        }
+      }, 3000);
+      
+      // Timeout after 2 minutes
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        setScanning(false);
+      }, 120000);
+      
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to start trend scan');
+      setScanning(false);
+    }
+  };
 
   // Save automation config
   const handleAutomationChange = async (level) => {

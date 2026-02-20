@@ -136,7 +136,7 @@ export default function AssetsPage() {
   
   // Handle preview click - thumbnails show modal, others open in new tab
   const handlePreview = (asset) => {
-    if (asset.type === 'Thumbnail' && asset.url) {
+    if (asset.type?.toLowerCase() === 'thumbnail' && asset.url) {
       setPreviewAsset(asset);
     } else if (asset.url) {
       window.open(asset.url, '_blank');

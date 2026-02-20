@@ -177,6 +177,19 @@ export default function AnalyticsPage() {
       .then(res => setTrending(res.data?.topics || []))
       .catch(() => {});
     
+    // Fetch Brain Intelligence data
+    const brainScoresReq = axios.get(`${API}/brain/scores`, { headers: authHeaders })
+      .then(res => setBrainScores(res.data))
+      .catch(() => {});
+    
+    const brainTrendReq = axios.get(`${API}/brain/accuracy-trend`, { headers: authHeaders })
+      .then(res => setBrainTrend(res.data || []))
+      .catch(() => {});
+    
+    const brainLeaderboardReq = axios.get(`${API}/brain/leaderboard?limit=5`, { headers: authHeaders })
+      .then(res => setBrainLeaderboard(res.data || []))
+      .catch(() => {});
+    
     // Fetch dashboard data (legacy + real)
     let url = `${API}/analytics/dashboard?range=${range}`;
     if (customFrom && customTo) {

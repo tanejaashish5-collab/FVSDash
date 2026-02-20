@@ -76,6 +76,18 @@ export default function ROIPage() {
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState('30d');
   const [analyticsData, setAnalyticsData] = useState(null);
+  const [overviewData, setOverviewData] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
+  
+  // ROI Settings with YouTube-native defaults
+  const [cpmRate, setCpmRate] = useState(() => {
+    const saved = localStorage.getItem('fvs_cpm_rate');
+    return saved ? parseFloat(saved) : 1.50; // $1.50 default for Indian audience
+  });
+  const [sponsorshipPerVideo, setSponsorshipPerVideo] = useState(() => {
+    const saved = localStorage.getItem('fvs_sponsorship_rate');
+    return saved ? parseFloat(saved) : 0; // $0 default
+  });
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -92,15 +104,42 @@ export default function ROIPage() {
       .then(res => setAnalyticsData(res.data))
       .catch(() => {});
     
-    Promise.all([roiReq, analyticsReq])
+    // Fetch overview for subscriber count
+    const overviewReq = axios.get(`${API}/analytics/overview`, { headers: authHeaders })
+      .then(res => setOverviewData(res.data))
+      .catch(() => {});
+    
+    Promise.all([roiReq, analyticsReq, overviewReq])
       .finally(() => setLoading(false));
   }, [authHeaders, range]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+  
+  // Save settings to localStorage
+  const saveSettings = () => {
+    localStorage.setItem('fvs_cpm_rate', cpmRate.toString());
+    localStorage.setItem('fvs_sponsorship_rate', sponsorshipPerVideo.toString());
+    toast.success('ROI settings saved');
+    setShowSettings(false);
+  };
 
-  // Calculate enhanced metrics from real YouTube data
-  const realViews = analyticsData?.videos?.reduce((sum, v) => sum + (v.views || 0), 0) || 0;
+  // Calculate enhanced metrics from real YouTube data using CPM model
+  const realViews = overviewData?.totalViews || analyticsData?.videos?.reduce((sum, v) => sum + (v.views || 0), 0) || 0;
   const realWatchTime = analyticsData?.videos?.reduce((sum, v) => sum + (v.watchTimeMinutes || 0), 0) || 0;
+  const videoCount = overviewData?.videoCount || analyticsData?.videos?.length || data?.episodesPublished || 0;
+  
+  // YouTube-native ROI calculation
+  // Ad Revenue = (Views / 1000) * CPM
+  const estimatedAdRevenue = (realViews / 1000) * cpmRate;
+  // Sponsorship Revenue = Videos * Sponsorship Rate per Video
+  const estimatedSponsorshipRevenue = videoCount * sponsorshipPerVideo;
+  // Total Revenue
+  const totalEstimatedRevenue = estimatedAdRevenue + estimatedSponsorshipRevenue;
+  
+  // Calculate production cost from data
+  const productionCost = data?.totalCost || 0;
+  const netProfit = totalEstimatedRevenue - productionCost;
+  const roiMultiple = productionCost > 0 ? (totalEstimatedRevenue / productionCost).toFixed(2) : 0;
 
   // Chart data for cost vs ROI comparison
   const comparisonData = data ? [

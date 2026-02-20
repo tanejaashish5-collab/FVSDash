@@ -247,6 +247,80 @@ export default function OverviewPage() {
         <KPICard label="Est. ROI (30d)" value={`$${data.kpis.roiLast30d.toLocaleString()}`} subtext="At a glance ROI" icon={DollarSign} trend={15} tooltipKey="estRoi" delay={0.15} />
       </div>
 
+      {/* Brain Accuracy Widget */}
+      {brainScores && (
+        <Card 
+          className={`bg-[#0B1120] border-[#1F2933] cursor-pointer hover:border-indigo-500/30 transition-colors ${
+            brainScores.accuracy_percentage >= 80 
+              ? 'ring-1 ring-amber-500/20' 
+              : ''
+          }`}
+          onClick={() => navigate('/dashboard/fvs')}
+          data-testid="brain-accuracy-widget"
+        >
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
+                  brainScores.accuracy_percentage >= 80 
+                    ? 'bg-amber-500/20' 
+                    : brainScores.accuracy_percentage >= 60 
+                    ? 'bg-teal-500/20' 
+                    : 'bg-zinc-700/50'
+                }`}>
+                  <Brain className={`h-5 w-5 ${
+                    brainScores.accuracy_percentage >= 80 
+                      ? 'text-amber-400' 
+                      : brainScores.accuracy_percentage >= 60 
+                      ? 'text-teal-400' 
+                      : 'text-zinc-400'
+                  }`} />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">FVS Brain Accuracy</p>
+                  {brainScores.total_predictions > 0 ? (
+                    <p className={`text-2xl font-bold ${
+                      brainScores.accuracy_percentage >= 80 
+                        ? 'text-amber-400' 
+                        : brainScores.accuracy_percentage >= 60 
+                        ? 'text-teal-400' 
+                        : 'text-zinc-300'
+                    }`}>
+                      {brainScores.accuracy_percentage}%
+                    </p>
+                  ) : (
+                    <p className="text-sm text-zinc-500">No predictions yet</p>
+                  )}
+                </div>
+              </div>
+              {brainScores.total_predictions > 0 ? (
+                <div className="flex items-center gap-4 text-right">
+                  <div>
+                    <p className="text-lg font-bold text-white">{brainScores.total_predictions}</p>
+                    <p className="text-[10px] text-zinc-500">Predictions</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-emerald-400">{brainScores.correct}</p>
+                    <p className="text-[10px] text-zinc-500">Correct</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-zinc-400">{brainScores.pending}</p>
+                    <p className="text-[10px] text-zinc-500">Pending</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-zinc-500" />
+                </div>
+              ) : (
+                <div className="text-right">
+                  <p className="text-xs text-zinc-500">Make your first AI-recommended Short</p>
+                  <p className="text-xs text-zinc-500">to start tracking Brain accuracy</p>
+                  <ArrowRight className="h-4 w-4 text-zinc-500 ml-auto mt-2" />
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* YouTube Channel Stats - Real Data */}
       {analyticsOverview && (
         <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="youtube-stats-card">

@@ -339,7 +339,7 @@ export default function PublishingDashboardPage() {
     title: '',
     description: '',
     tags: '',
-    privacyStatus: 'public',
+    privacyStatus: 'private', // Default to private for safety
     scheduleEnabled: false,
     scheduledDate: null,
     selectedVideoId: null,
@@ -348,6 +348,12 @@ export default function PublishingDashboardPage() {
   const [publishing, setPublishing] = useState(false);
   const [publishProgress, setPublishProgress] = useState(null);
   const pollIntervalRef = useRef(null);
+  
+  // Test upload state - Sprint 14
+  const [testUploadAvailable, setTestUploadAvailable] = useState(false);
+  const [attachingTestVideo, setAttachingTestVideo] = useState(false);
+  const [videoCheckResult, setVideoCheckResult] = useState(null);
+  const [showNoVideoModal, setShowNoVideoModal] = useState(false);
   
   // Fetch all data
   const fetchData = useCallback(async () => {

@@ -384,23 +384,6 @@ export default function PublishingDashboardPage() {
       setLoading(false);
     }
   }, [authHeaders, buildApiUrl]);
-        axios.get(buildApiUrl(`${API}/publish/history`), { headers: authHeaders }),
-        axios.get(buildApiUrl(`${API}/publish/jobs?status=failed`), { headers: authHeaders }),
-        axios.get(buildApiUrl(`${API}/publish/stats`), { headers: authHeaders }),
-      ]);
-      
-      setOauthStatus(oauthRes.data || {});
-      setQueue(queueRes.data || []);
-      setHistory(historyRes.data || []);
-      setFailedJobs(failedRes.data || []);
-      setStats(statsRes.data || null);
-    } catch (err) {
-      console.error('Failed to load publishing data:', err);
-      toast.error('Failed to load publishing data');
-    } finally {
-      setLoading(false);
-    }
-  }, [authHeaders, buildApiUrl]);
   
   useEffect(() => { fetchData(); }, [fetchData]);
   
@@ -413,11 +396,73 @@ export default function PublishingDashboardPage() {
     };
   }, []);
   
-  // Open publish slide-over
-  const handleOpenPublish = (item) => {
+  // Check if submission has video - Sprint 14
+  const checkSubmissionVideo = useCallback(async (submissionId) => {
+    try {
+      const res = await axios.get(buildApiUrl(`${API}/publish/check-video/${submissionId}`), { headers: authHeaders });
+      setVideoCheckResult(res.data);
+      return res.data;
+    } catch (err) {
+      console.error('Failed to check video:', err);
+      return { has_video: false, error: 'Check failed' };
+    }
+  }, [authHeaders, buildApiUrl]);
+  
+  // Attach test video - Sprint 14
+  const handleAttachTestVideo = async () => {
+    if (!publishItem) return;
+    
+    setAttachingTestVideo(true);
+    try {
+      const res = await axios.post(
+        buildApiUrl(`${API}/dev/test-upload/${publishItem.id}`),
+        {},
+        { headers: authHeaders }
+      );
+      
+      if (res.data.success) {
+        toast.success('Test video attached!', {
+          description: 'Ready to test the publish flow.'
+        });
+        setVideoCheckResult({ has_video: true, asset_id: res.data.asset_id, is_test: true });
+        setPublishForm(prev => ({
+          ...prev,
+          selectedVideoId: res.data.asset_id
+        }));
+        setShowNoVideoModal(false);
+      }
+    } catch (err) {
+      toast.error('Failed to attach test video', {
+        description: err.response?.data?.detail || 'Please try again.'
+      });
+    } finally {
+      setAttachingTestVideo(false);
+    }
+  };
+  
+  // Open publish slide-over - Sprint 14 updated
+  const handleOpenPublish = async (item) => {
     setPublishItem(item);
     setPublishForm({
       title: item.title || '',
+      description: item.description || '',
+      tags: item.hashtags?.join(', ') || '',
+      privacyStatus: 'private', // Safe default
+      scheduleEnabled: false,
+      scheduledDate: null,
+      selectedVideoId: item.videoAssets?.[0]?.id || null,
+      selectedThumbnailId: item.thumbnailAssets?.[0]?.id || null,
+    });
+    setPublishProgress(null);
+    
+    // Check if submission has video
+    const videoCheck = await checkSubmissionVideo(item.id);
+    setVideoCheckResult(videoCheck);
+    
+    if (!videoCheck.has_video) {
+      setShowNoVideoModal(true);
+    }
+  };
       description: item.notes || item.description || '',
       tags: '',
       privacyStatus: 'public',

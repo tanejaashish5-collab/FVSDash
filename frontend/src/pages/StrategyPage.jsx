@@ -1041,6 +1041,72 @@ export default function StrategyPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        
+        {/* Pipeline Success Prompt */}
+        <Dialog open={showPipelineSuccess} onOpenChange={setShowPipelineSuccess}>
+          <DialogContent className="bg-[#0B1120] border-[#1F2933] sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle className="text-white flex items-center gap-2">
+                <Check className="h-5 w-5 text-emerald-400" />
+                Submission Created!
+              </DialogTitle>
+              <DialogDescription className="text-zinc-500">
+                "{pipelineSubmissionTitle}" is now in your pipeline
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                    <Video className="h-5 w-5 text-amber-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">Next step: Generate video</p>
+                    <p className="text-xs text-zinc-500">Take this script to AI Video Lab</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <DialogFooter className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowPipelineSuccess(false)} 
+                className="border-zinc-800 text-zinc-300"
+              >
+                Stay Here
+              </Button>
+              <Button 
+                onClick={() => {
+                  setShowPipelineSuccess(false);
+                  navigate(`/dashboard/video-lab?submission_id=${pipelineSubmissionId}`);
+                }} 
+                className="bg-amber-500 hover:bg-amber-600 text-black"
+              >
+                Go to AI Video Lab
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Send to Production Button - Fixed at bottom when script exists */}
+        {script && activeSessionId && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+            <Button
+              onClick={handleSendToProduction}
+              disabled={sendingToProduction}
+              className="h-12 px-8 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-semibold shadow-xl shadow-amber-500/20 rounded-full"
+              data-testid="send-to-production-btn"
+            >
+              {sendingToProduction ? (
+                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+              ) : (
+                <ArrowRight className="h-5 w-5 mr-2" />
+              )}
+              Send to Production
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

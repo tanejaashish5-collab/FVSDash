@@ -76,6 +76,7 @@ export default function FvsSystemPage() {
   // Brain Scores State
   const [brainScores, setBrainScores] = useState(null);
   const [brainScoresExpanded, setBrainScoresExpanded] = useState(false);
+  const [activeChallenges, setActiveChallenges] = useState(null);
   
   // Side panel state
   const [selectedIdea, setSelectedIdea] = useState(null);
@@ -90,7 +91,7 @@ export default function FvsSystemPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [configRes, snapshotRes, ideasRes, activityRes, recsRes, compRes, statusRes, brainRes] = await Promise.all([
+      const [configRes, snapshotRes, ideasRes, activityRes, recsRes, compRes, statusRes, brainRes, challengesRes] = await Promise.all([
         axios.get(`${API}/fvs/config`, { headers: authHeaders }),
         axios.get(`${API}/fvs/brain-snapshot`, { headers: authHeaders }),
         axios.get(`${API}/fvs/ideas`, { headers: authHeaders }),
@@ -99,6 +100,7 @@ export default function FvsSystemPage() {
         axios.get(`${API}/trends/competitors?limit=10`, { headers: authHeaders }).catch(() => ({ data: { videos: [] } })),
         axios.get(`${API}/trends/scan/status`, { headers: authHeaders }).catch(() => ({ data: null })),
         axios.get(`${API}/brain/scores`, { headers: authHeaders }).catch(() => ({ data: null })),
+        axios.get(`${API}/brain/active-challenges`, { headers: authHeaders }).catch(() => ({ data: null })),
       ]);
       setConfig(configRes.data || { automationLevel: 'manual' });
       setSnapshot(snapshotRes.data);
@@ -108,6 +110,7 @@ export default function FvsSystemPage() {
       setCompetitors(compRes.data?.videos || []);
       setScanStatus(statusRes.data);
       setBrainScores(brainRes.data);
+      setActiveChallenges(challengesRes.data);
     } catch (err) {
       console.error('Failed to fetch FVS data:', err);
     } finally {

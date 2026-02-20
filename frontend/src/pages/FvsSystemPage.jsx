@@ -553,6 +553,82 @@ export default function FvsSystemPage() {
             </CardContent>
           </Card>
 
+          {/* Active Challenges Panel - Sprint 13 */}
+          <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="active-challenges-card" id="active-challenges">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                <Swords className="h-4 w-4 text-amber-400" />
+                Active Predictions
+              </CardTitle>
+              <CardDescription className="text-xs text-zinc-500">
+                Brain predictions awaiting verdict as videos collect views.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {activeChallenges?.active_challenges?.length > 0 ? (
+                <>
+                  {activeChallenges.active_challenges.slice(0, 4).map((challenge) => {
+                    const isUrgent = challenge.days_remaining <= 3;
+                    const isHighPotential = challenge.predicted_tier === 'High';
+                    const progressPercent = ((30 - challenge.days_remaining) / 30) * 100;
+                    
+                    return (
+                      <div 
+                        key={challenge.id}
+                        className={`p-4 rounded-lg border transition-colors ${
+                          isHighPotential 
+                            ? 'bg-gradient-to-br from-amber-500/5 to-amber-600/10 border-amber-500/30' 
+                            : 'bg-gradient-to-br from-teal-500/5 to-teal-600/10 border-teal-500/30'
+                        } ${isUrgent ? 'animate-pulse' : ''}`}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <h4 className="text-sm font-medium text-white truncate max-w-[200px]">
+                            {challenge.predicted_title}
+                          </h4>
+                          <Badge variant="outline" className={`text-[10px] px-2 py-0.5 ${
+                            isHighPotential ? 'border-amber-500/40 text-amber-400' : 'border-teal-500/40 text-teal-400'
+                          }`}>
+                            {challenge.predicted_tier}
+                          </Badge>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 text-xs text-zinc-400 mb-2">
+                          <Clock className="h-3 w-3" />
+                          <span>Verdict in {challenge.days_remaining} days</span>
+                        </div>
+                        
+                        {/* Progress bar showing time elapsed */}
+                        <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full rounded-full transition-all ${
+                              isHighPotential ? 'bg-amber-500' : 'bg-teal-500'
+                            }`}
+                            style={{ width: `${Math.max(5, progressPercent)}%` }}
+                          />
+                        </div>
+                        <p className="text-[10px] text-zinc-600 mt-1 text-right">
+                          {challenge.days_remaining} days remaining
+                        </p>
+                      </div>
+                    );
+                  })}
+                  
+                  <p className="text-xs text-zinc-500 text-center pt-2 border-t border-zinc-800">
+                    The Brain has {activeChallenges.total_active} active prediction{activeChallenges.total_active !== 1 ? 's' : ''}. Check back as your videos collect views.
+                  </p>
+                </>
+              ) : (
+                <div className="text-center py-6">
+                  <Swords className="h-10 w-10 text-zinc-700 mx-auto mb-3" />
+                  <p className="text-sm text-zinc-400">No active predictions yet</p>
+                  <p className="text-xs text-zinc-600 mt-1">
+                    Create a submission from an AI recommendation to start a challenge
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Automation Controls */}
           <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="automation-card">
             <CardHeader className="pb-3">

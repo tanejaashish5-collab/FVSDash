@@ -305,8 +305,12 @@ class TestE2EAdminMultiChannel:
                 )
                 assert list_res.status_code == 200
                 clients = list_res.json()
-                found = any(c.get("email") == test_email for c in clients)
-                assert found, "Created client not found in list"
+                found = any(
+                    c.get("primaryContactEmail") == test_email or 
+                    c.get("email") == test_email 
+                    for c in clients
+                )
+                assert found, f"Created client {test_email} not found in list"
                 
                 # 3. Login as new client
                 client_login_res = await client.post(

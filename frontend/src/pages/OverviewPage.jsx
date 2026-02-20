@@ -182,6 +182,7 @@ export default function OverviewPage() {
   const [loading, setLoading] = useState(true);
   const [analyticsOverview, setAnalyticsOverview] = useState(null);
   const [topPerformers, setTopPerformers] = useState([]);
+  const [brainScores, setBrainScores] = useState(null);
 
   const fetchData = useCallback(() => {
     // Fetch dashboard overview
@@ -199,7 +200,12 @@ export default function OverviewPage() {
       .then(res => setTopPerformers(res.data?.videos || []))
       .catch(() => {});
     
-    Promise.all([dashboardReq, analyticsReq, topPerformersReq])
+    // Fetch brain scores for accuracy widget
+    const brainReq = axios.get(buildApiUrl(`${API}/brain/scores`), { headers: authHeaders })
+      .then(res => setBrainScores(res.data))
+      .catch(() => {});
+    
+    Promise.all([dashboardReq, analyticsReq, topPerformersReq, brainReq])
       .finally(() => setLoading(false));
   }, [authHeaders, buildApiUrl]);
 

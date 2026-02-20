@@ -17,7 +17,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   ChevronLeft, ChevronRight, CalendarIcon, ExternalLink, Loader2, 
   Clock, Palette, Check, Sparkles, GripVertical, List, Calendar as CalendarViewIcon,
-  ArrowRight, Undo2
+  ArrowRight, Undo2, BarChart3
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, addMonths, subMonths, addDays, isAfter, isBefore } from 'date-fns';

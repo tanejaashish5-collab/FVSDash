@@ -169,15 +169,24 @@ function DraggableCalendarEvent({ submission, isToday, onClick }) {
   );
 }
 
-// Droppable Day Cell
+// Droppable Day Cell - Sprint 13: Increased height, cadence watermarks
 function DroppableDay({ day, children, isOver, isToday, cadence, draggedItem }) {
   const { setNodeRef, isOver: dropIsOver } = useDroppable({
     id: `day-${format(day, 'yyyy-MM-dd')}`,
     data: { date: format(day, 'yyyy-MM-dd') },
   });
 
-  const dayOfWeek = getDay(day);
-  const watermark = getCadenceWatermark(dayOfWeek);
+  // Use passed cadence prop or fallback to day-based watermark
+  const watermark = cadence || null;
+  
+  // Determine cadence watermark color
+  const cadenceColor = watermark?.color === 'teal' 
+    ? 'text-teal-400/30' 
+    : watermark?.color === 'purple' 
+    ? 'text-purple-400/30' 
+    : watermark?.color === 'amber'
+    ? 'text-amber-400/30'
+    : 'text-white/10';
   
   // Check if dragged item matches the cadence recommendation
   const isCompatibleDrag = draggedItem && watermark && 
@@ -186,22 +195,23 @@ function DroppableDay({ day, children, isOver, isToday, cadence, draggedItem }) 
   return (
     <div
       ref={setNodeRef}
-      className={`min-h-[100px] bg-[#060c17] p-2 transition-all relative ${
+      className={`min-h-[120px] bg-[#060c17] p-2 transition-all relative ${
         isToday ? 'ring-1 ring-inset ring-indigo-500/30' : ''
       } ${dropIsOver ? 'bg-indigo-500/10 ring-2 ring-indigo-500/50' : ''}`}
       data-testid={`day-cell-${format(day, 'yyyy-MM-dd')}`}
     >
-      <div className={`text-xs font-medium mb-1.5 ${isToday ? 'text-indigo-400' : 'text-zinc-500'}`}>
+      {/* Date number - top left corner, small, muted */}
+      <div className={`text-[11px] font-medium mb-2 ${isToday ? 'text-indigo-400' : 'text-zinc-600'}`}>
         {format(day, 'd')}
       </div>
       
-      {/* Cadence Watermark */}
-      {watermark && children.length === 0 && (
+      {/* Cadence Watermark - centered behind content */}
+      {watermark && (
         <div className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-all ${
           isCompatibleDrag ? 'animate-pulse' : ''
         }`}>
-          <span className={`text-[10px] uppercase tracking-widest font-semibold ${
-            isCompatibleDrag ? 'text-amber-400/40' : 'text-white/5'
+          <span className={`text-[9px] uppercase tracking-widest font-semibold ${
+            isCompatibleDrag ? 'text-amber-400/50' : cadenceColor
           }`}>
             {watermark.text}
           </span>

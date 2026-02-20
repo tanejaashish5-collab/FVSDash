@@ -734,6 +734,15 @@ export default function CalendarPage() {
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleToday}
+                      className="h-8 px-3 text-xs text-zinc-400 hover:text-white hover:bg-white/5"
+                      data-testid="today-btn"
+                    >
+                      Today
+                    </Button>
                     <CardTitle className="text-base font-semibold text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>
                       {format(currentDate, 'MMMM yyyy')}
                     </CardTitle>

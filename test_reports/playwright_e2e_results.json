@@ -1,16 +1,16 @@
 {
-  "timestamp": "2026-02-20T11:59:15.732364",
-  "total": 47,
+  "timestamp": "2026-02-20T23:10:44.968046",
+  "total": 44,
   "passed": 43,
-  "failed": 4,
-  "pass_rate": "91.5%",
+  "failed": 1,
+  "pass_rate": "97.7%",
   "pages_summary": {
     "Login": {
       "passed": 2,
       "failed": 0
     },
     "Overview": {
-      "passed": 3,
+      "passed": 0,
       "failed": 1
     },
     "Submissions": {
@@ -22,8 +22,8 @@
       "failed": 0
     },
     "FVS System": {
-      "passed": 3,
-      "failed": 1
+      "passed": 4,
+      "failed": 0
     },
     "Analytics": {
       "passed": 6,
@@ -34,8 +34,8 @@
       "failed": 0
     },
     "Publishing": {
-      "passed": 4,
-      "failed": 1
+      "passed": 5,
+      "failed": 0
     },
     "Settings": {
       "passed": 5,
@@ -46,8 +46,8 @@
       "failed": 0
     },
     "AI Video Lab": {
-      "passed": 3,
-      "failed": 1
+      "passed": 4,
+      "failed": 0
     }
   },
   "results": [
@@ -65,27 +65,9 @@
     },
     {
       "page": "Overview",
-      "test": "Welcome title visible",
+      "test": "Page load",
       "passed": false,
-      "details": "ForgeVoice"
-    },
-    {
-      "page": "Overview",
-      "test": "Stats data loaded",
-      "passed": true,
-      "details": "Found 161 numbers"
-    },
-    {
-      "page": "Overview",
-      "test": "YouTube section visible",
-      "passed": true,
-      "details": ""
-    },
-    {
-      "page": "Overview",
-      "test": "Sidebar visible",
-      "passed": true,
-      "details": ""
+      "details": "Locator.is_visible: Unexpected token \"=\" while parsing css selector \"h1:has-text"
     },
     {
       "page": "Submissions",
@@ -155,8 +137,8 @@
     },
     {
       "page": "FVS System",
-      "test": "Scan button visible",
-      "passed": false,
+      "test": "Action buttons visible",
+      "passed": true,
       "details": ""
     },
     {
@@ -246,7 +228,7 @@
     {
       "page": "Publishing",
       "test": "YouTube platform visible",
-      "passed": false,
+      "passed": true,
       "details": ""
     },
     {
@@ -329,8 +311,8 @@
     },
     {
       "page": "AI Video Lab",
-      "test": "Generate button visible",
-      "passed": false,
+      "test": "Create button visible",
+      "passed": true,
       "details": ""
     }
   ]

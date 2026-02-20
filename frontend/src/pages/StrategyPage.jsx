@@ -57,6 +57,7 @@ function formatRelativeTime(dateStr) {
 export default function StrategyPage() {
   const { authHeaders } = useAuth();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   
   // Provider & capabilities
   const [provider, setProvider] = useState('gemini');

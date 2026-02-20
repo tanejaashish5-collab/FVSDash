@@ -13,6 +13,7 @@ import {
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+// Main nav items - Blog is client-only (requires channel for content)
 const mainNav = [
   { label: 'Overview', path: '/dashboard/overview', icon: LayoutDashboard },
   { label: 'Submissions', path: '/dashboard/submissions', icon: FileText, showBadge: true },
@@ -20,6 +21,10 @@ const mainNav = [
   { label: 'Production Files', path: '/dashboard/deliverables', icon: Package },
   { label: 'Assets', path: '/dashboard/assets', icon: FolderOpen },
   { label: 'Publishing', path: '/dashboard/publishing', icon: Send },
+];
+
+// Client-only nav items (require YouTube channel)
+const clientOnlyNav = [
   { label: 'Blog', path: '/dashboard/blog', icon: BookOpen },
 ];
 

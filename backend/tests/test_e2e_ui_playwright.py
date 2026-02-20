@@ -98,8 +98,11 @@ async def test_overview_page(page):
         await page.wait_for_timeout(2000)
         await close_modals(page)
         
-        # Check for page title (ForgeVoice in header or Welcome in content)
-        has_title = await page.locator('h1:has-text("ForgeVoice"), text=Welcome').first.is_visible(timeout=5000)
+        # Check for page title (ForgeVoice in h1 or Welcome text anywhere)
+        h1_text = await page.locator('h1').first.text_content()
+        has_title = h1_text and ("ForgeVoice" in h1_text or "Welcome" in h1_text)
+        if not has_title:
+            has_title = await page.locator('text=Welcome').first.is_visible(timeout=2000)
         log_result(page_name, "Page title visible", has_title)
         
         # Check for stats cards (look for numbers)

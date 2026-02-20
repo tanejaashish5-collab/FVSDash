@@ -225,3 +225,93 @@ async def unschedule_submission(
         raise HTTPException(status_code=404, detail="Submission not found")
     
     return {"success": True, "message": "Submission unscheduled"}
+
+
+
+# =====================
+# Calendar AI Endpoints - Sprint 13
+# =====================
+
+@router.get("/calendar/best-times")
+async def get_best_posting_times(
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    """
+    Get top 3 performing day/time slot combinations based on historical data.
+    Returns: { top_slots: [...], total_analyzed: N }
+    """
+    client_id = get_client_id_from_user(user, impersonateClientId)
+    db = get_db()
+    return await calendar_intelligence_service.get_best_posting_times(db, client_id)
+
+
+@router.post("/calendar/ai-schedule")
+async def generate_ai_schedule(
+    background_tasks: BackgroundTasks,
+    user: dict = Depends(get_current_user),
+    weeks_ahead: int = Query(4, ge=1, le=8),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    """
+    Trigger AI-powered schedule generation.
+    Runs in background and stores results in calendar_suggestions collection.
+    """
+    client_id = get_client_id_from_user(user, impersonateClientId)
+    db = get_db()
+    
+    # Run generation (can be moved to background task for very large schedules)
+    result = await calendar_intelligence_service.generate_posting_schedule(
+        db, client_id, weeks_ahead
+    )
+    
+    return result
+
+
+@router.get("/calendar/ai-schedule")
+async def get_latest_ai_schedule(
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    """
+    Get the latest AI-generated calendar suggestions for the current user.
+    """
+    client_id = get_client_id_from_user(user, impersonateClientId)
+    db = get_db()
+    
+    schedule = await calendar_intelligence_service.get_latest_schedule(db, client_id)
+    if not schedule:
+        return {"status": "empty", "message": "No AI schedule generated yet"}
+    
+    return {
+        "status": "complete",
+        "schedule": schedule
+    }
+
+
+@router.post("/calendar/apply-suggestion")
+async def apply_calendar_suggestion(
+    user: dict = Depends(get_current_user),
+    date: str = Query(..., description="Suggestion date YYYY-MM-DD"),
+    time_ist: str = Query(..., description="Time in IST e.g. 7:00 PM"),
+    content_type: str = Query(..., description="'scheduled' or 'idea'"),
+    submission_id: Optional[str] = Query(None),
+    recommendation_id: Optional[str] = Query(None),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    """
+    Apply a single calendar suggestion.
+    - For 'scheduled': updates the submission's release date
+    - For 'idea': creates a new submission from the recommendation
+    """
+    client_id = get_client_id_from_user(user, impersonateClientId)
+    db = get_db()
+    
+    result = await calendar_intelligence_service.apply_suggestion(
+        db, client_id, date, time_ist, content_type, submission_id, recommendation_id
+    )
+    
+    if result.get("status") == "error":
+        raise HTTPException(status_code=400, detail=result.get("error"))
+    
+    return result

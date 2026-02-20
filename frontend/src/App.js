@@ -86,11 +86,12 @@ function AppRoutes() {
           <Route path="/dashboard/assets" element={<AssetsPage />} />
           <Route path="/dashboard/publishing" element={<PublishingDashboardPage />} />
           <Route path="/dashboard/blog" element={<BlogPage />} />
-          <Route path="/dashboard/strategy" element={<StrategyPage />} />
-          <Route path="/dashboard/video-lab" element={<VideoLabPage />} />
-          <Route path="/dashboard/system" element={<FvsSystemPage />} />
+          {/* Client-only Labs pages - admin redirected to admin panel */}
+          <Route path="/dashboard/strategy" element={<ClientOnlyGuard><StrategyPage /></ClientOnlyGuard>} />
+          <Route path="/dashboard/video-lab" element={<ClientOnlyGuard><VideoLabPage /></ClientOnlyGuard>} />
+          <Route path="/dashboard/system" element={<ClientOnlyGuard><FvsSystemPage /></ClientOnlyGuard>} />
           {/* Strategy Idea Detail - view and act on a specific idea */}
-          <Route path="/dashboard/strategy/idea/:ideaId" element={<StrategyIdeaDetailPage />} />
+          <Route path="/dashboard/strategy/idea/:ideaId" element={<ClientOnlyGuard><StrategyIdeaDetailPage /></ClientOnlyGuard>} />
           <Route path="/dashboard/analytics" element={<AnalyticsPage />} />
           <Route path="/dashboard/roi" element={<ROIPage />} />
           <Route path="/dashboard/billing" element={<BillingPage />} />

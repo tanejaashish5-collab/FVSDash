@@ -11,9 +11,9 @@ import {
 
 const mainNav = [
   { label: 'Overview', path: '/dashboard/overview', icon: LayoutDashboard },
-  { label: 'Submissions', path: '/dashboard/submissions', icon: FileText },
+  { label: 'Submissions', path: '/dashboard/submissions', icon: FileText, showBadge: true },
   { label: 'Calendar', path: '/dashboard/calendar', icon: Calendar },
-  { label: 'Deliverables', path: '/dashboard/deliverables', icon: Package },
+  { label: 'Production Files', path: '/dashboard/deliverables', icon: Package },
   { label: 'Assets', path: '/dashboard/assets', icon: FolderOpen },
   { label: 'Publishing', path: '/dashboard/publishing', icon: Send },
   { label: 'Blog', path: '/dashboard/blog', icon: BookOpen },

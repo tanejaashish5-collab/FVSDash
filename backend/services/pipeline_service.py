@@ -54,9 +54,10 @@ async def script_to_submission(
             "error": "Strategy session not found"
         }
     
-    # Verify ownership
-    session_client_id = session.get("clientId") or session.get("userId")
-    if session_client_id != client_id and session_client_id != user_id:
+    # Verify ownership - check both camelCase and snake_case field names
+    session_client_id = session.get("clientId") or session.get("client_id")
+    session_user_id = session.get("userId") or session.get("user_id")
+    if session_client_id != client_id and session_user_id != user_id and session_client_id != user_id and session_user_id != client_id:
         return {
             "success": False,
             "error": "Access denied to this strategy session"

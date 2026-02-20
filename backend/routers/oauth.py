@@ -21,8 +21,16 @@ router = APIRouter(prefix="/oauth", tags=["oauth"])
 # Supported platforms
 PLATFORMS = ["youtube", "tiktok", "instagram"]
 
-# Mock OAuth configuration (for sandbox environment)
-MOCK_OAUTH_ENABLED = True  # Always use mock in sandbox
+# OAuth configuration - use real OAuth when credentials are available
+def is_real_oauth_enabled(platform: str) -> bool:
+    """Check if real OAuth credentials are configured for a platform."""
+    if platform == "youtube":
+        client_id = os.environ.get("YOUTUBE_CLIENT_ID")
+        client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
+        return bool(client_id and client_secret and not client_id.startswith("mock_"))
+    return False
+
+MOCK_OAUTH_ENABLED = not is_real_oauth_enabled("youtube")  # Use mock if no real creds
 
 # Mock account data for demo
 MOCK_ACCOUNTS = {

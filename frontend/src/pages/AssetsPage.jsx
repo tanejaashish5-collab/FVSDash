@@ -274,7 +274,7 @@ export default function AssetsPage() {
                   const sc = statusCfg[asset.status] || statusCfg.Draft;
                   const tc = assetTypeCfg[asset.type] || assetTypeCfg.Other;
                   const TypeIcon = assetTypeIcons[asset.type] || FileBox;
-                  const showPreviewThumb = asset.type === 'Thumbnail' && isImageUrl(asset.url);
+                  const showPreviewThumb = asset.type?.toLowerCase() === 'thumbnail' && isImageUrl(asset.url);
                   
                   return (
                     <TableRow

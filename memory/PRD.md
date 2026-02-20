@@ -22,6 +22,99 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 
 ## What's Been Implemented
 
+### Phase 32 — Sprint 14: Real YouTube Publishing + Stripe Billing (Skipped) + Quick Test Upload (Feb 20, 2026)
+
+**Summary**: Implemented real YouTube video publishing with OAuth token auto-refresh, background upload with progress tracking, and quota management. Added developer Quick Test Upload helper for testing the publish flow. Stripe Billing integration was skipped per user instruction.
+
+#### Part A: Real YouTube Publishing
+**Files**:
+- `/app/backend/routers/youtube_publish.py` - Main publish endpoints with token auto-refresh
+- `/app/backend/services/youtube_upload_service.py` - Real YouTube Data API v3 integration
+- `/app/frontend/src/pages/PublishingDashboardPage.jsx` - Publishing Command Center UI
+
+**Backend Features**:
+- `POST /api/publish/youtube` - Triggers real YouTube upload with:
+  - Auto-refresh of expired OAuth tokens
+  - Background task processing
+  - Progress tracking (0-100%)
+  - Privacy status support (private/unlisted/public)
+  - Quota consumption tracking
+- `GET /api/publish/status/{job_id}` - Poll upload progress
+- `GET /api/publish/check-video/{submission_id}` - Check if submission has video attached
+- `GET /api/publish/queue` - Content ready to publish
+- `GET /api/publish/history` - Published jobs
+- `GET /api/publish/failed` - Failed jobs (NEW)
+- `GET /api/publish/stats` - Publishing stats with quota info
+- `POST /api/publish/jobs/{job_id}/retry` - Retry failed upload
+- `DELETE /api/publish/jobs/{job_id}` - Cancel pending job
+
+**Token Auto-Refresh**:
+- `auto_refresh_youtube_token()` function checks token expiry
+- If expired or expiring within 5 minutes, refreshes using Google OAuth2
+- Updates database with new access token and expiry
+
+**Frontend Features**:
+- Publishing Command Center dashboard with stats cards
+- Platform selectors (YouTube connected, TikTok/Instagram coming soon)
+- Content Queue tab with publish buttons
+- Published tab showing live videos
+- Failed tab with retry functionality
+- Quota indicator showing daily usage
+- Real-time upload progress in slide-over panel
+
+**Verification**:
+- ✅ Real video uploaded to YouTube: ID `cLv7vF4WdE0` (private)
+- ✅ Token auto-refresh working when expired
+- ✅ Progress tracking from 0-100%
+- ✅ Published tab shows video with "View" link to YouTube
+
+#### Part B: Stripe Billing
+**Status**: SKIPPED per user instruction
+**Reason**: "Stripe is parked until we have real clients"
+**Tests**: 4 Stripe tests marked with `@pytest.mark.skip(reason="Stripe keys not configured")`
+
+#### Part C: Quick Test Upload Helper
+**Files**:
+- `/app/backend/routers/dev.py` - Developer-only endpoints
+
+**Backend Endpoints**:
+- `GET /api/dev/test-upload/status` - Check if ffmpeg/test upload is available
+- `POST /api/dev/test-upload/{submission_id}` - Attach minimal test video
+- `DELETE /api/dev/test-upload/{submission_id}` - Remove test video
+
+**Features**:
+- Uses ffmpeg to generate 1-second black video with silent audio
+- Only available in development mode
+- Creates video asset record linked to submission
+- Flags test files with `isTestFile: true`
+
+**Verification**:
+- ✅ ffmpeg installed and working
+- ✅ Test video generation: 9KB MP4 file
+- ✅ Asset properly linked to submission
+- ✅ Used to test real YouTube upload flow
+
+#### pytest-asyncio Fix
+**Files**:
+- `/app/backend/pytest.ini` - NEW configuration file
+
+```ini
+[pytest]
+asyncio_mode = auto
+testpaths = tests
+```
+
+- Fixed recurring event loop errors with async tests
+- Updated tests to use `httpx.AsyncClient` for proper async support
+
+#### Sprint 14 Test Results (Feb 20, 2026):
+- Backend: 100% (5/5 active tests passed, 4 Stripe tests skipped)
+- Frontend: 100% (all features verified)
+- Test report: `/app/test_reports/iteration_38.json`
+- Test file: `/app/backend/tests/test_sprint14_features.py`
+
+---
+
 ### Hotfix — Admin Data + Calendar Visual Fix (Feb 20, 2026)
 
 **Summary**: Fixed admin overview data accuracy, improved calendar visual design with subtle watermarks and larger event cards, cleaned up test data.

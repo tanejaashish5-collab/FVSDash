@@ -73,19 +73,32 @@ export default function ROIPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState('30d');
+  const [analyticsData, setAnalyticsData] = useState(null);
 
   const fetchData = useCallback(() => {
     setLoading(true);
-    axios.get(`${API}/roi/dashboard?range=${range}`, { headers: authHeaders })
+    
+    // Fetch ROI dashboard data
+    const roiReq = axios.get(`${API}/roi/dashboard?range=${range}`, { headers: authHeaders })
       .then(res => setData(res.data))
       .catch(err => {
-        toast.error('Failed to load ROI data');
         console.error(err);
-      })
+      });
+    
+    // Fetch real YouTube analytics for enhanced ROI calculation
+    const analyticsReq = axios.get(`${API}/analytics/videos?limit=100`, { headers: authHeaders })
+      .then(res => setAnalyticsData(res.data))
+      .catch(() => {});
+    
+    Promise.all([roiReq, analyticsReq])
       .finally(() => setLoading(false));
   }, [authHeaders, range]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Calculate enhanced metrics from real YouTube data
+  const realViews = analyticsData?.videos?.reduce((sum, v) => sum + (v.views || 0), 0) || 0;
+  const realWatchTime = analyticsData?.videos?.reduce((sum, v) => sum + (v.watchTimeMinutes || 0), 0) || 0;
 
   // Chart data for cost vs ROI comparison
   const comparisonData = data ? [

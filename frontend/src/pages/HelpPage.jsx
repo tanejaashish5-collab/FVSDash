@@ -47,8 +47,14 @@ export default function HelpPage() {
         setRequests(requestsRes.data || []);
       })
       .catch(err => {
-        toast.error('Failed to load help data');
+        // Only show error for actual failures (5xx errors), not empty data
+        if (err.response?.status >= 500) {
+          toast.error('Failed to load help data');
+        }
+        // For 4xx or network errors, silently handle and show empty state
         console.error(err);
+        setArticles([]);
+        setRequests([]);
       })
       .finally(() => setLoading(false));
   }, [authHeaders]);

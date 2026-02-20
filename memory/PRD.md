@@ -22,6 +22,43 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 
 ## What's Been Implemented
 
+### Hotfix — Admin Data + Calendar Visual Fix (Feb 20, 2026)
+
+**Summary**: Fixed admin overview data accuracy, improved calendar visual design with subtle watermarks and larger event cards, cleaned up test data.
+
+#### Fix 1: Admin Overview Data
+**Files**: `/app/backend/routers/dashboard.py`
+- Fixed `GET /api/dashboard/admin-overview` to filter clients by `is_active != False` AND `role: "client"`
+- Fixed channel_snapshots join to look up latest record per active client
+- Fixed Active Channels to count clients with valid OAuth token
+- Removed client-facing Quick Actions ("Open Strategy Lab", "Launch AI Video Lab") for admin
+- Admin Quick Actions now: "View All Clients", "View Submissions", "View Analytics"
+
+#### Fix 2: Calendar Cadence Watermarks
+**Files**: `/app/frontend/src/pages/CalendarPage.jsx`
+- Font size: 10px (reduced from ~18px)
+- Text: lowercase ("Shorts day", "Strategy day")
+- Color: white at 15% opacity (nearly invisible "whisper")
+- Position: bottom-center of cell
+- Only visible on empty cells (hidden when cell has content)
+- Removed green/teal background highlights - all cells same dark bg
+
+#### Fix 3: Calendar Event Cards
+**Files**: `/app/frontend/src/pages/CalendarPage.jsx`
+- Min height: 52px (increased from ~28px)
+- Font size: 12px with 2-line clamp
+- Replaced tiny chip badges with 3px left border color indicator
+- Border colors: Short=pink, Podcast=blue, Blog=amber
+- Cell min height: 130px
+
+#### Fix 4: Test Data Cleanup
+- Deleted 4 test submissions with "Sprint 12 Brain Test" or "Regular Submission [hex]"
+- Deleted 2 associated brain_scores
+- Fixed user clientId sync (alex@company.com now uses correct ID)
+- Fixed submissions clientId migration (75 submissions now linked correctly)
+
+---
+
 ### Phase 31 — Sprint 13: Content Calendar AI + Brain Prediction Challenge + Admin Role Fix (Feb 20, 2026)
 
 **Summary**: Added three major features: (1) Admin Role Fix - improved admin-specific dashboard with cross-channel summary, hidden client-facing tools from admin sidebar; (2) Content Calendar AI - optimal posting time intelligence with AI-generated 4-week schedules; (3) Brain Prediction Challenge - gamification of the Brain feedback loop with 30-day challenge deadlines.

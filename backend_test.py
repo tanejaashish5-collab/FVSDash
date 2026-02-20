@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 
 class ForgeVoiceAPITester:
-    def __init__(self, base_url="https://trend-forge-3.preview.emergentagent.com"):
+    def __init__(self, base_url="https://forge-voice-sprint10.preview.emergentagent.com"):
         self.base_url = base_url
         self.api_url = f"{base_url}/api"
         self.admin_token = None
@@ -554,7 +554,7 @@ class ForgeVoiceAPITester:
 def main():
     """Main test function"""
     print("🚀 Starting ForgeVoice Studio API Tests")
-    print("🌐 Testing against: https://trend-forge-3.preview.emergentagent.com")
+    print("🌐 Testing against: https://forge-voice-sprint10.preview.emergentagent.com")
     
     tester = ForgeVoiceAPITester()
     

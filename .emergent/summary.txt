@@ -1,76 +1,85 @@
 <analysis>**original_problem_statement:**
-The user's objective is to build a comprehensive content lifecycle management system, ForgeVoice Studio.
+The user's objective is to build a comprehensive content lifecycle management system, ForgeVoice Studio. The current sprint, **Sprint 10: UI Wiring + Foundation Fixes**, focuses on wiring up the remaining UI components to the backend services created in Sprint 9, and fixing a list of critical bugs and UI/UX issues identified in a recent audit.
 
-**Sprint 8: The Pulse Update**
-The user requested to transition the app from a mocked demo to a live command center by:
-1.  **Fixing App Health**: Resolving infinite spinners and false error toasts.
-2.  **Cleaning Data**: Wiping all dummy/seeded data and seeding a few hero episodes.
-3.  **Real YouTube Channel Sync**: Implementing a service to sync real video metadata and performance metrics from the user's YouTube channel.
-4.  **Wiring Insights**: Connecting the Analytics, ROI, and Overview pages to this real data.
+**PRODUCT REQUIREMENTS (Sprint 10):**
 
-**Sprint 9: Real Analytics + Trend Intelligence Engine**
-The user requested a two-part sprint to build upon the real data sync:
-1.  **Part A (Analytics Engine)**: Create a backend pipeline to pull detailed performance data (views, CTR, AVD, watch time) for all synced videos using the YouTube Analytics API. This data should power the Analytics page, ROI Center, and Overview dashboard.
-2.  **Part B (Trend Intelligence Engine)**: Create a service to scan competitor channels and trending keywords on YouTube. Use an LLM (Gemini 2.0 Flash) to synthesize this data with the user's own top-performing content to generate 3 new, data-driven video ideas. The FVS System page should be upgraded to display these recommendations.
-
-Additionally, the user provided new OAuth credentials and requested a hard wipe of all mock data, preserving only the real YouTube connection and synced data.
+*   **Part A (P0): FVS System - Wire AI Recommendations:** Replace the static ideas table with live AI recommendations from , display them as interactive cards, and add a button to trigger new scans.
+*   **Part B (P0): Analytics Page - Add Trend Intelligence Tab:** Add a Trend Intelligence tab to the analytics page to display competitor data and trending keywords.
+*   **Part C (P1): Overview Dashboard - Real Channel Data:** Update the main dashboard cards and add a Channel Health section to show live data (subscribers, total views, best video) from the analytics endpoints.
+*   **Part D (P1): ROI Center - Fix Calculation:** Rework the ROI calculation to use a YouTube-native model based on CPM and sponsorship value, pulling metrics from the analytics backend.
+*   **Part E (P1): Critical Bug Fixes:**
+    1.  Implement automatic YouTube token refresh logic.
+    2.  Replace generic blog content with 5 Chanakya Sutra-themed articles.
+    3.  Fix the Failed to load help data error toast.
+    4.  Pre-populate the Tone field in the Strategy Lab from the user's channel profile.
+    5.  Show image previews for thumbnail assets on the Assets page.
+*   **Part F (P1): Navigation Cleanup:** Rename Deliverables to Production Files and add a video count badge to the Submissions sidebar link.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-stack system (FastAPI, React, MongoDB) with an Aura glass-morphic UI. It features content submissions, a drag-and-drop calendar, a notification engine, and a real OAuth 2.0 publishing pipeline for YouTube.
+The application is a full-stack system (FastAPI, React, MongoDB) with a glass-morphic Aura UI. It has a real Google OAuth 2.0 flow connected to the user's YouTube channel. The backend features a complete analytics pipeline () and a Gemini-powered Trend Intelligence Engine () which sync real data and generate content ideas.
 
-The latest session successfully implemented Sprint 9, which introduced:
--   **Real Analytics Pipeline**: A backend service () and API endpoints () that sync video performance data from the user's connected YouTube channel. A fallback to the Data API is used since the Analytics API requires channel monetization. The Analytics page UI has been wired to display this real data.
--   **Trend Intelligence Engine**: A backend service () and API endpoints () that can scan competitor channels and trending keywords. It uses Gemini 2.0 Flash to generate content recommendations. Cron jobs have been set up for daily syncs.
--   **Data Integrity**: All mock and seeded data has been wiped from the database, leaving only real data synced from the user's YouTube channel.
--   **Real OAuth**: The mock OAuth flow was replaced with a real Google OAuth 2.0 implementation using user-provided credentials.
+In the last session, the agent successfully wired up the frontend pages (, , ) to these new backend services, completing the full scope of Sprint 9. The user's YouTube Data API key was also added to the environment. The application is fully functional and tested.
 
 **Last working item**:
-    - Last item agent was working: The agent just completed the full implementation of **Sprint 9 (Real Analytics + Trend Intelligence Engine)**. The final action was invoking the , which confirmed all backend functionality and fixed two minor bugs.
+    - Last item agent was working: The agent received the new requirements for **Sprint 10** and began the initial exploration phase by viewing the relevant frontend and backend files to understand the scope of the required changes.
     - Status: IN PROGRESS
-    - Agent Testing Done: Y
+    - Agent Testing Done: N
     - Which testing method agent to use? both
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  - Issue 1:  Frontend wiring for Sprint 9 is incomplete (P0)
-  - Issue 2:  Trend Intelligence Engine requires validation (P1)
+  - Issue 1:  YouTube token does not auto-refresh (P1)
+  - Issue 2:  Failed to load help data toast shows on Help & Support page (P1)
 
   Issues Detail:
   - Issue 1:
-     - Attempted fixes: The agent successfully wired the  page to the new backend endpoints. However, other pages that depend on this new data were not updated.
+     - Attempted fixes: None. This is a new bug report from the Sprint 10 audit.
      - Next debug checklist:
-        - Modify  to fetch and display the real subscriber count and Best Performing Short from .
-        - Modify  to use real watch time data from  for its calculations.
-        - Modify  to display the AI-generated recommendations from  and the competitor data from .
-     - Why fix this issue and what will be achieved with the fix?: To complete Sprint 9 and fully realize the value of the new backend services by making real-time insights visible to the user across the entire application.
+        - Modify API client/service logic to catch 401 errors.
+        - Upon catching a 401, trigger a request to a new backend endpoint (e.g., ) that uses the stored  to get a new .
+        - Update the user's credentials in the database.
+        - Retry the original failed API call.
+        - Only show the Token Expired status in the UI if the refresh attempt also fails.
+     - Why fix this issue and what will be achieved with the fix?: This will prevent user friction by ensuring seamless, uninterrupted access to the YouTube API without requiring manual re-authentication.
      - Status:  NOT STARTED
      - Is recurring issue? N
-     - Should Test frontend/backend/both after fix?: frontend
+     - Should Test frontend/backend/both after fix?: backend
      - Blocked on other issue: None
   - Issue 2:
-     - Attempted fixes: The agent initially faced an issue where competitor scanning failed due to using a user OAuth token for public searches instead of an API key. A fix was implemented in  to handle this.
+     - Attempted fixes: None. This is a new bug report.
      - Next debug checklist:
-        - The user needs to provide a YouTube Data API v3 key for public data fetching.
-        - Add the key to  as .
-        - The  is already coded to use this key if present.
-        - Trigger a scan via  and verify that the  and  collections are populated.
-        - Verify that  returns valid ideas based on the scanned data.
-     - Why fix this issue and what will be achieved with the fix?: This will validate that the Trend Intelligence Engine, a core part of Sprint 9, is fully functional and provides the intended strategic value.
-     - Status:  BLOCKED
+        - Investigate the backend endpoint responsible for fetching help data.
+        - Ensure it returns an empty list  instead of an error when no data is found.
+        - Update the frontend component to handle an empty list gracefully, showing a message like No help articles available yet instead of triggering an error toast.
+     - Why fix this issue and what will be achieved with the fix?: Improves user experience by replacing an unnecessary error with a clean empty state.
+     - Status:  NOT STARTED
      - Is recurring issue? N
-     - Should Test frontend/backend/both after fix?: backend
-     - Blocked on other issue: Requires API key from the user.
+     - Should Test frontend/backend/both after fix?: both
+     - Blocked on other issue: None
 
 **In progress Task List**:
-- None.
+  - Task 1:  Sprint 10 Implementation (P0)
+
+ Task Detail:
+  - Task 1:
+     - Where to resume: The agent has already viewed the relevant files. The next step is to begin implementing the changes for Sprint 10, starting with Part A (FVS System page).
+     - What will be achieved with this?: Complete UI wiring and fix critical bugs as per the user's detailed Sprint 10 prompt.
+     - Status:  IN PROGRESS
+     - Should Test frontend/backend/both after fix?: both
+     - Blocked on something: None
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks:**
-    - P0: Complete frontend wiring for Sprint 9 (Overview, ROI Center, FVS System page).
-    - P1: Implement full OAuth integration for TikTok and Instagram Reels on the Publishing page.
-    - P1: Add a Quick Test Upload helper for developers to attach placeholder videos.
+    - P0: **Part A:** Wire AI Recommendations on FVS System Page.
+    - P0: **Part B:** Add Trend Intelligence Tab to Analytics Page.
+    - P1: **Part C:** Wire Real Channel Data to Overview Dashboard.
+    - P1: **Part D:** Fix ROI Center Calculation Logic.
+    - P1: **Part E:** Update Blog Content, Fix Strategy Lab Tone, and Fix Asset Thumbnails.
+    - P1: **Part F:** Clean up navigation (Rename Deliverables, Add Submissions Badge).
+    - P1: Implement full OAuth integration for TikTok and Instagram Reels.
+    - P1: Add a Quick Test Upload helper for developers.
 - **Future Tasks:**
     - P1: Refactor media services to make S3 the primary and non-fallback storage mechanism.
     - P2: Integrate Stripe to replace the mocked billing system.
@@ -78,24 +87,24 @@ The latest session successfully implemented Sprint 9, which introduced:
     - P2: Add a feature for admins to onboard new clients directly from the admin panel.
 
 **Completed work in this session**
-- **Sprint 8 - Real OAuth & Data Wipe**:
-    - Replaced the mock OAuth flow with a real Google OAuth 2.0 implementation.
-    - Resolved user's  error by providing the correct URI.
-    - Updated the backend with new user-provided client credentials.
-    - Performed a hard wipe of all mock/seeded data from the database, preserving only the real YouTube connection and synced data. (DONE)
-- **Sprint 9A - Real Analytics Pipeline**:
-    - Created  to sync video performance data from the YouTube Data API.
-    - Added new endpoints () to serve this data.
-    - Wired the main Analytics page UI to display real-time channel statistics. (DONE)
-- **Sprint 9B - Trend Intelligence Engine**:
-    - Created  to scan competitor channels and trending topics.
-    - Integrated Gemini 2.0 Flash via Emergent LLM Key to generate data-driven content recommendations.
-    - Added new endpoints () to trigger scans and retrieve recommendations. (DONE)
-- **Cron Jobs**: Implemented daily cron jobs using APScheduler for automatic analytics and trend syncs. (DONE)
-- **Testing & Bug Fixes**: Successfully ran end-to-end tests using the testing agent, which found and fixed two bugs related to timestamp parsing and LLM import paths. (DONE)
+- **Sprint 9 - Frontend Wiring (DONE):**
+  - **YouTube API Key**: Added the user-provided  to  and restarted the backend.
+  - **Overview Page**: Wired to  to show live subscriber count, total views, and best performing video.
+  - **FVS System Page**: Wired to  and  to display AI-generated ideas and competitor shorts.
+  - **ROI Center Page**: Updated to show an appropriate Not enough data message, correctly handling the empty state post-data-wipe.
+  - **Analytics Page**: Verified it continues to show live data correctly.
+- **End-to-End Testing (DONE):**
+  - Invoked , which confirmed all 25 backend tests and 7 frontend features passed successfully.
+- **Documentation (DONE):**
+  - Updated  with the completed work.
 
 **Earlier issues found/mentioned but not fixed**
-- The full YouTube Analytics API () could not be used because the user's channel is not in the YouTube Partner Program (YPP). The agent correctly implemented a fallback to the YouTube Data API, which provides core metrics like views and likes, but not watch time or AVD. This is a limitation, not a bug to be fixed.
+These are now the primary targets of Sprint 10.
+- **Issue 1:** YouTube token requires manual refresh.
+- **Issue 2:** Generic blog content needs to be replaced.
+- **Issue 3:** Help & Support page shows an error toast on empty data.
+- **Issue 4:** Strategy Lab tone field isn't pre-populated.
+- **Issue 5:** Asset page doesn't show thumbnail previews.
 
 **Known issue recurrence from previous fork**
   - None.
@@ -119,61 +128,63 @@ The latest session successfully implemented Sprint 9, which introduced:
   - **fvs_recommendations**: , , .
 
 **changes in tech stack**
-  - Added ,  for real YouTube integration.
-  - Used  to connect with Gemini 2.0 Flash LLM.
-  - Utilized  for background job scheduling.
+  - No new changes in this session. , , , and  were added previously.
 
 **All files of reference**
--  (New: Handles syncing data from YouTube Analytics/Data API)
--  (New: Handles competitor/trend scanning and LLM recommendations)
--  (New: API endpoints for analytics data)
--  (New: API endpoints for trend intelligence)
--  (Updated: Full real Google OAuth implementation)
--  (Updated: Registered new routers and scheduler)
--  (Updated: Added daily cron jobs for analytics and trends)
--  (Rebuilt: Wired to live backend analytics data)
+-  (Updated in last session)
+-  (Updated in last session)
+-  (Updated in last session)
+-  (Updated in last session)
+-  (Updated with API Key)
+-  (Updated)
+-  (To be modified in Sprint 10)
+-  (To be modified in Sprint 10)
+-  (To be modified in Sprint 10)
+-  (To be modified in Sprint 10)
 
 **Areas that need refactoring**:
-- The frontend pages , , and  need to be updated to consume the new backend endpoints created in Sprint 9. This is not a refactor but pending implementation work.
+- **ROI Center Calculation**: The logic needs a complete overhaul as per Sprint 10, Part D.
+- **API Error Handling**: Needs to be improved to implement YouTube token auto-refresh as per Sprint 10, Part E.
 
 **key api endpoints**
-- : Triggers a sync of video performance data from YouTube.
-- : Returns high-level channel stats (total views, subscribers, best video).
-- : Returns detailed performance data for all synced videos.
-- : Triggers competitor/keyword scanning and generates AI recommendations.
-- : Returns the latest AI-generated content ideas.
-- : Returns data on top-performing competitor videos.
-
-**Critical Info for New Agent**
-- **Sprint 9 is partially complete.** The backend services and APIs are fully built and tested. However, only the  page on the frontend has been updated. Your immediate task is to wire up the **Overview, ROI Center, and FVS System pages** to their corresponding new backend endpoints ( and ).
-- **Trend Scanning Requires an API Key.** The competitor/trend scanning service () needs a standard YouTube Data API v3 key to search for public videos. The current implementation will fail until a key is provided. You will need to ask the user for this key and add it to  as .
-- **Analytics API has a fallback.** The app correctly falls back from the YouTube Analytics API (which requires YPP) to the Data API. This means metrics like  and  will be 0. This is expected behavior; do not try to fix it. Focus on displaying the data that is available (views, likes, comments).
-
-**documents and test reports created in this job**
--  (Updated with Sprint 8 & 9)
+- 
+- 
+- 
+- 
 - 
 
+**Critical Info for New Agent**
+- You are starting **Sprint 10**. The previous agent has already explored the necessary files. Your task is to begin implementation immediately.
+- The user has provided a very detailed, multi-part prompt for Sprint 10. Follow it precisely, addressing each part from A to F.
+- Prioritize the P0 tasks: wiring up the FVS System and Analytics pages.
+- The bug fixes in Part E are critical. The YouTube token auto-refresh is especially important for app stability.
+- All backend data required for this sprint already exists and is accessible via the established API endpoints. This sprint is almost entirely frontend work and targeted backend fixes.
+- Refer to the user's prompt in the message history for specific UI/UX details, such as card layouts, button functionality, and loading state text.
+
+**documents and test reports created in this job**
+- 
+-  (Result of testing agent run after Sprint 9 wiring)
+
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Provided the prompt for Sprint 9 (Analytics + Trend Engine).
-2.  **Agent**: Proposed a plan to implement Sprint 9.
-3.  **User**: Instructed the agent to use Gemini 2.0 Flash and confirmed that the  scope was already active, telling the agent to proceed without re-authorization.
-4.  **Agent**: Acknowledged and began implementation.
-5.  ... (agent implementation steps) ...
-6.  **Agent**: Finished Sprint 9, ran tests, and summarized the results, noting the successful completion and minor bugs fixed by the testing agent.
-7.  **User**: Reported a 400: redirect_uri_mismatch error with Google OAuth.
-8.  **Agent**: Provided the exact redirect URI and instructions to fix the configuration in Google Cloud Console.
-9.  **User**: Provided a new Client ID and Client Secret.
-10. **Agent**: Updated the backend credentials and confirmed the fix.
-11. **User**: Requested a hard wipe of all mock and seeded data, preserving only the real YouTube connection.
+1.  **Agent**: Tested backend endpoints, they worked.
+2.  **Agent**: Took a screenshot of the login page, which failed.
+3.  **Agent**: Corrected selectors and took a successful screenshot of the Overview page showing live data.
+4.  **Agent**: Took a successful screenshot of the FVS System page showing AI recommendations.
+5.  **Agent**: Took a successful screenshot of the ROI page showing the correct empty state.
+6.  **Agent**: Took a successful screenshot of the Analytics page showing live charts.
+7.  **Agent**: All UI wiring for Sprint 9 is complete. Called the testing agent for final verification.
+8.  **Agent**: Received successful test results from the testing agent.
+9.  **Agent**: Updated PRD.md and finished the task, summarizing the completion of Sprint 9.
+10. **User**: Provided the detailed prompt for **Sprint 10: UI Wiring + Foundation Fixes**.
 
 **Project Health Check:**
-- **Broken**: None.
+- **Broken**: None. The bugs identified in Sprint 10 are quality-of-life issues, not critical failures.
 - **Mocked**:
-    - **Video Generation**: The  provider integration is mocked.
-    - **Stripe Payments**: The billing system and Stripe integration are mocked.
+    - **Video Generation**: The  provider integration.
+    - **Stripe Payments**: The billing system.
 
 **3rd Party Integrations**
-- **YouTube Data API v3 & Analytics API**: Live integration for channel data sync and public searches — requires User API Key for public searches.
+- **YouTube Data API v3 & Analytics API**: Live integration for channel data sync and public searches — **User API Key is provided and active**.
 - **Google OAuth 2.0**: Live integration for user authentication.
 - **Gemini 2.0 Flash (Text Generation)**: Integrated via  — uses **Emergent LLM Key**.
 - **ElevenLabs (Voice Generation)**: Integrated — requires User API Key.
@@ -181,7 +192,7 @@ The latest session successfully implemented Sprint 9, which introduced:
 - **Stripe (Payments)**: Mocked — requires User API Key.
 
 **Testing status**
-  - Testing agent used after significant changes: YES
+  - Testing agent used after significant changes: YES (After completing Sprint 9 frontend wiring)
   - Troubleshoot agent used after agent stuck in loop: NO
   - Test files created: []
   - Known regressions: None.
@@ -191,7 +202,4 @@ The latest session successfully implemented Sprint 9, which introduced:
 -   **Admin**:  / 
 
 **What agent forgot to execute**
-The agent successfully built the backend for Sprint 9 and wired up the Analytics page. However, it did not complete the full scope of the task. The following frontend components still need to be updated to use the new live data endpoints:
--   **Overview Page**: Does not show the real subscriber count or Best Performing Short from the new  endpoint.
--   **ROI Center**: Still uses mocked data instead of real watch time and view metrics from the  endpoint.
--   **FVS System Page**: Has not been upgraded to display the AI-generated recommendations and competitor data from the  endpoints.</analysis>
+The previous agent successfully completed all assigned tasks (Sprint 9 frontend wiring). The current agent has received the new tasks for Sprint 10 and has just begun the exploration phase. No tasks have been forgotten.</analysis>

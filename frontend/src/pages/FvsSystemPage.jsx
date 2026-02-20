@@ -277,17 +277,27 @@ export default function FvsSystemPage() {
     if (!selectedIdea) return;
     setCreatingSubmission(true);
     try {
+      // Determine if this is from an AI recommendation (for Brain tracking)
+      const isFromRecommendation = selectedIdea.source === 'ai_recommendation' || selectedIdea.id?.startsWith('rec-');
+      
       const res = await axios.post(`${API}/submissions`, {
         title: selectedIdea.topic,
         description: selectedIdea.hypothesis || scriptData?.scriptText?.slice(0, 500) || '',
         contentType: selectedIdea.format === 'short' ? 'Short' : 'Podcast',
         priority: 'High',
-        strategyIdeaId: selectedIdea.id
+        strategyIdeaId: selectedIdea.id,
+        recommendation_id: isFromRecommendation ? selectedIdea.id : null
       }, { headers: authHeaders });
       
-      toast.success('Submission created!', {
-        description: `"${res.data.title}" added to pipeline.`
-      });
+      if (isFromRecommendation && res.data.brain_score_id) {
+        toast.success('Submission created + Brain tracking enabled 🧠', {
+          description: `"${res.data.title}" added to pipeline.`
+        });
+      } else {
+        toast.success('Submission created!', {
+          description: `"${res.data.title}" added to pipeline.`
+        });
+      }
       handleClosePanel();
       navigate('/dashboard/submissions');
     } catch (err) {

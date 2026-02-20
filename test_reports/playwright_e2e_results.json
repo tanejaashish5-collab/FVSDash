@@ -1,17 +1,17 @@
 {
-  "timestamp": "2026-02-20T23:10:44.968046",
-  "total": 44,
-  "passed": 43,
-  "failed": 1,
-  "pass_rate": "97.7%",
+  "timestamp": "2026-02-20T23:11:51.841368",
+  "total": 47,
+  "passed": 47,
+  "failed": 0,
+  "pass_rate": "100.0%",
   "pages_summary": {
     "Login": {
       "passed": 2,
       "failed": 0
     },
     "Overview": {
-      "passed": 0,
-      "failed": 1
+      "passed": 4,
+      "failed": 0
     },
     "Submissions": {
       "passed": 5,
@@ -65,9 +65,27 @@
     },
     {
       "page": "Overview",
-      "test": "Page load",
-      "passed": false,
-      "details": "Locator.is_visible: Unexpected token \"=\" while parsing css selector \"h1:has-text"
+      "test": "Page title visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Overview",
+      "test": "Stats data loaded",
+      "passed": true,
+      "details": "Found 161 numbers"
+    },
+    {
+      "page": "Overview",
+      "test": "YouTube section visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Overview",
+      "test": "Sidebar visible",
+      "passed": true,
+      "details": ""
     },
     {
       "page": "Submissions",

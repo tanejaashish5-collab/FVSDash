@@ -704,6 +704,198 @@ export default function AnalyticsPage() {
                 </Card>
               </div>
             </TabsContent>
+
+            {/* Brain Intelligence Tab */}
+            <TabsContent value="brain" className="mt-6" data-testid="brain-intelligence-content">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Accuracy Trend Chart */}
+                <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="brain-accuracy-trend">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-teal-400" />
+                      Weekly Accuracy Trend
+                    </CardTitle>
+                    <p className="text-xs text-zinc-500 mt-1">
+                      Brain prediction accuracy over time
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    {brainTrend.length > 0 ? (
+                      <div className="h-[250px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={brainTrend}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1F2933" />
+                            <XAxis dataKey="week" tick={{ fill: '#71717a', fontSize: 10 }} axisLine={{ stroke: '#1F2933' }} />
+                            <YAxis domain={[0, 100]} tick={{ fill: '#71717a', fontSize: 10 }} axisLine={{ stroke: '#1F2933' }} />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Line
+                              type="monotone"
+                              dataKey="accuracy"
+                              name="Accuracy %"
+                              stroke="#14b8a6"
+                              strokeWidth={2}
+                              dot={{ fill: '#14b8a6', r: 4 }}
+                              activeDot={{ r: 6, fill: '#14b8a6' }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <TrendingUp className="h-10 w-10 text-zinc-700 mx-auto mb-3" />
+                        <p className="text-sm text-zinc-500">No trend data yet</p>
+                        <p className="text-xs text-zinc-600 mt-1">Make predictions to see accuracy trends</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Top Predicted Performers */}
+                <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="brain-leaderboard">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                      <Trophy className="h-4 w-4 text-amber-400" />
+                      Top Predicted Performers
+                    </CardTitle>
+                    <p className="text-xs text-zinc-500 mt-1">
+                      Best-performing predictions by actual views
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    {brainLeaderboard.length > 0 ? (
+                      <div className="space-y-3">
+                        {brainLeaderboard.map((entry, i) => (
+                          <div
+                            key={i}
+                            className="p-3 rounded-lg bg-zinc-950/50 border border-[#1F2933] hover:border-zinc-700 transition-colors"
+                            data-testid={`leaderboard-${i}`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-lg font-bold ${i === 0 ? 'text-amber-400' : i === 1 ? 'text-zinc-400' : i === 2 ? 'text-orange-700' : 'text-zinc-600'}`}>
+                                  #{i + 1}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm text-white font-medium truncate">{entry.title}</p>
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${
+                                      entry.predicted_tier === 'High' 
+                                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                        : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                    }`}>
+                                      {entry.predicted_tier}
+                                    </Badge>
+                                    <span className="text-emerald-400">✅</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-lg font-bold text-white">{entry.actual_views?.toLocaleString()}</p>
+                                <p className="text-[10px] text-zinc-500">views</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <Trophy className="h-10 w-10 text-zinc-700 mx-auto mb-3" />
+                        <p className="text-sm text-zinc-500">No leaderboard data yet</p>
+                        <p className="text-xs text-zinc-600 mt-1">Make correct predictions to appear here</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Full Scorecard Table */}
+              <Card className="bg-[#0B1120] border-[#1F2933] mt-6" data-testid="brain-full-scorecard">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                      <Brain className="h-4 w-4 text-indigo-400" />
+                      Full Prediction Scorecard
+                    </CardTitle>
+                    {brainScores && (
+                      <div className="flex items-center gap-4 text-xs">
+                        <span className="text-zinc-400">
+                          Total: <span className="text-white font-bold">{brainScores.total_predictions}</span>
+                        </span>
+                        <span className="text-zinc-400">
+                          Accuracy: <span className={`font-bold ${
+                            brainScores.accuracy_percentage >= 80 ? 'text-amber-400' : 
+                            brainScores.accuracy_percentage >= 60 ? 'text-teal-400' : 'text-zinc-300'
+                          }`}>{brainScores.accuracy_percentage}%</span>
+                        </span>
+                        <span className="text-zinc-400">
+                          Improving at: <span className="text-emerald-400">+5%/week</span>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="px-0">
+                  {brainScores?.scores?.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-[#1F2933] hover:bg-transparent">
+                          <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Video Title</TableHead>
+                          <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Predicted Tier</TableHead>
+                          <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Actual Views</TableHead>
+                          <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Verdict</TableHead>
+                          <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Date</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {brainScores.scores.map((score, i) => (
+                          <TableRow key={score.id || i} className="border-[#1F2933] hover:bg-white/[0.02]">
+                            <TableCell className="max-w-[250px]">
+                              <p className="text-sm text-white truncate">{score.predicted_title}</p>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${
+                                score.predicted_tier === 'High' 
+                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                  : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                              }`}>
+                                {score.predicted_tier}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm text-zinc-300">
+                                {score.actual_views !== null ? score.actual_views.toLocaleString() : '—'}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              {score.performance_verdict === 'correct' && (
+                                <span className="text-emerald-400 text-lg">✅</span>
+                              )}
+                              {score.performance_verdict === 'incorrect' && (
+                                <span className="text-red-400 text-lg">❌</span>
+                              )}
+                              {score.performance_verdict === 'pending' && (
+                                <span className="text-zinc-500 text-lg">⏳</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-xs text-zinc-500">
+                                {score.created_at ? new Date(score.created_at).toLocaleDateString() : '—'}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Brain className="h-10 w-10 text-zinc-700 mx-auto mb-3" />
+                      <p className="text-sm text-zinc-500">No predictions yet</p>
+                      <p className="text-xs text-zinc-600 mt-1">Create submissions from AI recommendations to start tracking</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         </>
       )}

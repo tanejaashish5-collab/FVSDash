@@ -162,6 +162,11 @@ export default function Sidebar() {
       <ScrollArea className="flex-1 py-3">
         <NavSection items={mainNav} currentPath={currentPath} submissionCount={submissionCount} />
         
+        {/* Client-only nav items (Blog) - hidden for admin */}
+        {!isAdmin && (
+          <NavSection items={clientOnlyNav} currentPath={currentPath} submissionCount={submissionCount} />
+        )}
+        
         {/* Labs section - hidden for admin users (client-facing tools) */}
         {!isAdmin && (
           <>

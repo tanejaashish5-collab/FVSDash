@@ -81,12 +81,18 @@ async def publish_to_youtube(
     if not token or not token.get("connected"):
         raise HTTPException(status_code=400, detail="YouTube not connected. Connect in Settings first.")
     
-    # Check token expiry
+    # Check token expiry and auto-refresh if needed
     expires_at = token.get("expiresAt")
     if expires_at:
         expiry_time = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
-        if expiry_time < datetime.now(timezone.utc):
-            raise HTTPException(status_code=401, detail="YouTube token expired. Please reconnect or refresh token.")
+        if expiry_time < datetime.now(timezone.utc) + timedelta(minutes=5):
+            # Token expired or expiring soon - attempt auto-refresh
+            refresh_result = await auto_refresh_youtube_token(client_id)
+            if not refresh_result.get("success"):
+                raise HTTPException(
+                    status_code=401, 
+                    detail=f"YouTube token expired and refresh failed: {refresh_result.get('error')}. Please reconnect."
+                )
     
     # Check quota
     quota = get_quota_usage(client_id)

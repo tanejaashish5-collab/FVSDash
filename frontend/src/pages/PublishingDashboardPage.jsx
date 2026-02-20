@@ -361,9 +361,29 @@ export default function PublishingDashboardPage() {
     setLoading(true);
     
     try {
-      const [oauthRes, queueRes, historyRes, failedRes, statsRes] = await Promise.all([
+      const [oauthRes, queueRes, historyRes, failedRes, statsRes, testUploadRes] = await Promise.all([
         axios.get(buildApiUrl(`${API}/oauth/status`), { headers: authHeaders }),
         axios.get(buildApiUrl(`${API}/publish/queue`), { headers: authHeaders }),
+        axios.get(buildApiUrl(`${API}/publish/history`), { headers: authHeaders }),
+        axios.get(buildApiUrl(`${API}/publish/failed`), { headers: authHeaders }),
+        axios.get(buildApiUrl(`${API}/publish/stats`), { headers: authHeaders }),
+        axios.get(buildApiUrl(`${API}/dev/test-upload/status`), { headers: authHeaders }).catch(() => ({ data: { available: false } })),
+      ]);
+      
+      setOauthStatus(oauthRes.data);
+      setQueue(queueRes.data || []);
+      setHistory(historyRes.data || []);
+      setFailedJobs(failedRes.data || []);
+      setStats(statsRes.data);
+      setTestUploadAvailable(testUploadRes.data?.available || false);
+      
+    } catch (err) {
+      console.error('Failed to fetch data:', err);
+      toast.error('Failed to load publishing data');
+    } finally {
+      setLoading(false);
+    }
+  }, [authHeaders, buildApiUrl]);
         axios.get(buildApiUrl(`${API}/publish/history`), { headers: authHeaders }),
         axios.get(buildApiUrl(`${API}/publish/jobs?status=failed`), { headers: authHeaders }),
         axios.get(buildApiUrl(`${API}/publish/stats`), { headers: authHeaders }),

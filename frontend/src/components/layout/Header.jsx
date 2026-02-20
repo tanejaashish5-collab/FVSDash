@@ -43,6 +43,7 @@ const pathLabels = {
 
 export default function Header() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, logout, authHeaders } = useAuth();
   const pageTitle = pathLabels[location.pathname] || 'Dashboard';
   const isDashboard = location.pathname.startsWith('/dashboard');
@@ -53,6 +54,14 @@ export default function Header() {
   
   // Tour state
   const [showTour, setShowTour] = useState(false);
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchRef = useRef(null);
+  const searchTimeoutRef = useRef(null);
 
   // Fetch unread count on mount and periodically
   const fetchUnreadCount = useCallback(async () => {
@@ -71,12 +80,90 @@ export default function Header() {
     const interval = setInterval(fetchUnreadCount, 30000);
     return () => clearInterval(interval);
   }, [fetchUnreadCount]);
+  
+  // Search with 300ms debounce
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    if (!searchQuery.trim() || searchQuery.length < 2) {
+      setSearchResults(null);
+      setShowSearchResults(false);
+      return;
+    }
+    
+    searchTimeoutRef.current = setTimeout(async () => {
+      setSearchLoading(true);
+      try {
+        const res = await axios.get(`${API}/search?q=${encodeURIComponent(searchQuery)}`, { headers: authHeaders });
+        setSearchResults(res.data);
+        setShowSearchResults(true);
+      } catch (err) {
+        console.error('Search failed:', err);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+    
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery, authHeaders]);
+  
+  // Handle click outside to close search results
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setShowSearchResults(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+  
+  // Handle escape key
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        setShowSearchResults(false);
+        setSearchQuery('');
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, []);
+  
+  const handleSearchResultClick = (result) => {
+    setShowSearchResults(false);
+    setSearchQuery('');
+    navigate(result.url);
+  };
 
   // Refetch when panel closes (in case notifications were read)
-  const handleCloseNotifications = useCallback(() => {
+  const handleCloseNotifications = useCallback(async () => {
     setShowNotifications(false);
-    fetchUnreadCount();
-  }, [fetchUnreadCount]);
+    // Mark all as read when closing panel
+    if (unreadCount > 0) {
+      try {
+        await axios.post(`${API}/notifications/read-all`, {}, { headers: authHeaders });
+        setUnreadCount(0); // Optimistic update
+      } catch (err) {
+        console.error('Failed to mark notifications as read:', err);
+      }
+    }
+  }, [authHeaders, unreadCount]);
+  
+  const getResultIcon = (type) => {
+    switch (type) {
+      case 'submission': return FileText;
+      case 'asset': return Image;
+      case 'recommendation': return Lightbulb;
+      default: return FileText;
+    }
+  };
 
   return (
     <header

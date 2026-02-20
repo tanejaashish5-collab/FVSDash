@@ -1177,6 +1177,189 @@ export default function CalendarPage() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* AI Schedule Sheet - Sprint 13 */}
+      <Sheet open={aiScheduleOpen} onOpenChange={setAiScheduleOpen}>
+        <SheetContent side="right" className="bg-[#0B1120] border-[#1F2933] w-[480px] sm:w-[520px] overflow-y-auto">
+          <SheetHeader className="pb-4">
+            <SheetTitle className="text-white text-lg flex items-center gap-2" style={{ fontFamily: 'Manrope, sans-serif' }}>
+              <Sparkles className="h-5 w-5 text-teal-400" />
+              Content Calendar AI
+            </SheetTitle>
+            <SheetDescription className="text-zinc-500 text-xs">
+              Optimal posting times based on your channel's performance data
+            </SheetDescription>
+          </SheetHeader>
+
+          <Separator className="bg-[#1F2933] mb-5" />
+
+          {/* Best Posting Times Section */}
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+              <BarChart3 className="h-4 w-4 text-teal-400" />
+              Your Best Performing Times
+            </h3>
+            
+            {bestTimes?.top_slots?.length > 0 ? (
+              <div className="space-y-2">
+                {bestTimes.top_slots.map((slot, i) => {
+                  const medals = ['🥇', '🥈', '🥉'];
+                  const confidence = slot.confidence === 'High' ? 'text-emerald-400' : slot.confidence === 'Medium' ? 'text-amber-400' : 'text-zinc-500';
+                  return (
+                    <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-zinc-900/50 border border-zinc-800">
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">{medals[i]}</span>
+                        <div>
+                          <p className="text-sm font-medium text-white">{slot.day} {slot.time_label}</p>
+                          <p className={`text-xs ${confidence}`}>{slot.confidence} confidence</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-white">{slot.avg_views.toLocaleString()}</p>
+                        <p className="text-[10px] text-zinc-500">avg views</p>
+                      </div>
+                    </div>
+                  );
+                })}
+                <p className="text-[10px] text-zinc-600 text-center mt-2">
+                  Based on {bestTimes.total_analyzed} published videos analysis
+                </p>
+              </div>
+            ) : (
+              <div className="text-center py-6 border border-dashed border-zinc-700 rounded-lg">
+                <BarChart3 className="h-8 w-8 text-zinc-700 mx-auto mb-2" />
+                <p className="text-xs text-zinc-500">Need more performance data</p>
+                <p className="text-[10px] text-zinc-600 mt-1">Publish at least 10 videos to unlock this feature</p>
+              </div>
+            )}
+          </div>
+
+          <Separator className="bg-[#1F2933] mb-5" />
+
+          {/* Generate Schedule Button */}
+          <div className="mb-5">
+            <Button
+              onClick={generateAiSchedule}
+              disabled={aiScheduleLoading}
+              className="w-full bg-teal-500/20 text-teal-400 border border-teal-500/30 hover:bg-teal-500/30"
+              data-testid="generate-schedule-btn"
+            >
+              {aiScheduleLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generating Schedule...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Generate 4-Week Schedule
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* AI Loading State */}
+          {aiScheduleLoading && (
+            <div className="text-center py-8">
+              <AuraSpinner size="md" />
+              <p className="text-xs text-zinc-400 mt-4">Analysing performance patterns...</p>
+              <p className="text-[10px] text-zinc-600 mt-1">Identifying optimal slots... Building your schedule...</p>
+            </div>
+          )}
+
+          {/* AI Generated Schedule */}
+          {!aiScheduleLoading && aiSchedule?.suggestions?.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+                <CalendarIcon className="h-4 w-4 text-teal-400" />
+                AI Generated Schedule
+              </h3>
+              
+              <ScrollArea className="h-[400px] pr-4">
+                <div className="space-y-2">
+                  {aiSchedule.suggestions.map((item, i) => (
+                    <div 
+                      key={i}
+                      className={`p-3 rounded-lg border ${
+                        item.content_type === 'scheduled' 
+                          ? 'bg-teal-500/5 border-teal-500/30' 
+                          : 'bg-amber-500/5 border-amber-500/30'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge 
+                              variant="outline" 
+                              className={`text-[9px] px-1.5 py-0 ${
+                                item.content_type === 'scheduled' 
+                                  ? 'border-teal-500/40 text-teal-400' 
+                                  : 'border-amber-500/40 text-amber-400'
+                              }`}
+                            >
+                              {item.content_type === 'scheduled' ? 'Ready to Schedule' : 'New Idea'}
+                            </Badge>
+                            {item.confidence_score && (
+                              <span className="text-[9px] text-zinc-600">
+                                {Math.round(item.confidence_score * 100)}% match
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm font-medium text-white truncate">{item.content_title}</p>
+                          <p className="text-xs text-zinc-400 mt-0.5">
+                            {item.day_of_week}, {item.date} · {item.time_ist}
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => applySuggestion(item)}
+                          className="shrink-0 h-7 px-2 text-xs text-teal-400 hover:bg-teal-500/20"
+                          data-testid={`apply-suggestion-${i}`}
+                        >
+                          <Check className="h-3 w-3 mr-1" />
+                          Add
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+
+              {/* Apply Full Schedule Button */}
+              <div className="mt-4 pt-4 border-t border-zinc-800">
+                <Button
+                  onClick={applyFullSchedule}
+                  disabled={applyingSchedule}
+                  className="w-full bg-teal-500 text-white hover:bg-teal-600"
+                  data-testid="apply-full-schedule-btn"
+                >
+                  {applyingSchedule ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Applying...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Apply Full Schedule ({aiSchedule.suggestions.filter(s => s.content_type === 'scheduled').length} items)
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {!aiScheduleLoading && (!aiSchedule || !aiSchedule.suggestions?.length) && (
+            <div className="text-center py-8 border border-dashed border-zinc-700 rounded-lg">
+              <CalendarIcon className="h-10 w-10 text-zinc-700 mx-auto mb-3" />
+              <p className="text-sm text-zinc-400">No schedule generated yet</p>
+              <p className="text-xs text-zinc-600 mt-1">Click "Generate Schedule" to create an AI-powered posting plan</p>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </DndContext>
   );
 }

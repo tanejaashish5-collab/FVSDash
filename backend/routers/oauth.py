@@ -637,3 +637,116 @@ async def get_quota(
         quota["message"] = None
     
     return quota
+
+
+
+# ============================================================================
+# YouTube Channel Sync (The "Pulse" Engine)
+# ============================================================================
+
+@router.post("/youtube/sync")
+async def sync_youtube_channel(
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    """
+    Trigger a full YouTube channel sync.
+    Imports all Shorts, metadata, and analytics from the connected YouTube account.
+    """
+    client_id = get_client_id_from_user(user, impersonateClientId)
+    db = oauth_tokens_collection()
+    
+    # Get YouTube OAuth token
+    token = await db.find_one({"clientId": client_id, "platform": "youtube"})
+    if not token or not token.get("connected"):
+        raise HTTPException(status_code=400, detail="YouTube not connected. Please connect your account first.")
+    
+    access_token = token.get("accessToken")
+    refresh_token_value = token.get("refreshToken")
+    
+    if not access_token:
+        raise HTTPException(status_code=400, detail="No access token available. Please reconnect.")
+    
+    # For mock tokens, return mock sync result
+    if access_token.startswith("mock_"):
+        return {
+            "success": True,
+            "channelInfo": {
+                "channelId": "UC_demo_123",
+                "title": "ForgeVoice Demo Channel",
+                "subscriberCount": 12400
+            },
+            "shortsImported": 0,
+            "assetsCreated": 0,
+            "analyticsUpdated": 1,
+            "message": "Mock sync completed. Connect a real YouTube account to import actual data.",
+            "isMock": True
+        }
+    
+    # Real sync
+    try:
+        from db.mongo import get_db
+        from services.youtube_sync_service import sync_channel_data
+        
+        database = get_db()
+        result = await sync_channel_data(
+            db=database,
+            client_id=client_id,
+            access_token=access_token,
+            refresh_token=refresh_token_value
+        )
+        
+        if not result["success"]:
+            raise HTTPException(status_code=400, detail=result.get("errors", ["Sync failed"])[0])
+        
+        return {
+            "success": True,
+            "channelInfo": result.get("channelInfo"),
+            "shortsImported": result.get("shortsImported", 0),
+            "assetsCreated": result.get("assetsCreated", 0),
+            "analyticsUpdated": result.get("analyticsUpdated", 0),
+            "message": f"Successfully imported {result.get('shortsImported', 0)} Shorts from your channel.",
+            "isMock": False
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        import logging
+        logging.exception("YouTube sync error")
+        raise HTTPException(status_code=500, detail=f"Sync error: {str(e)}")
+
+
+@router.get("/youtube/sync/status")
+async def get_sync_status(
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    """
+    Get the last sync status and statistics.
+    """
+    client_id = get_client_id_from_user(user, impersonateClientId)
+    
+    from db.mongo import get_db
+    database = get_db()
+    
+    # Get latest sync snapshot
+    latest_snapshot = await database.analytics_snapshots.find_one(
+        {"clientId": client_id, "source": "youtube_sync"},
+        sort=[("createdAt", -1)]
+    )
+    
+    # Get imported shorts count
+    imported_count = await database.submissions.count_documents({
+        "clientId": client_id,
+        "importedFromYoutube": True
+    })
+    
+    return {
+        "lastSyncAt": latest_snapshot.get("createdAt") if latest_snapshot else None,
+        "totalImportedShorts": imported_count,
+        "channelStats": {
+            "subscriberCount": latest_snapshot.get("subscriberCount") if latest_snapshot else None,
+            "totalViews": latest_snapshot.get("totalViews") if latest_snapshot else None,
+            "shortsCount": latest_snapshot.get("shortsCount") if latest_snapshot else None
+        } if latest_snapshot else None
+    }

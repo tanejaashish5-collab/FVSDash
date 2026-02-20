@@ -440,6 +440,169 @@ export default function FvsSystemPage() {
             </CardContent>
           </Card>
 
+          {/* Trend Intelligence Engine - Sprint 9B */}
+          <Card className="bg-gradient-to-r from-[#0B1120] to-[#0d1425] border-[#1F2933]" data-testid="trend-intelligence-card">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                    <Radar className="h-4 w-4 text-teal-400" />
+                    Trend Intelligence Engine
+                  </CardTitle>
+                  <CardDescription className="text-xs text-zinc-500 mt-1">
+                    AI-powered competitor analysis and content recommendations
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  {scanStatus?.status === 'scanning' && (
+                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse">
+                      {scanStatus.progress || 'Scanning...'}
+                    </Badge>
+                  )}
+                  <Button
+                    onClick={handleTrendScan}
+                    disabled={scanning}
+                    size="sm"
+                    className="bg-teal-600 hover:bg-teal-700 text-white h-8"
+                    data-testid="trend-scan-btn"
+                  >
+                    {scanning ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                        Scanning...
+                      </>
+                    ) : (
+                      <>
+                        <Radar className="h-3.5 w-3.5 mr-1.5" />
+                        Scan Trends
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* AI Recommendations */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+                      <Sparkles className="h-3.5 w-3.5 text-violet-400" />
+                      AI Recommendations
+                    </h4>
+                    {recommendations?.generatedAt && (
+                      <span className="text-[9px] text-zinc-600">
+                        {formatDate(recommendations.generatedAt)}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {recommendations?.recommendations?.length > 0 ? (
+                    <div className="space-y-2">
+                      {recommendations.recommendations.slice(0, 3).map((rec, i) => (
+                        <div
+                          key={i}
+                          className="p-3 rounded-lg bg-zinc-950/70 border border-violet-500/20 hover:border-violet-500/40 transition-colors cursor-pointer group"
+                          data-testid={`recommendation-${i}`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <div className="h-6 w-6 rounded-full bg-violet-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                              <span className="text-xs font-bold text-violet-400">{i + 1}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-white leading-tight">{rec.title || rec.topic}</p>
+                              <p className="text-xs text-zinc-400 mt-1 line-clamp-2">{rec.hook || rec.hypothesis}</p>
+                              <div className="flex items-center gap-2 mt-2">
+                                {rec.format && (
+                                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-zinc-900 border-zinc-700 text-zinc-400">
+                                    {rec.format}
+                                  </Badge>
+                                )}
+                                {rec.confidence && (
+                                  <span className={`text-[10px] font-mono ${
+                                    rec.confidence >= 0.8 ? 'text-emerald-400' : 
+                                    rec.confidence >= 0.6 ? 'text-amber-400' : 'text-zinc-500'
+                                  }`}>
+                                    {Math.round(rec.confidence * 100)}% match
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-zinc-600 group-hover:text-violet-400 transition-colors shrink-0" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-6 rounded-lg bg-zinc-950/50 border border-dashed border-[#1F2933] text-center">
+                      <Sparkles className="h-8 w-8 text-zinc-700 mx-auto mb-2" />
+                      <p className="text-xs text-zinc-500">No recommendations yet</p>
+                      <p className="text-[10px] text-zinc-600 mt-1">Run a trend scan to generate AI ideas</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Top Competitor Videos */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+                      <Target className="h-3.5 w-3.5 text-red-400" />
+                      Top Competitor Shorts
+                    </h4>
+                    <span className="text-[9px] text-zinc-600">{competitors.length} videos</span>
+                  </div>
+                  
+                  {competitors.length > 0 ? (
+                    <div className="space-y-2">
+                      {competitors.slice(0, 4).map((video, i) => (
+                        <div
+                          key={video.videoId || i}
+                          className="flex items-center gap-3 p-2 rounded-lg bg-zinc-950/50 border border-[#1F2933] hover:border-zinc-700 transition-colors"
+                          data-testid={`competitor-video-${i}`}
+                        >
+                          {video.thumbnailUrl ? (
+                            <img 
+                              src={video.thumbnailUrl} 
+                              alt={video.title}
+                              className="w-16 h-10 object-cover rounded shrink-0"
+                            />
+                          ) : (
+                            <div className="w-16 h-10 bg-zinc-800 rounded shrink-0 flex items-center justify-center">
+                              <Video className="h-4 w-4 text-zinc-600" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-white font-medium truncate">{video.title}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-[10px] text-red-400">{video.competitorName}</span>
+                              <span className="text-[10px] text-zinc-600">•</span>
+                              <span className="text-[10px] text-emerald-400">{(video.viewCount || 0).toLocaleString()} views</span>
+                            </div>
+                          </div>
+                          <a
+                            href={`https://youtube.com/watch?v=${video.videoId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 rounded hover:bg-zinc-800 transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <ExternalLink className="h-3.5 w-3.5 text-zinc-500 hover:text-white" />
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-6 rounded-lg bg-zinc-950/50 border border-dashed border-[#1F2933] text-center">
+                      <Users className="h-8 w-8 text-zinc-700 mx-auto mb-2" />
+                      <p className="text-xs text-zinc-500">No competitor data yet</p>
+                      <p className="text-[10px] text-zinc-600 mt-1">Run a trend scan to analyze competitors</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Left: Brain Snapshot */}
             <div className="lg:col-span-5 space-y-4">

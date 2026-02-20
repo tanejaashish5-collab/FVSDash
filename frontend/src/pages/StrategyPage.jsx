@@ -94,19 +94,43 @@ export default function StrategyPage() {
   const [linkedSubmissionId, setLinkedSubmissionId] = useState(null);
   const [deletingSessionId, setDeletingSessionId] = useState(null);
 
-  // Fetch capabilities and settings
+  // Fetch capabilities, settings, and channel profile for tone pre-population
   useEffect(() => {
+    if (!authHeaders) return;
+    
     axios.get(`${API}/ai/capabilities`, { headers: authHeaders })
       .then(res => setCapabilities(res.data))
       .catch(console.error);
     
-    axios.get(`${API}/settings`, { headers: authHeaders })
+    // First try to get tone from channel profile (Brand Brain)
+    axios.get(`${API}/channel-profile`, { headers: authHeaders })
       .then(res => {
-        if (res.data.brandVoiceDescription) {
-          setTone(res.data.brandVoiceDescription);
+        if (res.data?.tone) {
+          setTone(res.data.tone);
+        } else if (res.data?.brandDescription) {
+          // Fallback to brand description if tone is not set
+          setTone(res.data.brandDescription);
+        } else {
+          // If channel profile has no tone, try settings
+          axios.get(`${API}/settings`, { headers: authHeaders })
+            .then(settingsRes => {
+              if (settingsRes.data.brandVoiceDescription) {
+                setTone(settingsRes.data.brandVoiceDescription);
+              }
+            })
+            .catch(console.error);
         }
       })
-      .catch(console.error);
+      .catch(() => {
+        // If channel profile fails, try settings as fallback
+        axios.get(`${API}/settings`, { headers: authHeaders })
+          .then(res => {
+            if (res.data.brandVoiceDescription) {
+              setTone(res.data.brandVoiceDescription);
+            }
+          })
+          .catch(console.error);
+      });
   }, [authHeaders]);
 
   // Handle submissionId query param

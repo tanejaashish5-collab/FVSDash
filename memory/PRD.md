@@ -79,7 +79,30 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 - Example: "Silent Power: कब चुप रहना है? #ChanakyaNiti"
 - Performance tier predictions (High/Medium)
 
-#### Part C: Scheduler Integration
+#### Part C: Frontend Wiring (Sprint 9 Completion - Feb 20, 2026)
+
+**Overview Page Updates** (`/app/frontend/src/pages/OverviewPage.jsx`):
+- **YouTube Channel Stats Card** with "Live Data" badge
+  - Subscribers: 1,320
+  - Total Views: 116,803
+  - Videos: 73
+  - Avg View Duration: 0s (requires YPP)
+- **Best Performing Short** section with thumbnail, title, views, likes
+- Real-time data from `/api/analytics/overview` and `/api/analytics/top-performers`
+
+**FVS System Page Updates** (`/app/frontend/src/pages/FvsSystemPage.jsx`):
+- **Trend Intelligence Engine** section (new)
+  - **AI Recommendations** panel: 3 AI-generated content ideas with titles, hooks, confidence scores
+  - **Top Competitor Shorts** panel: 10 competitor videos with thumbnails, views, external links
+  - **Scan Trends** button: Triggers `/api/trends/scan`, polls status, shows toast on completion
+- Polling mechanism for scan progress with timeout
+
+**ROI Center Page Updates** (`/app/frontend/src/pages/ROIPage.jsx`):
+- Enhanced metrics using real YouTube views from `/api/analytics/videos`
+- **Real Watch Time** card (violet gradient) when data available
+- Graceful empty state when no episodes published
+
+#### Part D: Scheduler Integration
 
 **Daily Cron Jobs** (`/app/backend/services/publishing_scheduler.py`):
 - **6 AM UTC**: `daily_analytics_sync()` - Auto-sync YouTube Analytics
@@ -92,10 +115,10 @@ Build "ForgeVoice Studio – Client Analytics & AI Production Dashboard" — a f
 - `trending_topics`: Trending videos by keyword
 - `fvs_recommendations`: AI-generated content ideas
 
-#### Test Results (Feb 2026):
+#### Test Results (Feb 20, 2026):
 - Backend: 100% (25/25 tests passed)
-- Frontend: 100% (all UI elements working)
-- Test report: `/app/test_reports/iteration_33.json`
+- Frontend: 100% (all 7 features verified)
+- Test report: `/app/test_reports/iteration_34.json`
 
 #### Limitations:
 - Watch Time, CTR, AVD require YouTube Partner Program monetization

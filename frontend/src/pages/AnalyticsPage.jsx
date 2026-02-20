@@ -110,28 +110,66 @@ export default function AnalyticsPage() {
   const { authHeaders } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [range, setRange] = useState('30d');
   const [customFrom, setCustomFrom] = useState(null);
   const [customTo, setCustomTo] = useState(null);
   const [fromOpen, setFromOpen] = useState(false);
   const [toOpen, setToOpen] = useState(false);
+  const [overview, setOverview] = useState(null);
+  const [videos, setVideos] = useState([]);
 
   const fetchData = useCallback(() => {
     setLoading(true);
+    
+    // Fetch analytics overview (real YouTube data)
+    const overviewReq = axios.get(`${API}/analytics/overview`, { headers: authHeaders })
+      .then(res => setOverview(res.data))
+      .catch(() => {});
+    
+    // Fetch video-level analytics
+    const videosReq = axios.get(`${API}/analytics/videos?limit=20`, { headers: authHeaders })
+      .then(res => setVideos(res.data?.videos || []))
+      .catch(() => {});
+    
+    // Fetch dashboard data (legacy + real)
     let url = `${API}/analytics/dashboard?range=${range}`;
     if (customFrom && customTo) {
       url = `${API}/analytics/dashboard?from_date=${format(customFrom, 'yyyy-MM-dd')}&to_date=${format(customTo, 'yyyy-MM-dd')}`;
     }
-    axios.get(url, { headers: authHeaders })
+    const dashboardReq = axios.get(url, { headers: authHeaders })
       .then(res => setData(res.data))
       .catch(err => {
-        toast.error('Failed to load analytics data');
+        // Only show error for actual failures, not empty data
+        if (err.response?.status >= 500) {
+          toast.error('Failed to load analytics data');
+        }
         console.error(err);
-      })
+      });
+    
+    Promise.all([overviewReq, videosReq, dashboardReq])
       .finally(() => setLoading(false));
   }, [authHeaders, range, customFrom, customTo]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Sync YouTube Analytics
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const res = await axios.post(`${API}/analytics/sync`, {}, { headers: authHeaders });
+      if (res.data.success) {
+        toast.success(`Synced ${res.data.synced} videos from YouTube`);
+        fetchData(); // Refresh data
+      } else {
+        toast.error(res.data.errors?.[0] || 'Sync failed');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to sync analytics');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleRangeChange = (newRange) => {
     setRange(newRange);

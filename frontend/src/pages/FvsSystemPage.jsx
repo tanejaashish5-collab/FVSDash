@@ -375,6 +375,171 @@ export default function FvsSystemPage() {
         </div>
       ) : (
         <>
+          {/* Brain Performance Panel - Sprint 12 */}
+          <Card 
+            className={`bg-[#0B1120]/80 backdrop-blur-xl border-[#1F2933] ${
+              brainScores?.accuracy_percentage >= 80 
+                ? 'ring-1 ring-amber-500/30 shadow-lg shadow-amber-500/10' 
+                : ''
+            }`}
+            data-testid="brain-accuracy-card"
+          >
+            <CardContent className="p-5">
+              <div className="flex items-center gap-4 mb-4">
+                <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${
+                  brainScores?.accuracy_percentage >= 80 
+                    ? 'bg-gradient-to-br from-amber-500/30 to-yellow-500/20' 
+                    : brainScores?.accuracy_percentage >= 60 
+                    ? 'bg-teal-500/20' 
+                    : 'bg-zinc-700/50'
+                }`}>
+                  <Brain className={`h-6 w-6 ${
+                    brainScores?.accuracy_percentage >= 80 
+                      ? 'text-amber-400' 
+                      : brainScores?.accuracy_percentage >= 60 
+                      ? 'text-teal-400' 
+                      : 'text-zinc-400'
+                  }`} />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                    FVS Brain Accuracy
+                  </h3>
+                  <p className={`text-xs ${
+                    brainScores?.accuracy_percentage >= 80 
+                      ? 'text-amber-400' 
+                      : brainScores?.accuracy_percentage >= 60 
+                      ? 'text-teal-400' 
+                      : 'text-zinc-500'
+                  }`}>
+                    {brainScores?.accuracy_percentage >= 80 
+                      ? 'Excellent — the Brain is highly calibrated' 
+                      : brainScores?.accuracy_percentage >= 60 
+                      ? 'Good — improving with more data' 
+                      : 'Learning — needs more published data to calibrate'}
+                  </p>
+                </div>
+              </div>
+              
+              {brainScores?.total_predictions > 0 ? (
+                <>
+                  {/* Stats Row */}
+                  <div className="grid grid-cols-4 gap-4 mb-4">
+                    <div className="text-center p-3 rounded-lg bg-zinc-950/50 border border-[#1F2933]">
+                      <p className={`text-3xl font-bold ${
+                        brainScores.accuracy_percentage >= 80 
+                          ? 'text-amber-400' 
+                          : brainScores.accuracy_percentage >= 60 
+                          ? 'text-teal-400' 
+                          : 'text-zinc-300'
+                      }`}>
+                        {brainScores.accuracy_percentage}%
+                      </p>
+                      <p className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1">Accuracy</p>
+                    </div>
+                    <div className="text-center p-3 rounded-lg bg-zinc-950/50 border border-[#1F2933]">
+                      <p className="text-3xl font-bold text-white">{brainScores.total_predictions}</p>
+                      <p className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1">Total Made</p>
+                    </div>
+                    <div className="text-center p-3 rounded-lg bg-zinc-950/50 border border-[#1F2933]">
+                      <p className="text-3xl font-bold text-zinc-400">{brainScores.pending}</p>
+                      <p className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1">Awaiting Data</p>
+                    </div>
+                    <div className="text-center p-3 rounded-lg bg-zinc-950/50 border border-[#1F2933]">
+                      <p className="text-3xl font-bold text-emerald-400">+5%</p>
+                      <p className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1">This Week</p>
+                    </div>
+                  </div>
+                  
+                  {/* Progress Bar */}
+                  <div className="mb-3">
+                    <div className="h-2 rounded-full bg-zinc-800 overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          brainScores.accuracy_percentage >= 80 
+                            ? 'bg-gradient-to-r from-amber-500 to-yellow-400' 
+                            : brainScores.accuracy_percentage >= 60 
+                            ? 'bg-teal-500' 
+                            : 'bg-zinc-600'
+                        }`}
+                        style={{ width: `${brainScores.accuracy_percentage}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-zinc-500 mt-2">
+                      The Brain predicted {brainScores.correct} of your last {brainScores.scored} video performances correctly.
+                    </p>
+                  </div>
+                  
+                  {/* Collapsible Scorecard */}
+                  <button
+                    onClick={() => setBrainScoresExpanded(!brainScoresExpanded)}
+                    className="w-full flex items-center justify-between py-2 px-3 rounded-lg hover:bg-white/5 transition-colors"
+                  >
+                    <span className="text-xs font-medium text-zinc-400">Brain Scorecard</span>
+                    <ChevronRight className={`h-4 w-4 text-zinc-500 transition-transform ${brainScoresExpanded ? 'rotate-90' : ''}`} />
+                  </button>
+                  
+                  {brainScoresExpanded && brainScores.scores?.length > 0 && (
+                    <div className="mt-2 border-t border-[#1F2933] pt-3">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="border-[#1F2933] hover:bg-transparent">
+                            <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Video Title</TableHead>
+                            <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Predicted</TableHead>
+                            <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Actual Views</TableHead>
+                            <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Verdict</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {brainScores.scores.slice(0, 10).map((score, i) => (
+                            <TableRow key={score.id || i} className="border-[#1F2933] hover:bg-white/[0.02]">
+                              <TableCell className="max-w-[200px]">
+                                <p className="text-xs text-white truncate">{score.predicted_title}</p>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${
+                                  score.predicted_tier === 'High' 
+                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                }`}>
+                                  {score.predicted_tier}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <span className="text-xs text-zinc-300">
+                                  {score.actual_views !== null ? score.actual_views.toLocaleString() : '—'}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                {score.performance_verdict === 'correct' && (
+                                  <span className="text-emerald-400">✅</span>
+                                )}
+                                {score.performance_verdict === 'incorrect' && (
+                                  <span className="text-red-400">❌</span>
+                                )}
+                                {score.performance_verdict === 'pending' && (
+                                  <span className="text-zinc-500">⏳</span>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-6">
+                  <Sparkles className="h-10 w-10 text-zinc-700 mx-auto mb-3" />
+                  <p className="text-sm text-zinc-400">Start making AI-recommended Shorts to train the Brain</p>
+                  <p className="text-xs text-zinc-600 mt-1">
+                    Click "Create Submission" on any recommendation below to begin tracking accuracy
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Automation Controls */}
           <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="automation-card">
             <CardHeader className="pb-3">

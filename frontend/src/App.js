@@ -51,6 +51,14 @@ function AdminGuard({ children }) {
   return children;
 }
 
+// Guard to redirect admin away from client-only pages (Labs)
+function ClientOnlyGuard({ children }) {
+  const { user } = useAuth();
+  // If admin tries to access client-only pages, redirect to admin panel
+  if (user?.role === 'admin') return <Navigate to="/dashboard/admin" replace />;
+  return children;
+}
+
 function PublicRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <LoadingScreen />;

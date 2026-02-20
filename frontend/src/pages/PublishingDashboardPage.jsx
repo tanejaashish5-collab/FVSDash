@@ -957,6 +957,64 @@ export default function PublishingDashboardPage() {
                 )}
               </div>
               
+              {/* No Video Warning + Test Upload - Sprint 14 */}
+              {!videoCheckResult?.has_video && (
+                <div className="mt-5 p-4 rounded-lg border border-amber-500/30 bg-amber-500/5">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-amber-400">No video file attached</p>
+                      <p className="text-xs text-zinc-400 mt-1">
+                        Attach a video file in Assets before publishing, or use the test upload option below.
+                      </p>
+                      
+                      {testUploadAvailable && (
+                        <div className="flex gap-2 mt-3">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => window.location.href = '/dashboard/assets'}
+                            className="text-xs border-zinc-700 text-zinc-300"
+                          >
+                            Go to Assets
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleAttachTestVideo}
+                            disabled={attachingTestVideo}
+                            className="text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30"
+                            data-testid="attach-test-video-btn"
+                          >
+                            {attachingTestVideo ? (
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            ) : (
+                              <Beaker className="h-3 w-3 mr-1" />
+                            )}
+                            Attach Test Video
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Test video indicator */}
+              {videoCheckResult?.is_test && videoCheckResult?.has_video && (
+                <div className="mt-4 flex items-center gap-2 p-2 rounded bg-amber-500/10 border border-amber-500/20">
+                  <Beaker className="h-4 w-4 text-amber-400" />
+                  <span className="text-xs text-amber-400">Test video attached (1s black frame)</span>
+                </div>
+              )}
+              
+              {/* Quota Info */}
+              <div className="mt-4 p-3 rounded-lg bg-zinc-900/30 border border-zinc-800">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-zinc-500">Estimated upload cost</span>
+                  <span className="text-zinc-300">~1,600 API units</span>
+                </div>
+              </div>
+              
               <Separator className="bg-zinc-800 my-6" />
               
               {/* Publish Button */}

@@ -237,11 +237,25 @@ function HistoryItem({ job }) {
             <Icon className={`h-5 w-5 ${cfg.color}`} />
           </div>
           <div>
-            <h4 className="text-sm font-medium text-white">{job.title}</h4>
+            <div className="flex items-center gap-2">
+              <h4 className="text-sm font-medium text-white">{job.title}</h4>
+              {job.isMockUpload && (
+                <Badge variant="outline" className="text-[8px] px-1 py-0 bg-amber-500/10 text-amber-400 border-amber-500/30">
+                  TEST
+                </Badge>
+              )}
+            </div>
             <div className="flex items-center gap-2 mt-0.5">
               <Badge variant="outline" className={`text-[9px] px-1 py-0 ${statusCfg.bg} ${statusCfg.color}`}>
                 {statusCfg.label}
               </Badge>
+              {job.privacyStatus && (
+                <Badge variant="outline" className={`text-[8px] px-1 py-0 ${
+                  job.privacyStatus === 'public' ? 'border-emerald-500/30 text-emerald-400' : 'border-zinc-600 text-zinc-400'
+                }`}>
+                  {job.privacyStatus === 'public' ? 'Public' : 'Private'}
+                </Badge>
+              )}
               <span className="text-[10px] text-zinc-500">
                 {job.publishedAt ? format(new Date(job.publishedAt), 'MMM d, yyyy h:mm a') : ''}
               </span>

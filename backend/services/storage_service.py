@@ -172,9 +172,7 @@ class StorageService:
                 "ContentType": content_type,
             }
             
-            # Only add ACL for standard AWS S3 (not R2/MinIO)
-            if not self._endpoint_url:
-                put_kwargs["ACL"] = "public-read"
+            # Note: Don't use ACL - bucket may have Object Ownership enforced
             
             self._s3_client.put_object(**put_kwargs)
             

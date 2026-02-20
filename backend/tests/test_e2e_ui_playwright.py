@@ -446,9 +446,9 @@ async def test_video_lab_page(page):
         prompt = await page.locator('textarea, input[placeholder*="prompt"]').first.is_visible(timeout=2000)
         log_result(page_name, "Prompt input visible", prompt)
         
-        # Check for Generate button
-        gen_btn = await page.locator('button:has-text("Generate")').first.is_visible(timeout=2000)
-        log_result(page_name, "Generate button visible", gen_btn)
+        # Check for Create Video Task button
+        create_btn = await page.locator('button:has-text("Create Video"), button:has-text("Generate")').first.is_visible(timeout=2000)
+        log_result(page_name, "Create button visible", create_btn)
         
         return True
         

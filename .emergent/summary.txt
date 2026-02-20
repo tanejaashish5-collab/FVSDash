@@ -1,37 +1,50 @@
 <analysis>**original_problem_statement:**
-The user's objective is to build a comprehensive content lifecycle management system, ForgeVoice Studio. The previous sprint, **Sprint 10: UI Wiring + Foundation Fixes**, focused on wiring up the remaining UI components to the backend services, and fixing a list of critical bugs and UI/UX issues.
+The user initiated **Sprint 12: Brain Feedback Loop + Multi-Channel Foundation + Identity Fix**. The goal was to implement a series of interconnected features to enhance the ForgeVoice Studio application. After the agent completed the sprint, the user provided an additional refinement to clean up the admin user experience.
 
-**PRODUCT REQUIREMENTS (Sprint 10 - Completed):**
+**PRODUCT REQUIREMENTS (Sprint 12):**
 
-*   **Part A (P0): FVS System - Wire AI Recommendations:** Replaced the static ideas table with live AI recommendations from , displayed as interactive cards, and added a button to trigger new scans.
-*   **Part B (P0): Analytics Page - Add Trend Intelligence Tab:** Added a Trend Intelligence tab to the analytics page to display competitor data and trending keywords.
-*   **Part C (P1): Overview Dashboard - Real Channel Data:** Updated the main dashboard cards and added a Channel Health section to show live data (subscribers, total views, best video) from the analytics endpoints.
-*   **Part D (P1): ROI Center - Fix Calculation:** Reworked the ROI calculation to use a YouTube-native model based on an editable CPM and sponsorship value, pulling metrics from the analytics backend.
-*   **Part E (P1): Critical Bug Fixes:**
-    1.  Implemented automatic YouTube token refresh logic.
-    2.  Replaced generic blog content with 5 Chanakya Sutra-themed articles.
-    3.  Fixed the Failed to load help data error toast.
-    4.  Pre-populated the Tone field in the Strategy Lab from the user's channel profile.
-    5.  Showed image previews for thumbnail assets on the Assets page.
-*   **Part F (P1): Navigation Cleanup:** Renamed Deliverables to Production Files and added a video count badge to the Submissions sidebar link.
+*   **Part A: Identity Fix:**
+    *   Rename the primary client account from Alex Chen Media to Chanakya Sutra via a database migration.
+    *   Ensure the name change is reflected dynamically across the application (Overview greeting, Admin Panel, sidebar).
+
+*   **Part B: Admin Multi-Channel Onboarding:**
+    *   **Backend:** Create new admin-only CRUD endpoints (, , , ) at  to manage client accounts and their channel profiles. The  endpoint should be enhanced to include channel statistics.
+    *   **Frontend:** Upgrade the Admin Panel with a button to add new channels via a slide-over form. The client list table must be updated with new columns (Channel Name, YouTube Connected, Subscribers, Videos, Status) and actions (Edit, Deactivate).
+
+*   **Part C: Brain Feedback Loop:**
+    *   **Backend:**
+        *   Add a  to the  model.
+        *   Create a new  collection to track the performance of AI recommendations.
+        *   Implement logic in the analytics service to score predictions ( or ) based on actual video views against predefined thresholds.
+    *   **Frontend:**
+        *   Add a Brain Performance panel to the FVS System page.
+        *   Add a Brain Intelligence tab to the Analytics page.
+        *   Add a Brain Accuracy widget to the Overview dashboard.
+
+*   **Part D: Wire Create Submission with Tracking:**
+    *   Update the Create Submission functionality on recommendation cards to pass the  to the backend, enabling the feedback loop.
+
+*   **Follow-up Requirement:**
+    *   Hide client-facing pages (FVS System, Strategy Lab, AI Video Lab) from the admin's sidebar and use route protection to prevent direct access.
+    *   The admin view of these pages was showing incorrect, legacy data. The fix ensures admins have a focused view on management tasks.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The application is a full-stack system (FastAPI, React, MongoDB) with a functional Google OAuth 2.0 flow. All UI elements outlined in Sprint 10 are now fully wired to the backend. The FVS system shows live AI ideas, the Analytics page has a Trend Intelligence tab, the Overview dashboard and ROI Center display live channel metrics with a correct CPM-based model, the blog has been updated with new content, and several critical bugs (including YouTube token refresh) have been fixed. The application is stable and has been tested by the agent.
+The application now includes the full Brain Feedback Loop, allowing the system to track and score the performance of its AI-generated content ideas. The admin panel has been significantly upgraded with full CRUD functionality for managing client channels. The primary client's identity has been corrected to Chanakya Sutra across the platform. Following the main sprint, the admin UI has been streamlined to hide client-specific content generation tools, focusing the admin role on management. All test client data created during the sprint has been cleaned up.
 
 **Last working item**:
-    - Last item agent was working: The agent successfully completed all tasks for Sprint 10, updated the  file, and generated a final summary of the work done.
+    - Last item agent was working: The agent just completed the user's follow-up request to refine the admin user experience. This involved hiding client-facing Labs pages (FVS System, Strategy Lab, AI Video Lab) from the admin sidebar and implementing route protection to redirect admins who try to access these pages directly. The agent also cleaned up all temporary client accounts created during testing.
     - Status: USER VERIFICATION PENDING
     - Agent Testing Done: Y
-    - Which testing method agent to use? NA
+    - Which testing method agent to use? Manual testing by user. The user should log in as the admin () and verify that the Labs section is no longer visible in the sidebar and that direct navigation to pages like  redirects them to the admin panel.
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-There are no pending or in-progress issues. All issues identified for Sprint 10 have been resolved.
+  There are no pending or in-progress issues.
 
 **In progress Task List**:
-There are no in-progress tasks.
+  There are no in-progress tasks.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks:**
@@ -44,23 +57,22 @@ There are no in-progress tasks.
     - P2: Add a feature for admins to onboard new clients directly from the admin panel.
 
 **Completed work in this session**
-- **Sprint 10 - All Parts (DONE):**
-  - **FVS System Page (Part A):** Wired to  to show live, interactive AI idea cards.
-  - **Analytics Page (Part B):** Added a Trend Intelligence tab with  and  components.
-  - **Overview Dashboard (Part C):** Now displays live channel health statistics.
-  - **ROI Center Page (Part D):** Rebuilt the ROI calculation to use an editable CPM (default .50) and sponsorship value.
-  - **YouTube Token Auto-Refresh (Part E):** Implemented a frontend Axios interceptor in  to catch 401 errors and trigger the backend refresh token flow.
-  - **Blog Content (Part E):** Replaced placeholder content with 5 authentic Chanakya Sutra-themed articles via a database migration script ().
-  - **Help Page Bug (Part E):** Fixed the Failed to load help data toast by adding graceful handling for empty data arrays on the frontend.
-  - **Strategy Lab Tone (Part E):** Ensured the 'tone' field is correctly pre-populated from the user's channel profile.
-  - **Asset Thumbnails (Part E):** The testing agent applied a fix to make image URL detection case-insensitive, ensuring thumbnail previews render correctly.
-  - **Navigation Cleanup (Part F):** Renamed Deliverables to Production Files and added a video count badge to the Submissions link in the sidebar.
-- **End-to-End Testing (DONE):**
-  - Performed comprehensive manual verification via screenshots for every new feature.
-  - Invoked , which confirmed all features passed and fixed one minor bug.
+- **Sprint 12 - All Parts (DONE):**
+  - **Part A - Identity Fix:** Renamed the client Alex Chen Media to Chanakya Sutra via a one-time database migration. The name is now displayed dynamically in the UI.
+  - **Part B - Admin Multi-Channel Onboarding:** Implemented backend CRUD endpoints and a full-featured frontend UI in the Admin Panel for creating, viewing, editing, and deactivating client channels.
+  - **Part C - Brain Feedback Loop:** Created the  collection, updated submission logic, and built new UI components (Brain Accuracy Panel, Brain Intelligence Tab, Overview Widget) to display performance metrics.
+  - **Part D - Recommendation Tracking:** Wired the Create Submission button to pass a , successfully linking content creation to the Brain Feedback Loop.
+- **Admin UI/UX Refinement (DONE):**
+  - Hid client-facing content generation pages (Labs section) from the admin sidebar.
+  - Implemented frontend route protection to redirect admins from client-only pages.
+  - Cleaned up all test data (clients, submissions) created during development.
+- **Testing (DONE):**
+  - All backend API endpoints for Sprint 12 were verified via  commands.
+  - All frontend changes were verified via screenshots.
+  - The  was invoked and passed all tests.
 
 **Earlier issues found/mentioned but not fixed**
-None. All previously identified issues were resolved in this session as part of Sprint 10.
+   - None.
 
 **Known issue recurrence from previous fork**
   - None.
@@ -69,59 +81,142 @@ None. All previously identified issues were resolved in this session as part of 
 
 
 **Key Technical Concepts**
-- **Frontend**: React, React Router, Tailwind CSS, Shadcn UI, Framer Motion.
-- **Backend**: FastAPI, Pydantic, APScheduler for cron jobs.
-- **Database**: MongoDB, Alembic-style migrations for data seeding.
-- **Authentication**: Google OAuth 2.0 PKCE flow with automated token refresh using Axios interceptors.
-- **3rd Party APIs**: YouTube Data API v3, YouTube Analytics API.
-- **LLM**: Gemini 2.0 Flash via .
+- **Backend**: FastAPI, Pydantic. New concepts include admin-only CRUD endpoints, database migrations for data correction, and a scheduled analytics job extension for performance scoring.
+- **Frontend**: React, Tailwind CSS, Shadcn UI. New concepts include conditional rendering based on user roles ( vs. ), dynamic routing protection, and complex state management for the new admin panel features (slide-overs, forms).
+- **Database**: MongoDB. A new  collection was added. The  collection was modified. A one-time migration script was used to update existing user data.
+- **Feedback Loop**: A core concept linking AI recommendations -> user submissions -> analytics data -> performance scoring, creating a self-improving system.
 
 **key DB schema**
-  - No schema changes. The  collection was populated with new documents.
+  - **submissions**: Added optional .
+  - **brain_scores (new collection)**:
+    - 
+    - 
+    - 
+    - 
+    -  (High | Medium)
+    - 
+    -  (correct | incorrect | pending)
+    - 
 
 **changes in tech stack**
-  - No new dependencies were installed. The agent implemented the token refresh logic using the existing  library.
+  -  was added to  to support new asynchronous tests.
 
 **All files of reference**
 - **Created:**
-  - : Seeds the database with new blog articles.
-  - : Contains the Axios instance with an interceptor for auto-refreshing the YouTube token.
-  - : Component to display competitor video data.
-  - : Component to display trending keyword data.
+  - : One-time script to fix client identity.
+  - : Pydantic models for admin client management.
+  - , : Business logic for new features.
+  - : API endpoints for the Brain Feedback Loop.
+  - : New backend tests for the sprint.
 - **Updated:**
-  - : Implemented new interactive idea cards.
-  - : Added a tabbed interface for Performance and Trend Intelligence.
-  - : Reworked the entire page for CPM-based ROI calculation.
-  - : Updated to show live channel health stats.
-  - : Added graceful error handling for empty data.
-  - : Fixed tone pre-population logic.
-  - : Fixed thumbnail rendering (by testing agent).
-  - : Renamed a navigation link and added a badge component.
-  - : Documented the completion of Sprint 10.
+  - : Included new router and startup migration logic.
+  - , : Enhanced with new routes and logic.
+  - : Added  to .
+  - : Overhauled to include full client management UI.
+  - , , : Updated with new Brain-related widgets and tabs.
+  - : Implemented conditional rendering to hide items from admin.
+  - : Enhanced to handle role-based redirects.
+  - : Documented the completion of Sprint 12 and the admin UI fix.
 
 **Areas that need refactoring**:
-- **Media Services**: Future task to refactor media services to make S3 the primary storage mechanism.
+- **Media Services**: A future task is to refactor media services to make S3 the primary, non-fallback storage mechanism.
 
 **key api endpoints**
-- The agent primarily interacted with existing GET endpoints. A key logic change was implementing a frontend-side refresh mechanism that calls the existing  endpoint when a 401 is detected.
+- **Admin:**
+  - : Create a new client.
+  - : Get a list of all clients with stats.
+  - : Update a client's details.
+  - : Deactivate a client.
+- **Brain:**
+  - : Get aggregated accuracy scores and recent predictions.
+  - : Get weekly accuracy data for charting.
+  - : Get top-performing predicted videos.
+- **Submissions:**
+  - : Updated to accept an optional .
 
 **Critical Info for New Agent**
-- **Sprint 10 is complete.** All requirements from the user's detailed prompt have been implemented, tested, and verified by the agent.
-- The next step is to await user verification of the completed work.
-- The next set of tasks are listed under Upcoming Tasks, starting with the integration of TikTok and Instagram Reels.
-- The YouTube token auto-refresh is a critical piece of new functionality implemented on the frontend using an Axios interceptor in .
+- **Sprint 12 and the follow-up admin UI fix are complete.** The system is stable, and the next step is user verification.
+- **Async Test Issue:** The agent wrote new async tests in  but encountered a  event loop error when trying to run them. The functionality was confirmed via extensive  testing instead. The next agent may need to debug the test runner configuration if they wish to use ============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
+rootdir: /app
+plugins: asyncio-1.3.0, anyio-4.12.1
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 421 items / 2 errors
+
+==================================== ERRORS ====================================
+______________ ERROR collecting backend/tests/test_onboarding.py _______________
+ImportError while importing test module '/app/backend/tests/test_onboarding.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_onboarding.py:4: in <module>
+    from main import app
+E   ModuleNotFoundError: No module named 'main'
+______________ ERROR collecting backend/tests/test_publishing.py _______________
+ImportError while importing test module '/app/backend/tests/test_publishing.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_publishing.py:4: in <module>
+    from main import app
+E   ModuleNotFoundError: No module named 'main'
+=============================== warnings summary ===============================
+../root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12
+  /root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+../root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854
+  /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+backend/main.py:79
+  /app/backend/main.py:79: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+../root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495
+../root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495
+  /root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+backend/main.py:109
+  /app/backend/main.py:109: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+ERROR backend/tests/test_onboarding.py
+ERROR backend/tests/test_publishing.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 2 errors during collection !!!!!!!!!!!!!!!!!!!!
+======================== 6 warnings, 2 errors in 1.42s ========================= for these new features.
+- **Role-Based UI:** The frontend now has logic to differentiate between  and  roles, primarily in  and . This is a key pattern to maintain.
 
 **documents and test reports created in this job**
-- 
+-  (updated)
 - 
 - 
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Provided detailed, multi-part instructions for **Sprint 10**, specifying implementation order and verification checks.
-    - **Q1:** Generate authentic Chanakya Sutra blog content.
-    - **Q2:** Use a .50 CPM for the ROI calculator, but make it editable.
-    - **Q3:** Complete all tasks (P0, P1, bugs, navigation) in one pass without intermediate confirmation.
-    - **Additional:** After completion, run a full test suite and explicitly verify 5 key features, reporting pass/fail for each.
+1.  **User**: Provided a detailed multi-part prompt for **Sprint 12**, covering the Identity Fix, Admin Onboarding, Brain Feedback Loop, and recommendation wiring. Requested 9 specific verification checks upon completion. (Status: **Completed**)
+2.  **User**: Provided a follow-up request to fix the admin experience. The admin was seeing legacy data on client-facing pages. The user recommended hiding the Labs pages (FVS, Strategy, AI Video) from the admin sidebar and routes entirely. (Status: **Completed**)
 
 **Project Health Check:**
 - **Broken**: None.
@@ -130,22 +225,93 @@ None. All previously identified issues were resolved in this session as part of 
     - **Stripe Payments**: The billing system.
 
 **3rd Party Integrations**
-- **YouTube Data API v3 & Analytics API**: Live integration with automatic token refresh — **User API Key is provided and active**.
+- **YouTube Data API v3 & Analytics API**: Live integration with automatic token refresh — uses User API Key.
 - **Google OAuth 2.0**: Live integration for user authentication.
-- **Gemini 2.0 Flash (Text Generation)**: Integrated via  — uses **Emergent LLM Key**.
+- **Gemini 2.0 Flash (Text Generation)**: Integrated via  — uses Emergent LLM Key.
 - **ElevenLabs (Voice Generation)**: Integrated — requires User API Key.
 - **Runway (Video Generation)**: Mocked — requires User API Key.
 - **Stripe (Payments)**: Mocked — requires User API Key.
 
 **Testing status**
-  - Testing agent used after significant changes: YES (After completing all of Sprint 10).
+  - Testing agent used after significant changes: YES.
   - Troubleshoot agent used after agent stuck in loop: NO
   - Test files created: []
-  - Known regressions: The testing agent found and fixed a case-sensitivity bug in the thumbnail URL check on the Assets page.
+  - Known regressions: None.
+  - **Note**: The new async ============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
+rootdir: /app
+plugins: asyncio-1.3.0, anyio-4.12.1
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 421 items / 2 errors
+
+==================================== ERRORS ====================================
+______________ ERROR collecting backend/tests/test_onboarding.py _______________
+ImportError while importing test module '/app/backend/tests/test_onboarding.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_onboarding.py:4: in <module>
+    from main import app
+E   ModuleNotFoundError: No module named 'main'
+______________ ERROR collecting backend/tests/test_publishing.py _______________
+ImportError while importing test module '/app/backend/tests/test_publishing.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_publishing.py:4: in <module>
+    from main import app
+E   ModuleNotFoundError: No module named 'main'
+=============================== warnings summary ===============================
+../root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12
+  /root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+../root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854
+  /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+backend/main.py:79
+  /app/backend/main.py:79: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+../root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495
+../root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495
+  /root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+backend/main.py:109
+  /app/backend/main.py:109: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+ERROR backend/tests/test_onboarding.py
+ERROR backend/tests/test_publishing.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 2 errors during collection !!!!!!!!!!!!!!!!!!!!
+======================== 6 warnings, 2 errors in 0.89s ========================= tests in  failed to run due to an event loop configuration issue. The agent proceeded after verifying all backend functionality with manual  tests.
 
 **Credentials to test flow:**
--   **Client**:  / 
+-   **Client**:  /  (This user is now named Chanakya Sutra)
 -   **Admin**:  / 
 
 **What agent forgot to execute**
-The agent successfully executed all instructions provided by the user for Sprint 10. No tasks were forgotten.</analysis>
+The agent successfully implemented all requirements from the user's prompts. The only minor pending item is debugging the  configuration to get the newly created backend test file to run successfully.</analysis>

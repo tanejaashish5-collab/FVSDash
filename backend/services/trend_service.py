@@ -90,6 +90,7 @@ async def scan_competitors(
         
         if not youtube:
             result["errors"].append("No YouTube API credentials available")
+            result["success"] = True  # Mark as success even with no creds (graceful degradation)
             return result
         
         now = datetime.now(timezone.utc)
@@ -98,9 +99,13 @@ async def scan_competitors(
         for competitor in COMPETITOR_CHANNELS:
             try:
                 # Search for channel by name/handle
+                search_query = competitor.get("name", competitor.get("handle", ""))
+                if not search_query:
+                    continue
+                    
                 search_response = youtube.search().list(
                     part="snippet",
-                    q=competitor["name"],
+                    q=search_query,
                     type="channel",
                     maxResults=1
                 ).execute()

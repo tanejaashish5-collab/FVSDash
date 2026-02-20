@@ -101,21 +101,27 @@ function DraggablePipelineCard({ submission, isDragging }) {
       {...attributes}
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: isDragging ? 0.5 : 1, x: 0 }}
-      className={`group p-3 rounded-lg bg-[#060c17] border border-[#1F2933] hover:border-indigo-500/30 cursor-grab active:cursor-grabbing transition-all ${isDragging ? 'opacity-50' : ''}`}
+      className={`group min-h-[80px] p-3 rounded-lg bg-[#060c17] border border-[#1F2933] hover:border-indigo-500/30 cursor-grab active:cursor-grabbing transition-all ${isDragging ? 'opacity-50' : ''}`}
       data-testid={`pipeline-card-${submission.id}`}
     >
       <div className="flex items-start gap-2">
         <GripVertical className="h-4 w-4 text-zinc-600 mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-1">
-            <Badge variant="outline" className={`text-[8px] px-1 py-0 ${tc.class}`}>
+          {/* Content type badge - top right */}
+          <div className="flex items-center justify-between gap-1.5 mb-1.5">
+            <StatusIcon className={`h-3 w-3 ${sc.text}`} />
+            <Badge variant="outline" className={`text-[8px] px-1.5 py-0 ${tc.class}`}>
               {submission.contentType}
             </Badge>
-            <StatusIcon className={`h-3 w-3 ${sc.text}`} />
           </div>
-          <p className="text-xs text-white font-medium truncate">{submission.title}</p>
+          {/* Title - 2 lines max */}
+          <p className="text-xs text-white font-medium leading-tight line-clamp-2">{submission.title}</p>
+          {/* Description snippet */}
+          {submission.description && (
+            <p className="text-[10px] text-zinc-500 truncate mt-1">{submission.description}</p>
+          )}
           {submission.guest && (
-            <p className="text-[10px] text-zinc-500 truncate">w/ {submission.guest}</p>
+            <p className="text-[10px] text-zinc-500 truncate mt-0.5">w/ {submission.guest}</p>
           )}
         </div>
       </div>

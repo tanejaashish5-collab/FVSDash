@@ -441,7 +441,7 @@ export default function AnalyticsPage() {
             />
           </div>
 
-          {/* Tabbed Content: Performance vs Trend Intelligence */}
+          {/* Tabbed Content: Performance vs Trend Intelligence vs Brain Intelligence */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="bg-[#0B1120] border border-[#1F2933]">
               <TabsTrigger value="performance" className="data-[state=active]:bg-indigo-500/20">
@@ -451,6 +451,10 @@ export default function AnalyticsPage() {
               <TabsTrigger value="trends" className="data-[state=active]:bg-indigo-500/20" data-testid="trend-intelligence-tab">
                 <Radar className="h-4 w-4 mr-2" />
                 Trend Intelligence
+              </TabsTrigger>
+              <TabsTrigger value="brain" className="data-[state=active]:bg-indigo-500/20" data-testid="brain-intelligence-tab">
+                <Brain className="h-4 w-4 mr-2" />
+                Brain Intelligence
               </TabsTrigger>
             </TabsList>
 

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { BarChart3, TrendingUp, Download, Eye, Users, CalendarIcon, Radio } from 'lucide-react';
+import { BarChart3, TrendingUp, Download, Eye, Users, CalendarIcon, Radio, RefreshCw, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import {

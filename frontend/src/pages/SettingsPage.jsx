@@ -85,6 +85,7 @@ export default function SettingsPage() {
   const [oauthStatus, setOauthStatus] = useState({});
   const [connectingPlatform, setConnectingPlatform] = useState(null);
   const [refreshingToken, setRefreshingToken] = useState(null);
+  const [syncingChannel, setSyncingChannel] = useState(false);
   const [noClientId, setNoClientId] = useState(false);
   
   // Platform Connections state (legacy, for backward compatibility)

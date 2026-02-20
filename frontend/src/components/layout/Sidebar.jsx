@@ -1,13 +1,17 @@
 import { Link, useLocation } from 'react-router-dom';
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import axios from 'axios';
 import {
   LayoutDashboard, FileText, Calendar, Package, FolderOpen,
   BookOpen, FlaskConical, Video, BarChart3, TrendingUp,
   CreditCard, Settings, HelpCircle, ShieldCheck, Mic, Brain, Send
 } from 'lucide-react';
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const mainNav = [
   { label: 'Overview', path: '/dashboard/overview', icon: LayoutDashboard },

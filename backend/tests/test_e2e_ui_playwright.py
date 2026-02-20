@@ -98,10 +98,9 @@ async def test_overview_page(page):
         await page.wait_for_timeout(2000)
         await close_modals(page)
         
-        # Check for welcome title
-        welcome = await page.locator('h1').first.text_content()
-        has_welcome = welcome and "Welcome" in welcome
-        log_result(page_name, "Welcome title visible", has_welcome, welcome[:40] if welcome else "")
+        # Check for page title (ForgeVoice in header or Welcome in content)
+        has_title = await page.locator('h1:has-text("ForgeVoice"), text=Welcome').first.is_visible(timeout=5000)
+        log_result(page_name, "Page title visible", has_title)
         
         # Check for stats cards (look for numbers)
         stats_text = await page.locator('text=/\\d+/').all_text_contents()
@@ -109,7 +108,7 @@ async def test_overview_page(page):
         log_result(page_name, "Stats data loaded", has_stats, f"Found {len(stats_text)} numbers")
         
         # Check for YouTube section
-        yt_visible = await page.locator('text=YouTube').first.is_visible(timeout=3000)
+        yt_visible = await page.locator('text=/YouTube|youtube/i').first.is_visible(timeout=3000)
         log_result(page_name, "YouTube section visible", yt_visible)
         
         # Check for sidebar

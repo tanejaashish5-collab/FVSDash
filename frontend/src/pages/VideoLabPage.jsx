@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Separator } from '@/components/ui/separator';
 import { 
   Video, Play, RefreshCw, Save, Loader2, Film, Wand2,
-  FileVideo, FileAudio, Sparkles, ExternalLink, Clock, CheckCircle, XCircle, AlertCircle
+  FileVideo, FileAudio, Sparkles, ExternalLink, Clock, CheckCircle, XCircle, AlertCircle, ArrowRight, Info
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';

@@ -263,42 +263,48 @@ export default function ROIPage() {
 
           {/* Main Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left: Cost Assumptions */}
+            {/* Left: Revenue Model Info */}
             <div className="lg:col-span-4 space-y-6">
-              <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="cost-assumptions">
+              <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="revenue-model">
                 <CardHeader className="pb-3">
-                  <AuraTooltip content={tooltipContent.roiCenter.costPerVideo} position="right">
+                  <AuraTooltip content="YouTube-native revenue model based on CPM and sponsorship rates" position="right">
                     <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
                       <Calculator className="h-4 w-4 text-zinc-400" />
-                      Cost Assumptions
+                      Revenue Model
                     </CardTitle>
                   </AuraTooltip>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between p-3 rounded-md bg-zinc-950/50 border border-[#1F2933]">
                     <div>
-                      <p className="text-xs text-zinc-500">Hourly Rate</p>
-                      <p className="text-lg font-semibold text-white">${data.hourlyRate}</p>
+                      <p className="text-xs text-zinc-500">CPM Rate</p>
+                      <p className="text-lg font-semibold text-white">${cpmRate.toFixed(2)}</p>
                     </div>
-                    <Clock className="h-5 w-5 text-zinc-600" />
+                    <DollarSign className="h-5 w-5 text-emerald-500" />
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-md bg-zinc-950/50 border border-[#1F2933]">
                     <div>
-                      <p className="text-xs text-zinc-500">Hours per Episode</p>
-                      <p className="text-lg font-semibold text-white">{data.hoursPerEpisode} hrs</p>
+                      <p className="text-xs text-zinc-500">Sponsorship / Video</p>
+                      <p className="text-lg font-semibold text-white">${sponsorshipPerVideo.toFixed(2)}</p>
                     </div>
-                    <Clock className="h-5 w-5 text-zinc-600" />
+                    <TrendingUp className="h-5 w-5 text-violet-500" />
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-md bg-zinc-950/50 border border-[#1F2933]">
                     <div>
-                      <p className="text-xs text-zinc-500">Cost per Episode</p>
-                      <p className="text-lg font-semibold text-white">${data.costPerEpisode}</p>
+                      <p className="text-xs text-zinc-500">Videos Published</p>
+                      <p className="text-lg font-semibold text-white">{videoCount}</p>
                     </div>
-                    <DollarSign className="h-5 w-5 text-zinc-600" />
+                    <BarChart3 className="h-5 w-5 text-indigo-500" />
                   </div>
-                  <p className="text-[10px] text-zinc-600 italic">
-                    These values are configurable in Settings.
-                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowSettings(true)}
+                    className="w-full bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white"
+                  >
+                    <Settings className="h-3.5 w-3.5 mr-2" />
+                    Adjust Settings
+                  </Button>
                 </CardContent>
               </Card>
 
@@ -307,35 +313,57 @@ export default function ROIPage() {
                 <CardContent className="p-5">
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 mb-2">Net Profit</p>
                   <p className={`text-4xl font-bold tracking-tight ${netProfitColor}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
-                    {data.netProfit >= 0 ? '+' : ''}${data.netProfit.toLocaleString()}
+                    {netProfit >= 0 ? '+' : ''}${netProfit.toFixed(2)}
                   </p>
                   <p className="text-xs text-zinc-500 mt-2">
-                    Total ROI minus Total Cost
+                    Total Revenue minus Production Cost
                   </p>
+                  <div className="mt-4 pt-4 border-t border-[#1F2933]">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-zinc-500">ROI Multiple</span>
+                      <span className={`font-bold ${roiMultipleColor}`}>{roiMultiple}×</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {/* CPM Info Card */}
+              <Card className="bg-gradient-to-br from-indigo-500/10 to-violet-500/10 border-indigo-500/20">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <Info className="h-4 w-4 text-indigo-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs text-indigo-300 font-medium">About CPM Rates</p>
+                      <p className="text-[10px] text-indigo-200/70 mt-1 leading-relaxed">
+                        Indian YouTube CPM typically ranges from $0.50-$2.50. The default $1.50 is a conservative middle estimate. Adjust based on your niche and audience location.
+                      </p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Right: ROI Breakdown */}
+            {/* Right: Revenue Breakdown */}
             <div className="lg:col-span-8 space-y-6">
               <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="roi-breakdown">
                 <CardHeader className="pb-3">
                   <AuraTooltip content={tooltipContent.roiCenter.revenuePerVideo} position="right">
                     <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
                       <TrendingUp className="h-4 w-4 text-zinc-400" />
-                      ROI Breakdown
+                      Revenue Breakdown
                     </CardTitle>
                   </AuraTooltip>
                 </CardHeader>
                 <CardContent>
                   <div className="p-4 rounded-lg bg-zinc-950/50 border border-[#1F2933] mb-6">
                     <p className="text-sm text-zinc-300 leading-relaxed">
-                      Based on <span className="text-white font-semibold">{data.episodesPublished} episode{data.episodesPublished !== 1 ? 's' : ''}</span> and{' '}
-                      <span className="text-white font-semibold">{data.hoursPerEpisode} hours</span> per episode at{' '}
-                      <span className="text-white font-semibold">${data.hourlyRate}/hr</span>, your estimated content cost is{' '}
-                      <span className="text-amber-400 font-semibold">${data.totalCost.toLocaleString()}</span>, and your estimated ROI is{' '}
-                      <span className="text-emerald-400 font-semibold">${data.totalROI.toLocaleString()}</span>{' '}
-                      <span className={`font-bold ${roiMultipleColor}`}>({data.roiMultiple}×)</span>.
+                      Based on <span className="text-white font-semibold">{realViews.toLocaleString()} views</span> at{' '}
+                      <span className="text-white font-semibold">${cpmRate.toFixed(2)} CPM</span>, your estimated ad revenue is{' '}
+                      <span className="text-emerald-400 font-semibold">${estimatedAdRevenue.toFixed(2)}</span>.
+                      {sponsorshipPerVideo > 0 && (
+                        <> Plus <span className="text-violet-400 font-semibold">${estimatedSponsorshipRevenue.toFixed(2)}</span> from sponsorships ({videoCount} videos × ${sponsorshipPerVideo}).</>
+                      )}
+                      {' '}Total estimated revenue: <span className={`font-bold ${netProfit >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>${totalEstimatedRevenue.toFixed(2)}</span>.
                     </p>
                   </div>
 
@@ -345,7 +373,7 @@ export default function ROIPage() {
                       <BarChart data={comparisonData} layout="vertical">
                         <CartesianGrid strokeDasharray="3 3" stroke="#1F2933" />
                         <XAxis type="number" tick={{ fill: '#71717a', fontSize: 10 }} axisLine={{ stroke: '#1F2933' }} tickFormatter={(v) => `$${v.toLocaleString()}`} />
-                        <YAxis type="category" dataKey="name" tick={{ fill: '#a1a1aa', fontSize: 12 }} axisLine={{ stroke: '#1F2933' }} width={80} />
+                        <YAxis type="category" dataKey="name" tick={{ fill: '#a1a1aa', fontSize: 12 }} axisLine={{ stroke: '#1F2933' }} width={100} />
                         <Tooltip content={<CustomTooltip />} />
                         <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                           {comparisonData.map((entry, index) => (
@@ -362,11 +390,85 @@ export default function ROIPage() {
               <div className="grid grid-cols-2 gap-4">
                 <Card className="bg-[#0B1120] border-[#1F2933]">
                   <CardContent className="p-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 mb-1">Total Downloads</p>
-                    <p className="text-2xl font-bold text-white">{data.totalDownloads.toLocaleString()}</p>
-                    <p className="text-xs text-zinc-500 mt-1">In this period</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 mb-1">Ad Revenue</p>
+                    <p className="text-2xl font-bold text-emerald-400" data-testid="ad-revenue-value">${estimatedAdRevenue.toFixed(2)}</p>
+                    <p className="text-xs text-zinc-500 mt-1">({realViews.toLocaleString()} views × ${cpmRate} CPM / 1000)</p>
                   </CardContent>
                 </Card>
+                <Card className="bg-[#0B1120] border-[#1F2933]">
+                  <CardContent className="p-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 mb-1">Sponsorship Revenue</p>
+                    <p className="text-2xl font-bold text-violet-400">${estimatedSponsorshipRevenue.toFixed(2)}</p>
+                    <p className="text-xs text-zinc-500 mt-1">({videoCount} videos × ${sponsorshipPerVideo} each)</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-[#0B1120] border-[#1F2933]">
+                  <CardContent className="p-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 mb-1">Production Cost</p>
+                    <p className="text-2xl font-bold text-red-400">${productionCost.toLocaleString()}</p>
+                    <p className="text-xs text-zinc-500 mt-1">Based on hours invested</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-[#0B1120] border-[#1F2933]">
+                  <CardContent className="p-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 mb-1">Revenue per 1K Views</p>
+                    <p className="text-2xl font-bold text-white">${cpmRate.toFixed(2)}</p>
+                    <p className="text-xs text-zinc-500 mt-1">Your configured CPM</p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+      
+      {/* ROI Settings Sheet */}
+      <Sheet open={showSettings} onOpenChange={setShowSettings}>
+        <SheetContent className="bg-[#0B1120] border-l border-[#1F2933] w-full sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle className="text-white flex items-center gap-2">
+              <Settings className="h-5 w-5 text-indigo-400" />
+              ROI Settings
+            </SheetTitle>
+          </SheetHeader>
+          <div className="mt-6 space-y-6">
+            <div>
+              <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">CPM Rate ($)</label>
+              <p className="text-[10px] text-zinc-500 mt-1 mb-2">Revenue per 1,000 views. Indian CPM typically ranges $0.50-$2.50.</p>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={cpmRate}
+                onChange={(e) => setCpmRate(parseFloat(e.target.value) || 0)}
+                className="bg-zinc-900 border-zinc-800 text-white"
+                data-testid="cpm-rate-input"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Sponsorship Revenue per Video ($)</label>
+              <p className="text-[10px] text-zinc-500 mt-1 mb-2">Average sponsorship income you earn per video. Set to $0 if no sponsorships.</p>
+              <Input
+                type="number"
+                step="1"
+                min="0"
+                value={sponsorshipPerVideo}
+                onChange={(e) => setSponsorshipPerVideo(parseFloat(e.target.value) || 0)}
+                className="bg-zinc-900 border-zinc-800 text-white"
+                data-testid="sponsorship-rate-input"
+              />
+            </div>
+            <div className="pt-4 border-t border-[#1F2933]">
+              <Button onClick={saveSettings} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white" data-testid="save-roi-settings">
+                Save Settings
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+}
                 <Card className="bg-[#0B1120] border-[#1F2933]">
                   <CardContent className="p-4">
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500 mb-1">Total Views</p>

@@ -286,8 +286,10 @@ class TestE2EAdminMultiChannel:
                     json={
                         "email": test_email,
                         "password": "testpass123",
+                        "full_name": f"E2E Test Client {test_id}",
                         "name": f"E2E Test Client {test_id}",
                         "channelName": f"Test Channel {test_id}",
+                        "channel_name": f"Test Channel {test_id}",
                         "niche": "Testing"
                     },
                     headers=admin_headers

@@ -353,6 +353,113 @@ export default function CalendarPage() {
 
   const handlePrevMonth = () => setCurrentDate(subMonths(currentDate, 1));
   const handleNextMonth = () => setCurrentDate(addMonths(currentDate, 1));
+  const handleToday = () => setCurrentDate(new Date());
+
+  // Fetch AI Best Times - Sprint 13
+  const fetchBestTimes = async () => {
+    try {
+      const res = await axios.get(buildApiUrl(`${API}/calendar/best-times`), { headers: authHeaders });
+      setBestTimes(res.data);
+    } catch (err) {
+      console.error('Failed to fetch best times:', err);
+    }
+  };
+
+  // Generate AI Schedule - Sprint 13
+  const generateAiSchedule = async () => {
+    setAiScheduleLoading(true);
+    try {
+      const res = await axios.post(buildApiUrl(`${API}/calendar/ai-schedule`), {}, { headers: authHeaders });
+      if (res.data.status === 'complete') {
+        setAiSchedule(res.data.schedule);
+        toast.success(`Generated ${res.data.suggestion_count} scheduling suggestions!`);
+      } else {
+        toast.error('Failed to generate schedule');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to generate AI schedule');
+    } finally {
+      setAiScheduleLoading(false);
+    }
+  };
+
+  // Fetch existing AI Schedule
+  const fetchAiSchedule = async () => {
+    try {
+      const res = await axios.get(buildApiUrl(`${API}/calendar/ai-schedule`), { headers: authHeaders });
+      if (res.data.status === 'complete') {
+        setAiSchedule(res.data.schedule);
+      }
+    } catch (err) {
+      console.error('Failed to fetch AI schedule:', err);
+    }
+  };
+
+  // Apply single suggestion
+  const applySuggestion = async (suggestion) => {
+    try {
+      await axios.post(
+        buildApiUrl(`${API}/calendar/apply-suggestion`),
+        {},
+        { 
+          headers: authHeaders,
+          params: {
+            date: suggestion.date,
+            time_ist: suggestion.time_ist,
+            content_type: suggestion.content_type,
+            submission_id: suggestion.submission_id || null,
+            recommendation_id: suggestion.recommendation_id || null
+          }
+        }
+      );
+      toast.success(`Added "${suggestion.content_title}" to calendar!`);
+      fetchCalendar(); // Refresh calendar
+    } catch (err) {
+      toast.error('Failed to apply suggestion');
+    }
+  };
+
+  // Apply all scheduled suggestions
+  const applyFullSchedule = async () => {
+    if (!aiSchedule?.suggestions?.length) return;
+    
+    setApplyingSchedule(true);
+    const scheduledItems = aiSchedule.suggestions.filter(s => s.content_type === 'scheduled');
+    
+    let success = 0;
+    for (const item of scheduledItems) {
+      try {
+        await axios.post(
+          buildApiUrl(`${API}/calendar/apply-suggestion`),
+          {},
+          { 
+            headers: authHeaders,
+            params: {
+              date: item.date,
+              time_ist: item.time_ist,
+              content_type: item.content_type,
+              submission_id: item.submission_id || null,
+              recommendation_id: item.recommendation_id || null
+            }
+          }
+        );
+        success++;
+      } catch (err) {
+        console.error('Failed to apply suggestion:', item, err);
+      }
+    }
+    
+    setApplyingSchedule(false);
+    toast.success(`Applied ${success} items to your calendar!`);
+    fetchCalendar();
+  };
+
+  // Open AI Schedule panel
+  const openAiSchedule = () => {
+    setAiScheduleOpen(true);
+    fetchBestTimes();
+    fetchAiSchedule();
+  };
 
   // Schedule submission to a date
   const scheduleSubmission = async (submissionId, date) => {

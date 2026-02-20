@@ -7,7 +7,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { BarChart3, TrendingUp, Download, Eye, Users, CalendarIcon, Radio, RefreshCw, Clock, Target, Radar, ExternalLink, Video, Hash } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { BarChart3, TrendingUp, Download, Eye, Users, CalendarIcon, Radio, RefreshCw, Clock, Target, Radar, ExternalLink, Video, Hash, Brain, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import {

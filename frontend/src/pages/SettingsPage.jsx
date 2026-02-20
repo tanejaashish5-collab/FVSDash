@@ -673,14 +673,15 @@ export default function SettingsPage() {
                         )}
                         
                         {/* Sync Channel Data button (YouTube only) */}
-                        {isConnected && platform === 'youtube' && tokenStatus === 'valid' && (
+                        {isConnected && platform === 'youtube' && (
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={handleSyncChannel}
-                            disabled={syncingChannel}
-                            className="border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10"
+                            disabled={syncingChannel || tokenStatus === 'expired'}
+                            className={`border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 ${tokenStatus === 'expired' ? 'opacity-50 cursor-not-allowed' : ''}`}
                             data-testid="sync-youtube-btn"
+                            title={tokenStatus === 'expired' ? 'Refresh token first to sync' : 'Import Shorts from your YouTube channel'}
                           >
                             {syncingChannel ? (
                               <>

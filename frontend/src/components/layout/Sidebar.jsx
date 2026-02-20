@@ -41,7 +41,7 @@ const mgmtNav = [
 ];
 
 // Nav item with gold glow trail effect
-function NavItem({ item, isActive, tourId }) {
+function NavItem({ item, isActive, tourId, badgeCount }) {
   const itemRef = useRef(null);
   const Icon = item.icon;
 
@@ -68,7 +68,16 @@ function NavItem({ item, isActive, tourId }) {
       }`}
     >
       <Icon className={`h-4 w-4 shrink-0 transition-all duration-200 ${isActive ? 'text-indigo-400 drop-shadow-[0_0_4px_rgba(99,102,241,0.5)] scale-105' : ''}`} />
-      <span>{item.label}</span>
+      <span className="flex-1">{item.label}</span>
+      {item.showBadge && badgeCount > 0 && (
+        <Badge 
+          variant="outline" 
+          className="text-[9px] px-1.5 py-0 h-4 min-w-[1.25rem] flex items-center justify-center bg-indigo-500/20 text-indigo-300 border-indigo-500/30"
+          data-testid="submissions-badge"
+        >
+          {badgeCount}
+        </Badge>
+      )}
     </Link>
   );
 }

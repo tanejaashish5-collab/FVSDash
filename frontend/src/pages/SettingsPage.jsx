@@ -672,6 +672,30 @@ export default function SettingsPage() {
                           </Button>
                         )}
                         
+                        {/* Sync Channel Data button (YouTube only) */}
+                        {isConnected && platform === 'youtube' && tokenStatus === 'valid' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleSyncChannel}
+                            disabled={syncingChannel}
+                            className="border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10"
+                            data-testid="sync-youtube-btn"
+                          >
+                            {syncingChannel ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                                Syncing...
+                              </>
+                            ) : (
+                              <>
+                                <RefreshCw className="h-4 w-4 mr-1.5" />
+                                Sync Channel
+                              </>
+                            )}
+                          </Button>
+                        )}
+                        
                         {isConnected ? (
                           <Button
                             variant="outline"

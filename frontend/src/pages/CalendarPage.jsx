@@ -62,20 +62,20 @@ const typeCfg = {
   Other: { class: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20', color: 'zinc' },
 };
 
-// Cadence watermarks based on day of week
+// Cadence watermarks configuration - Sprint 13
+// Configurable cadence labels for each day of the week
+const CADENCE_CONFIG = {
+  0: null, // Sunday - rest day
+  1: { text: 'Shorts Day', type: 'Short', color: 'teal' }, // Monday
+  2: { text: 'Strategy Day', type: 'Podcast', color: 'purple' }, // Tuesday (Chanakya Sutra specific)
+  3: { text: 'Shorts Day', type: 'Short', color: 'teal' }, // Wednesday
+  4: { text: 'Strategy Day', type: 'Podcast', color: 'purple' }, // Thursday
+  5: { text: 'Shorts Day', type: 'Short', color: 'teal' }, // Friday
+  6: { text: 'Shorts Day', type: 'Short', color: 'teal' }, // Saturday
+};
+
 const getCadenceWatermark = (dayOfWeek) => {
-  switch (dayOfWeek) {
-    case 1: // Monday
-    case 3: // Wednesday
-      return { text: 'SHORTS DAY', type: 'Short' };
-    case 2: // Tuesday
-    case 4: // Thursday
-      return { text: 'PODCAST DAY', type: 'Podcast' };
-    case 5: // Friday
-      return { text: 'BLOG DAY', type: 'Blog' };
-    default:
-      return null;
-  }
+  return CADENCE_CONFIG[dayOfWeek] || null;
 };
 
 // Draggable Pipeline Card

@@ -1,10 +1,11 @@
 """Calendar routes."""
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException, BackgroundTasks
 from datetime import datetime, timezone, timedelta
 from typing import Optional, List
 
 from services.auth_service import get_current_user, get_client_id_from_user
-from db.mongo import submissions_collection
+from db.mongo import submissions_collection, get_db
+from services import calendar_intelligence_service
 
 router = APIRouter(tags=["calendar"])
 

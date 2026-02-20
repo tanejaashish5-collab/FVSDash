@@ -6,7 +6,8 @@ from typing import Optional
 from services.auth_service import get_current_user, get_client_id_from_user
 from db.mongo import (
     submissions_collection, assets_collection,
-    analytics_snapshots_collection, clients_collection, video_tasks_collection
+    analytics_snapshots_collection, clients_collection, video_tasks_collection,
+    users_collection, channel_snapshots_collection
 )
 
 router = APIRouter(tags=["dashboard"])

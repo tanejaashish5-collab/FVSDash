@@ -119,7 +119,7 @@ async def sync_channel_analytics(
             raise
         
         rows = analytics_response.get("rows", [])
-        column_headers = [h["name"] for h in analytics_response.get("columnHeaders", [])]
+        # column_headers available for debugging: analytics_response.get("columnHeaders", [])
         
         # Step 3: Get video titles from submissions
         video_ids = [row[0] for row in rows]

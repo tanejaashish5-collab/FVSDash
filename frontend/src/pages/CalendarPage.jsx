@@ -63,15 +63,24 @@ const typeCfg = {
 };
 
 // Cadence watermarks configuration - Sprint 13
-// Configurable cadence labels for each day of the week
+// Configurable cadence labels for each day of the week - subtle, lowercase
 const CADENCE_CONFIG = {
   0: null, // Sunday - rest day
-  1: { text: 'Shorts Day', type: 'Short', color: 'teal' }, // Monday
-  2: { text: 'Strategy Day', type: 'Podcast', color: 'purple' }, // Tuesday (Chanakya Sutra specific)
-  3: { text: 'Shorts Day', type: 'Short', color: 'teal' }, // Wednesday
-  4: { text: 'Strategy Day', type: 'Podcast', color: 'purple' }, // Thursday
-  5: { text: 'Shorts Day', type: 'Short', color: 'teal' }, // Friday
-  6: { text: 'Shorts Day', type: 'Short', color: 'teal' }, // Saturday
+  1: { text: 'Shorts day', type: 'Short' }, // Monday
+  2: { text: 'Strategy day', type: 'Podcast' }, // Tuesday (Chanakya Sutra specific)
+  3: { text: 'Shorts day', type: 'Short' }, // Wednesday
+  4: { text: 'Strategy day', type: 'Podcast' }, // Thursday
+  5: { text: 'Shorts day', type: 'Short' }, // Friday
+  6: { text: 'Shorts day', type: 'Short' }, // Saturday
+};
+
+// Type border colors for calendar events
+const TYPE_BORDER_COLORS = {
+  Short: 'border-l-pink-500',
+  Podcast: 'border-l-blue-500',
+  Blog: 'border-l-amber-500',
+  Webinar: 'border-l-cyan-500',
+  Other: 'border-l-zinc-500',
 };
 
 const getCadenceWatermark = (dayOfWeek) => {

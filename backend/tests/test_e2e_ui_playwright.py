@@ -211,9 +211,9 @@ async def test_fvs_system_page(page):
         brain = await page.locator('text=/Brain|Accuracy|FVS/i').first.is_visible(timeout=3000)
         log_result(page_name, "Brain panel visible", brain)
         
-        # Check for Scan button
-        scan_btn = await page.locator('button:has-text("Scan")').first.is_visible(timeout=2000)
-        log_result(page_name, "Scan button visible", scan_btn)
+        # Check for action buttons (Submit New Content, Open Strategy Lab, etc.)
+        action_btn = await page.locator('button:has-text("Submit"), button:has-text("Strategy"), button:has-text("Video")').first.is_visible(timeout=2000)
+        log_result(page_name, "Action buttons visible", action_btn)
         
         # Check for active challenges or recommendations
         challenges = await page.locator('text=/Challenge|Recommendation|Prediction/i').first.is_visible(timeout=2000)

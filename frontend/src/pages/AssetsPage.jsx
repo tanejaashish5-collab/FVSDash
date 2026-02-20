@@ -49,12 +49,23 @@ const assetTypeCfg = {
 const isImageUrl = (url) => {
   if (!url) return false;
   if (url.startsWith('data:image')) return true;
-  const imageExts = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'];
+  const imageExts = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.avif'];
   const lowerUrl = url.toLowerCase();
-  // Check for image extensions or unsplash/image hosting
+  // Check for image extensions or known image hosting services
   return imageExts.some(ext => lowerUrl.includes(ext)) || 
          lowerUrl.includes('unsplash.com') ||
-         lowerUrl.includes('placeholder.com');
+         lowerUrl.includes('placeholder.com') ||
+         lowerUrl.includes('images.') ||
+         lowerUrl.includes('/image/') ||
+         lowerUrl.includes('cloudinary.com') ||
+         lowerUrl.includes('imgix.net') ||
+         // Cloud storage patterns
+         lowerUrl.includes('blob.core.windows.net') ||
+         lowerUrl.includes('s3.amazonaws.com') ||
+         lowerUrl.includes('storage.googleapis.com') ||
+         // Query params that suggest image
+         lowerUrl.includes('?w=') ||
+         lowerUrl.includes('&fit=');
 };
 
 // Helper to check if URL is a video

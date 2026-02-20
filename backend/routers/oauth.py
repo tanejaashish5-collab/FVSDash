@@ -178,8 +178,11 @@ async def initiate_oauth_connect(
         upsert=True
     )
     
-    # In sandbox mode, return mock auth URL that will auto-complete
-    if MOCK_OAUTH_ENABLED:
+    # Determine if we should use real OAuth for this platform
+    use_real_oauth = is_real_oauth_enabled(platform)
+    
+    # For mock mode or unsupported platforms, return mock auth URL
+    if not use_real_oauth or platform != "youtube":
         # Mock OAuth URL points to our callback with pre-generated code
         mock_code = f"mock_auth_code_{secrets.token_urlsafe(16)}"
         base_url = os.environ.get("BACKEND_PUBLIC_URL", os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001"))
@@ -193,12 +196,22 @@ async def initiate_oauth_connect(
             "popupHeight": 700
         }
     
-    # Production OAuth URLs (would need real client credentials)
-    oauth_urls = {
-        "youtube": f"https://accounts.google.com/o/oauth2/v2/auth?client_id={os.environ.get('YOUTUBE_CLIENT_ID')}&redirect_uri={os.environ.get('YOUTUBE_REDIRECT_URI')}&response_type=code&scope=https://www.googleapis.com/auth/youtube.upload%20https://www.googleapis.com/auth/youtube.readonly&state={state}&code_challenge={code_challenge}&code_challenge_method=S256&access_type=offline&prompt=consent",
-        "tiktok": f"https://www.tiktok.com/auth/authorize/?client_key={os.environ.get('TIKTOK_CLIENT_KEY')}&scope=user.info.basic,video.upload&response_type=code&redirect_uri={os.environ.get('TIKTOK_REDIRECT_URI')}&state={state}",
-        "instagram": f"https://api.instagram.com/oauth/authorize?client_id={os.environ.get('INSTAGRAM_CLIENT_ID')}&redirect_uri={os.environ.get('INSTAGRAM_REDIRECT_URI')}&scope=instagram_basic,instagram_content_publish&response_type=code&state={state}"
-    }
+    # Real YouTube OAuth URL with proper scopes
+    redirect_uri = os.environ.get("YOUTUBE_REDIRECT_URI", f"{os.environ.get('BACKEND_PUBLIC_URL')}/api/oauth/callback/youtube")
+    scopes = "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/yt-analytics.readonly https://www.googleapis.com/auth/youtube.upload"
+    
+    auth_url = (
+        f"https://accounts.google.com/o/oauth2/v2/auth"
+        f"?client_id={os.environ.get('YOUTUBE_CLIENT_ID')}"
+        f"&redirect_uri={redirect_uri}"
+        f"&response_type=code"
+        f"&scope={scopes}"
+        f"&state={state}"
+        f"&code_challenge={code_challenge}"
+        f"&code_challenge_method=S256"
+        f"&access_type=offline"
+        f"&prompt=consent"
+    )
     
     return {
         "authUrl": oauth_urls.get(platform),

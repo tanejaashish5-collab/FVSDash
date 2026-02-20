@@ -671,7 +671,18 @@ export default function CalendarPage() {
                 </AuraTooltip>
                 <p className="text-sm text-zinc-500 mt-0.5">Drag content from the pipeline to schedule your releases.</p>
               </div>
-              <ViewToggle view={view} setView={setView} />
+              <div className="flex items-center gap-3">
+                <Button 
+                  onClick={openAiSchedule}
+                  className="bg-teal-500/20 text-teal-400 border border-teal-500/30 hover:bg-teal-500/30"
+                  size="sm"
+                  data-testid="ai-schedule-btn"
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  AI Schedule
+                </Button>
+                <ViewToggle view={view} setView={setView} />
+              </div>
             </div>
           </div>
 

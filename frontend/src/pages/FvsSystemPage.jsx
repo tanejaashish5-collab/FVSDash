@@ -463,7 +463,7 @@ export default function FvsSystemPage() {
                     onClick={handleTrendScan}
                     disabled={scanning}
                     size="sm"
-                    className="bg-teal-600 hover:bg-teal-700 text-white h-8"
+                    className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white h-8 shadow-lg shadow-teal-500/20"
                     data-testid="trend-scan-btn"
                   >
                     {scanning ? (
@@ -474,7 +474,7 @@ export default function FvsSystemPage() {
                     ) : (
                       <>
                         <Radar className="h-3.5 w-3.5 mr-1.5" />
-                        Scan Trends
+                        Scan for New Ideas
                       </>
                     )}
                   </Button>
@@ -483,12 +483,12 @@ export default function FvsSystemPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* AI Recommendations */}
+                {/* AI Recommendations - Interactive Cards */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
                       <Sparkles className="h-3.5 w-3.5 text-violet-400" />
-                      AI Recommendations
+                      AI Content Ideas
                     </h4>
                     {recommendations?.generatedAt && (
                       <span className="text-[9px] text-zinc-600">
@@ -499,45 +499,81 @@ export default function FvsSystemPage() {
                   
                   {recommendations?.recommendations?.length > 0 ? (
                     <div className="space-y-2">
-                      {recommendations.recommendations.slice(0, 3).map((rec, i) => (
-                        <div
-                          key={i}
-                          className="p-3 rounded-lg bg-zinc-950/70 border border-violet-500/20 hover:border-violet-500/40 transition-colors cursor-pointer group"
-                          data-testid={`recommendation-${i}`}
-                        >
-                          <div className="flex items-start gap-2">
-                            <div className="h-6 w-6 rounded-full bg-violet-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                              <span className="text-xs font-bold text-violet-400">{i + 1}</span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-white leading-tight">{rec.title || rec.topic}</p>
-                              <p className="text-xs text-zinc-400 mt-1 line-clamp-2">{rec.hook || rec.hypothesis}</p>
-                              <div className="flex items-center gap-2 mt-2">
-                                {rec.format && (
-                                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-zinc-900 border-zinc-700 text-zinc-400">
-                                    {rec.format}
-                                  </Badge>
-                                )}
-                                {rec.confidence && (
-                                  <span className={`text-[10px] font-mono ${
-                                    rec.confidence >= 0.8 ? 'text-emerald-400' : 
-                                    rec.confidence >= 0.6 ? 'text-amber-400' : 'text-zinc-500'
-                                  }`}>
-                                    {Math.round(rec.confidence * 100)}% match
-                                  </span>
-                                )}
+                      {recommendations.recommendations.slice(0, 3).map((rec, i) => {
+                        // Determine performance tier color
+                        const tierColor = rec.performanceTier === 'High' 
+                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                          : rec.performanceTier === 'Medium'
+                            ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                            : 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30';
+                        
+                        return (
+                          <div
+                            key={i}
+                            onClick={() => {
+                              // Convert recommendation to an idea-like object for the panel
+                              const ideaFromRec = {
+                                id: `rec-${i}-${Date.now()}`,
+                                topic: rec.title || rec.topic,
+                                hypothesis: rec.hook || rec.angle || rec.hypothesis,
+                                format: rec.format || 'short',
+                                convictionScore: rec.confidence || 0.75,
+                                status: 'proposed',
+                                source: 'ai_recommendation',
+                                hooks: rec.hooks || [rec.hook].filter(Boolean),
+                                script: null,
+                                caption: rec.caption,
+                                hashtags: rec.hashtags || []
+                              };
+                              handleOpenIdeaPanel(ideaFromRec);
+                            }}
+                            className="p-4 rounded-lg bg-gradient-to-r from-violet-500/5 to-indigo-500/5 border border-violet-500/20 hover:border-violet-500/40 hover:from-violet-500/10 hover:to-indigo-500/10 transition-all cursor-pointer group"
+                            data-testid={`recommendation-${i}`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500/30 to-indigo-500/30 flex items-center justify-center shrink-0">
+                                <Lightbulb className="h-4 w-4 text-violet-400" />
                               </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-white leading-tight group-hover:text-violet-300 transition-colors">
+                                  {rec.title || rec.topic}
+                                </p>
+                                <p className="text-xs text-zinc-400 mt-1.5 line-clamp-2 leading-relaxed">
+                                  {rec.hook || rec.angle || rec.hypothesis}
+                                </p>
+                                <div className="flex items-center gap-2 mt-3 flex-wrap">
+                                  {rec.performanceTier && (
+                                    <Badge variant="outline" className={`text-[9px] px-1.5 py-0.5 ${tierColor}`}>
+                                      <TrendingUp className="h-2.5 w-2.5 mr-1" />
+                                      {rec.performanceTier} Potential
+                                    </Badge>
+                                  )}
+                                  {rec.format && (
+                                    <Badge variant="outline" className="text-[9px] px-1.5 py-0.5 bg-zinc-900 border-zinc-700 text-zinc-400">
+                                      {rec.format}
+                                    </Badge>
+                                  )}
+                                  {rec.confidence && (
+                                    <span className={`text-[10px] font-mono ${
+                                      rec.confidence >= 0.8 ? 'text-emerald-400' : 
+                                      rec.confidence >= 0.6 ? 'text-amber-400' : 'text-zinc-500'
+                                    }`}>
+                                      {Math.round(rec.confidence * 100)}% match
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <ChevronRight className="h-5 w-5 text-zinc-600 group-hover:text-violet-400 group-hover:translate-x-0.5 transition-all shrink-0 mt-1" />
                             </div>
-                            <ChevronRight className="h-4 w-4 text-zinc-600 group-hover:text-violet-400 transition-colors shrink-0" />
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="p-6 rounded-lg bg-zinc-950/50 border border-dashed border-[#1F2933] text-center">
                       <Sparkles className="h-8 w-8 text-zinc-700 mx-auto mb-2" />
                       <p className="text-xs text-zinc-500">No recommendations yet</p>
-                      <p className="text-[10px] text-zinc-600 mt-1">Run a trend scan to generate AI ideas</p>
+                      <p className="text-[10px] text-zinc-600 mt-1">Click "Scan Trends" to generate AI ideas</p>
                     </div>
                   )}
                 </div>

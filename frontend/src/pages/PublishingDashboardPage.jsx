@@ -21,7 +21,7 @@ import {
   Send, Youtube, Instagram, CheckCircle2, XCircle, Clock, Play, 
   Upload, Video, Image, ExternalLink, RefreshCw, Loader2, AlertTriangle,
   Calendar as CalendarIcon, Eye, Lock, Globe, RotateCcw, X, Sparkles,
-  TrendingUp, BarChart3
+  TrendingUp, BarChart3, Beaker
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';

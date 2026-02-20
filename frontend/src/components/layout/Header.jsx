@@ -198,13 +198,107 @@ export default function Header() {
 
       {/* Right: Search, Notifications, User */}
       <div className="flex items-center gap-3">
-        <div className="relative">
+        <div className="relative" ref={searchRef}>
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+          {searchLoading && (
+            <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500 animate-spin" />
+          )}
           <Input
             data-testid="header-search"
             placeholder="Search..."
-            className="w-48 h-8 pl-8 text-xs bg-zinc-900 border-zinc-800 text-zinc-300 placeholder:text-zinc-600 focus:border-indigo-500/50 focus:ring-indigo-500/20"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => searchResults && setShowSearchResults(true)}
+            className="w-48 h-8 pl-8 pr-8 text-xs bg-zinc-900 border-zinc-800 text-zinc-300 placeholder:text-zinc-600 focus:border-indigo-500/50 focus:ring-indigo-500/20"
           />
+          
+          {/* Search Results Dropdown */}
+          {showSearchResults && searchResults && (
+            <div className="absolute top-full left-0 mt-1 w-80 bg-zinc-900 border border-zinc-800 rounded-md shadow-xl z-50 max-h-80 overflow-y-auto">
+              {searchResults.total === 0 ? (
+                <div className="p-4 text-center text-zinc-500 text-sm">
+                  No results for "{searchQuery}"
+                </div>
+              ) : (
+                <div className="py-1">
+                  {/* Submissions */}
+                  {searchResults.submissions.length > 0 && (
+                    <div>
+                      <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
+                        Submissions ({searchResults.submissions.length})
+                      </div>
+                      {searchResults.submissions.slice(0, 5).map((result) => {
+                        const Icon = getResultIcon(result.type);
+                        return (
+                          <button
+                            key={result.id}
+                            onClick={() => handleSearchResultClick(result)}
+                            className="w-full px-3 py-2 flex items-center gap-2 hover:bg-zinc-800 text-left"
+                          >
+                            <Icon className="h-4 w-4 text-indigo-400 shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm text-zinc-200 truncate">{result.title}</div>
+                              <div className="text-xs text-zinc-500 truncate">{result.subtitle}</div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  
+                  {/* Assets */}
+                  {searchResults.assets.length > 0 && (
+                    <div>
+                      <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-500 border-t border-zinc-800 mt-1 pt-2">
+                        Assets ({searchResults.assets.length})
+                      </div>
+                      {searchResults.assets.slice(0, 3).map((result) => {
+                        const Icon = getResultIcon(result.type);
+                        return (
+                          <button
+                            key={result.id}
+                            onClick={() => handleSearchResultClick(result)}
+                            className="w-full px-3 py-2 flex items-center gap-2 hover:bg-zinc-800 text-left"
+                          >
+                            <Icon className="h-4 w-4 text-teal-400 shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm text-zinc-200 truncate">{result.title}</div>
+                              <div className="text-xs text-zinc-500 truncate">{result.subtitle}</div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  
+                  {/* Recommendations */}
+                  {searchResults.recommendations.length > 0 && (
+                    <div>
+                      <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-zinc-500 border-t border-zinc-800 mt-1 pt-2">
+                        Ideas ({searchResults.recommendations.length})
+                      </div>
+                      {searchResults.recommendations.slice(0, 3).map((result) => {
+                        const Icon = getResultIcon(result.type);
+                        return (
+                          <button
+                            key={result.id}
+                            onClick={() => handleSearchResultClick(result)}
+                            className="w-full px-3 py-2 flex items-center gap-2 hover:bg-zinc-800 text-left"
+                          >
+                            <Icon className="h-4 w-4 text-amber-400 shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm text-zinc-200 truncate">{result.title}</div>
+                              <div className="text-xs text-zinc-500 truncate">{result.subtitle}</div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Help Tour Trigger */}

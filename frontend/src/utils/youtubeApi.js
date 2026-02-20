@@ -146,4 +146,4 @@ export const youtubeApiCall = async (method, url, authHeaders, data = null) => {
   }
 };
 
-export default { createYouTubeAwareAxios, youtubeApiCall, refreshYouTubeToken };
+export { createYouTubeAwareAxios, youtubeApiCall, refreshYouTubeToken };

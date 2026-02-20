@@ -139,6 +139,16 @@ export default function AnalyticsPage() {
       .then(res => setVideos(res.data?.videos || []))
       .catch(() => {});
     
+    // Fetch competitor data for Trend Intelligence tab
+    const competitorsReq = axios.get(`${API}/trends/competitors?limit=10`, { headers: authHeaders })
+      .then(res => setCompetitors(res.data?.videos || []))
+      .catch(() => {});
+    
+    // Fetch trending topics
+    const trendingReq = axios.get(`${API}/trends/trending?limit=10`, { headers: authHeaders })
+      .then(res => setTrending(res.data?.topics || []))
+      .catch(() => {});
+    
     // Fetch dashboard data (legacy + real)
     let url = `${API}/analytics/dashboard?range=${range}`;
     if (customFrom && customTo) {
@@ -154,7 +164,7 @@ export default function AnalyticsPage() {
         console.error(err);
       });
     
-    Promise.all([overviewReq, videosReq, dashboardReq])
+    Promise.all([overviewReq, videosReq, competitorsReq, trendingReq, dashboardReq])
       .finally(() => setLoading(false));
   }, [authHeaders, range, customFrom, customTo]);
 

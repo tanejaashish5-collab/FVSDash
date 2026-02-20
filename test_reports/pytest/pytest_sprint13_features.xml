@@ -1,0 +1,695 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="8" skipped="0" tests="9" time="2.525" timestamp="2026-02-20T08:07:45.345918+00:00" hostname="agent-env-fdaa5502-fbe3-42b7-a93d-7bfcb52c0a99"><testcase classname="tests.test_sprint13_features.TestBestPostingTimes" name="test_get_best_posting_times_success" time="0.284"><failure message="RuntimeError: Event loop is closed">tests/test_sprint13_features.py:44: in test_get_best_posting_times_success
+    response = client.get("/api/calendar/best-times", headers=headers)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:548: in get
+    return super().get(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:1053: in get
+    return self.request(
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:516: in request
+    return super().request(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:914: in send
+    response = self._send_handling_auth(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:398: in handle_request
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:395: in handle_request
+    portal.call(self.app, scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/anyio/from_thread.py:334: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.venv/lib/python3.11/site-packages/anyio/from_thread.py:259: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/fastapi/applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/applications.py:123: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py:186: in __call__
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/cors.py:85: in __call__
+    await self.app(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py:65: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:64: in wrapped_app
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    await app(scope, receive, sender)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:756: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:776: in app
+    await route.handle(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:297: in handle
+    await self.app(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:77: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:64: in wrapped_app
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    await app(scope, receive, sender)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:72: in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/fastapi/routing.py:269: in app
+    solved_result = await solve_dependencies(
+/root/.venv/lib/python3.11/site-packages/fastapi/dependencies/utils.py:600: in solve_dependencies
+    solved = await call(**sub_values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+services/auth_service.py:50: in get_current_user
+    user = await db.find_one({"id": payload["sub"]}, {"_id": 0})
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/motor/metaprogramming.py:74: in method
+    return framework.run_on_executor(
+/root/.venv/lib/python3.11/site-packages/motor/frameworks/asyncio/__init__.py:85: in run_on_executor
+    return loop.run_in_executor(_EXECUTOR, functools.partial(fn, *args, **kwargs))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/asyncio/base_events.py:817: in run_in_executor
+    self._check_closed()
+/usr/local/lib/python3.11/asyncio/base_events.py:520: in _check_closed
+    raise RuntimeError('Event loop is closed')
+E   RuntimeError: Event loop is closed</failure></testcase><testcase classname="tests.test_sprint13_features.TestBestPostingTimes" name="test_get_best_posting_times_requires_auth" time="0.004" /><testcase classname="tests.test_sprint13_features.TestGenerateCalendarSuggestions" name="test_generate_ai_schedule_success" time="0.002"><failure message="RuntimeError: Event loop is closed">tests/test_sprint13_features.py:73: in test_generate_ai_schedule_success
+    headers = get_client_auth_headers()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_sprint13_features.py:16: in get_client_auth_headers
+    response = client.post("/api/auth/login", json={
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:633: in post
+    return super().post(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:1144: in post
+    return self.request(
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:516: in request
+    return super().request(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:914: in send
+    response = self._send_handling_auth(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:398: in handle_request
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:395: in handle_request
+    portal.call(self.app, scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/anyio/from_thread.py:334: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.venv/lib/python3.11/site-packages/anyio/from_thread.py:259: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/fastapi/applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/applications.py:123: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py:186: in __call__
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/cors.py:85: in __call__
+    await self.app(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py:65: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:64: in wrapped_app
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    await app(scope, receive, sender)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:756: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:776: in app
+    await route.handle(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:297: in handle
+    await self.app(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:77: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:64: in wrapped_app
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    await app(scope, receive, sender)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:72: in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/fastapi/routing.py:278: in app
+    raw_response = await run_endpoint_function(
+/root/.venv/lib/python3.11/site-packages/fastapi/routing.py:191: in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+routers/auth.py:55: in login
+    user = await db.find_one({"email": data.email}, {"_id": 0})
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/motor/metaprogramming.py:74: in method
+    return framework.run_on_executor(
+/root/.venv/lib/python3.11/site-packages/motor/frameworks/asyncio/__init__.py:85: in run_on_executor
+    return loop.run_in_executor(_EXECUTOR, functools.partial(fn, *args, **kwargs))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/asyncio/base_events.py:817: in run_in_executor
+    self._check_closed()
+/usr/local/lib/python3.11/asyncio/base_events.py:520: in _check_closed
+    raise RuntimeError('Event loop is closed')
+E   RuntimeError: Event loop is closed</failure></testcase><testcase classname="tests.test_sprint13_features.TestGenerateCalendarSuggestions" name="test_get_ai_schedule_returns_latest" time="0.002"><failure message="RuntimeError: Event loop is closed">tests/test_sprint13_features.py:86: in test_get_ai_schedule_returns_latest
+    headers = get_client_auth_headers()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_sprint13_features.py:16: in get_client_auth_headers
+    response = client.post("/api/auth/login", json={
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:633: in post
+    return super().post(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:1144: in post
+    return self.request(
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:516: in request
+    return super().request(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:914: in send
+    response = self._send_handling_auth(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:398: in handle_request
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:395: in handle_request
+    portal.call(self.app, scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/anyio/from_thread.py:334: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.venv/lib/python3.11/site-packages/anyio/from_thread.py:259: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/fastapi/applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/applications.py:123: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py:186: in __call__
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/cors.py:85: in __call__
+    await self.app(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py:65: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:64: in wrapped_app
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    await app(scope, receive, sender)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:756: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:776: in app
+    await route.handle(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:297: in handle
+    await self.app(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:77: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:64: in wrapped_app
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    await app(scope, receive, sender)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:72: in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/fastapi/routing.py:278: in app
+    raw_response = await run_endpoint_function(
+/root/.venv/lib/python3.11/site-packages/fastapi/routing.py:191: in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+routers/auth.py:55: in login
+    user = await db.find_one({"email": data.email}, {"_id": 0})
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/motor/metaprogramming.py:74: in method
+    return framework.run_on_executor(
+/root/.venv/lib/python3.11/site-packages/motor/frameworks/asyncio/__init__.py:85: in run_on_executor
+    return loop.run_in_executor(_EXECUTOR, functools.partial(fn, *args, **kwargs))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/asyncio/base_events.py:817: in run_in_executor
+    self._check_closed()
+/usr/local/lib/python3.11/asyncio/base_events.py:520: in _check_closed
+    raise RuntimeError('Event loop is closed')
+E   RuntimeError: Event loop is closed</failure></testcase><testcase classname="tests.test_sprint13_features.TestActiveChallenges" name="test_get_active_challenges_success" time="0.004"><failure message="RuntimeError: Event loop is closed">tests/test_sprint13_features.py:103: in test_get_active_challenges_success
+    headers = get_client_auth_headers()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_sprint13_features.py:16: in get_client_auth_headers
+    response = client.post("/api/auth/login", json={
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:633: in post
+    return super().post(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:1144: in post
+    return self.request(
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:516: in request
+    return super().request(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:914: in send
+    response = self._send_handling_auth(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:398: in handle_request
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:395: in handle_request
+    portal.call(self.app, scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/anyio/from_thread.py:334: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.venv/lib/python3.11/site-packages/anyio/from_thread.py:259: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/fastapi/applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/applications.py:123: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py:186: in __call__
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/cors.py:85: in __call__
+    await self.app(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py:65: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:64: in wrapped_app
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    await app(scope, receive, sender)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:756: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:776: in app
+    await route.handle(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:297: in handle
+    await self.app(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:77: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:64: in wrapped_app
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    await app(scope, receive, sender)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:72: in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/fastapi/routing.py:278: in app
+    raw_response = await run_endpoint_function(
+/root/.venv/lib/python3.11/site-packages/fastapi/routing.py:191: in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+routers/auth.py:55: in login
+    user = await db.find_one({"email": data.email}, {"_id": 0})
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/motor/metaprogramming.py:74: in method
+    return framework.run_on_executor(
+/root/.venv/lib/python3.11/site-packages/motor/frameworks/asyncio/__init__.py:85: in run_on_executor
+    return loop.run_in_executor(_EXECUTOR, functools.partial(fn, *args, **kwargs))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/asyncio/base_events.py:817: in run_in_executor
+    self._check_closed()
+/usr/local/lib/python3.11/asyncio/base_events.py:520: in _check_closed
+    raise RuntimeError('Event loop is closed')
+E   RuntimeError: Event loop is closed</failure></testcase><testcase classname="tests.test_sprint13_features.TestActiveChallenges" name="test_active_challenges_sorted_by_urgency" time="0.002"><failure message="RuntimeError: Event loop is closed">tests/test_sprint13_features.py:124: in test_active_challenges_sorted_by_urgency
+    headers = get_client_auth_headers()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_sprint13_features.py:16: in get_client_auth_headers
+    response = client.post("/api/auth/login", json={
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:633: in post
+    return super().post(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:1144: in post
+    return self.request(
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:516: in request
+    return super().request(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:914: in send
+    response = self._send_handling_auth(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:398: in handle_request
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:395: in handle_request
+    portal.call(self.app, scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/anyio/from_thread.py:334: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.venv/lib/python3.11/site-packages/anyio/from_thread.py:259: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/fastapi/applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/applications.py:123: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py:186: in __call__
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/cors.py:85: in __call__
+    await self.app(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py:65: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:64: in wrapped_app
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    await app(scope, receive, sender)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:756: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:776: in app
+    await route.handle(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:297: in handle
+    await self.app(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:77: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:64: in wrapped_app
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    await app(scope, receive, sender)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:72: in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/fastapi/routing.py:278: in app
+    raw_response = await run_endpoint_function(
+/root/.venv/lib/python3.11/site-packages/fastapi/routing.py:191: in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+routers/auth.py:55: in login
+    user = await db.find_one({"email": data.email}, {"_id": 0})
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/motor/metaprogramming.py:74: in method
+    return framework.run_on_executor(
+/root/.venv/lib/python3.11/site-packages/motor/frameworks/asyncio/__init__.py:85: in run_on_executor
+    return loop.run_in_executor(_EXECUTOR, functools.partial(fn, *args, **kwargs))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/asyncio/base_events.py:817: in run_in_executor
+    self._check_closed()
+/usr/local/lib/python3.11/asyncio/base_events.py:520: in _check_closed
+    raise RuntimeError('Event loop is closed')
+E   RuntimeError: Event loop is closed</failure></testcase><testcase classname="tests.test_sprint13_features.TestAdminSidebarRoleFiltering" name="test_admin_overview_endpoint" time="0.004"><failure message="RuntimeError: Event loop is closed">tests/test_sprint13_features.py:142: in test_admin_overview_endpoint
+    headers = get_admin_auth_headers()
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_sprint13_features.py:28: in get_admin_auth_headers
+    response = client.post("/api/auth/login", json={
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:633: in post
+    return super().post(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:1144: in post
+    return self.request(
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:516: in request
+    return super().request(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:914: in send
+    response = self._send_handling_auth(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:398: in handle_request
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:395: in handle_request
+    portal.call(self.app, scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/anyio/from_thread.py:334: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/concurrent/futures/_base.py:449: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.venv/lib/python3.11/site-packages/anyio/from_thread.py:259: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/fastapi/applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/applications.py:123: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py:186: in __call__
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/cors.py:85: in __call__
+    await self.app(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py:65: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:64: in wrapped_app
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    await app(scope, receive, sender)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:756: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:776: in app
+    await route.handle(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:297: in handle
+    await self.app(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:77: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:64: in wrapped_app
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    await app(scope, receive, sender)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:72: in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/fastapi/routing.py:278: in app
+    raw_response = await run_endpoint_function(
+/root/.venv/lib/python3.11/site-packages/fastapi/routing.py:191: in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+routers/auth.py:55: in login
+    user = await db.find_one({"email": data.email}, {"_id": 0})
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/motor/metaprogramming.py:74: in method
+    return framework.run_on_executor(
+/root/.venv/lib/python3.11/site-packages/motor/frameworks/asyncio/__init__.py:85: in run_on_executor
+    return loop.run_in_executor(_EXECUTOR, functools.partial(fn, *args, **kwargs))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/asyncio/base_events.py:817: in run_in_executor
+    self._check_closed()
+/usr/local/lib/python3.11/asyncio/base_events.py:520: in _check_closed
+    raise RuntimeError('Event loop is closed')
+E   RuntimeError: Event loop is closed</failure></testcase><testcase classname="tests.test_sprint13_features.TestAdminSidebarRoleFiltering" name="test_admin_overview_forbidden_for_client" time="0.003"><failure message="RuntimeError: Event loop is closed">tests/test_sprint13_features.py:162: in test_admin_overview_forbidden_for_client
+    headers = get_client_auth_headers()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_sprint13_features.py:16: in get_client_auth_headers
+    response = client.post("/api/auth/login", json={
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:633: in post
+    return super().post(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:1144: in post
+    return self.request(
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:516: in request
+    return super().request(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:914: in send
+    response = self._send_handling_auth(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:398: in handle_request
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:395: in handle_request
+    portal.call(self.app, scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/anyio/from_thread.py:334: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.venv/lib/python3.11/site-packages/anyio/from_thread.py:259: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/fastapi/applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/applications.py:123: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py:186: in __call__
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/cors.py:85: in __call__
+    await self.app(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py:65: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:64: in wrapped_app
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    await app(scope, receive, sender)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:756: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:776: in app
+    await route.handle(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:297: in handle
+    await self.app(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:77: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:64: in wrapped_app
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    await app(scope, receive, sender)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:72: in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/fastapi/routing.py:278: in app
+    raw_response = await run_endpoint_function(
+/root/.venv/lib/python3.11/site-packages/fastapi/routing.py:191: in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+routers/auth.py:55: in login
+    user = await db.find_one({"email": data.email}, {"_id": 0})
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/motor/metaprogramming.py:74: in method
+    return framework.run_on_executor(
+/root/.venv/lib/python3.11/site-packages/motor/frameworks/asyncio/__init__.py:85: in run_on_executor
+    return loop.run_in_executor(_EXECUTOR, functools.partial(fn, *args, **kwargs))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/asyncio/base_events.py:817: in run_in_executor
+    self._check_closed()
+/usr/local/lib/python3.11/asyncio/base_events.py:520: in _check_closed
+    raise RuntimeError('Event loop is closed')
+E   RuntimeError: Event loop is closed</failure></testcase><testcase classname="tests.test_sprint13_features.TestBrainScoresWithChallenge" name="test_brain_scores_include_challenge_fields" time="0.002"><failure message="RuntimeError: Event loop is closed">tests/test_sprint13_features.py:176: in test_brain_scores_include_challenge_fields
+    headers = get_client_auth_headers()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_sprint13_features.py:16: in get_client_auth_headers
+    response = client.post("/api/auth/login", json={
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:633: in post
+    return super().post(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:1144: in post
+    return self.request(
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:516: in request
+    return super().request(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:914: in send
+    response = self._send_handling_auth(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/httpx/_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:398: in handle_request
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/testclient.py:395: in handle_request
+    portal.call(self.app, scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/anyio/from_thread.py:334: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/root/.venv/lib/python3.11/site-packages/anyio/from_thread.py:259: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/fastapi/applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/applications.py:123: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py:186: in __call__
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/cors.py:85: in __call__
+    await self.app(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py:65: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:64: in wrapped_app
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    await app(scope, receive, sender)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:756: in __call__
+    await self.middleware_stack(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:776: in app
+    await route.handle(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:297: in handle
+    await self.app(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:77: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:64: in wrapped_app
+    raise exc
+/root/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    await app(scope, receive, sender)
+/root/.venv/lib/python3.11/site-packages/starlette/routing.py:72: in app
+    response = await func(request)
+               ^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/fastapi/routing.py:278: in app
+    raw_response = await run_endpoint_function(
+/root/.venv/lib/python3.11/site-packages/fastapi/routing.py:191: in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+routers/auth.py:55: in login
+    user = await db.find_one({"email": data.email}, {"_id": 0})
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/motor/metaprogramming.py:74: in method
+    return framework.run_on_executor(
+/root/.venv/lib/python3.11/site-packages/motor/frameworks/asyncio/__init__.py:85: in run_on_executor
+    return loop.run_in_executor(_EXECUTOR, functools.partial(fn, *args, **kwargs))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/asyncio/base_events.py:817: in run_in_executor
+    self._check_closed()
+/usr/local/lib/python3.11/asyncio/base_events.py:520: in _check_closed
+    raise RuntimeError('Event loop is closed')
+E   RuntimeError: Event loop is closed</failure></testcase></testsuite></testsuites>

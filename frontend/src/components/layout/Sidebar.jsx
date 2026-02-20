@@ -122,6 +122,8 @@ export default function Sidebar() {
   const currentPath = location.pathname;
   const [submissionCount, setSubmissionCount] = useState(0);
   
+  const isAdmin = user?.role === 'admin';
+  
   // Fetch submission count for the badge
   useEffect(() => {
     if (!authHeaders?.Authorization) return;
@@ -154,14 +156,21 @@ export default function Sidebar() {
       {/* Navigation */}
       <ScrollArea className="flex-1 py-3">
         <NavSection items={mainNav} currentPath={currentPath} submissionCount={submissionCount} />
-        <Separator className="my-2 mx-4 bg-white/[0.06]" />
-        <NavSection title="Labs" items={labNav} currentPath={currentPath} submissionCount={submissionCount} />
+        
+        {/* Labs section - hidden for admin users (client-facing tools) */}
+        {!isAdmin && (
+          <>
+            <Separator className="my-2 mx-4 bg-white/[0.06]" />
+            <NavSection title="Labs" items={labNav} currentPath={currentPath} submissionCount={submissionCount} />
+          </>
+        )}
+        
         <Separator className="my-2 mx-4 bg-white/[0.06]" />
         <NavSection title="Insights" items={insightsNav} currentPath={currentPath} submissionCount={submissionCount} />
         <Separator className="my-2 mx-4 bg-white/[0.06]" />
         <NavSection title="Management" items={mgmtNav} currentPath={currentPath} submissionCount={submissionCount} />
 
-        {user?.role === 'admin' && (
+        {isAdmin && (
           <>
             <Separator className="my-2 mx-4 bg-white/[0.06]" />
             <NavSection

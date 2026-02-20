@@ -247,24 +247,47 @@ export default function OverviewPage() {
 
   return (
     <div data-testid="overview-page" className="space-y-6">
-      {/* Welcome Header */}
+      {/* Welcome Header - Admin vs Client */}
       <div data-testid="welcome-header">
-        <h1 className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
-          Welcome back, {data.clientName}
-        </h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Here's what's happening across your content production.</p>
+        {isAdmin ? (
+          <>
+            <h1 className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
+              ForgeVoice Admin Dashboard
+            </h1>
+            <p className="text-sm text-zinc-500 mt-0.5">Manage all client channels and monitor platform health.</p>
+          </>
+        ) : (
+          <>
+            <h1 className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
+              Welcome back, {data.clientName}
+            </h1>
+            <p className="text-sm text-zinc-500 mt-0.5">Here's what's happening across your content production.</p>
+          </>
+        )}
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="kpi-row" data-tour="kpi-cards">
-        <KPICard label="Active Projects" value={data.kpis.activeProjects} subtext="Episodes in production" icon={Briefcase} trend={8} tooltipKey="activeProjects" delay={0} />
-        <KPICard label="Published (30d)" value={data.kpis.publishedLast30d} subtext="Last 30 days" icon={Radio} trend={12} tooltipKey="publishedLast30d" delay={0.05} />
-        <KPICard label="Total Assets" value={data.kpis.totalAssets} subtext="Video, audio, and design" icon={FolderOpen} tooltipKey="totalAssets" delay={0.1} />
-        <KPICard label="Est. ROI (30d)" value={`$${data.kpis.roiLast30d.toLocaleString()}`} subtext="At a glance ROI" icon={DollarSign} trend={15} tooltipKey="estRoi" delay={0.15} />
-      </div>
+      {/* Admin KPI Cards - Cross-Channel Summary */}
+      {isAdmin && adminOverview && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="admin-kpi-row">
+          <KPICard label="Total Clients" value={adminOverview.totalClients} subtext="Active accounts" icon={Users} delay={0} />
+          <KPICard label="Videos Managed" value={adminOverview.totalVideosManaged} subtext="Across all clients" icon={Video} delay={0.05} />
+          <KPICard label="Total Views" value={adminOverview.totalViewsManaged} subtext="Platform-wide" icon={Eye} delay={0.1} />
+          <KPICard label="Active Channels" value={adminOverview.activeChannels} subtext="YouTube connected" icon={Youtube} delay={0.15} />
+        </div>
+      )}
 
-      {/* Brain Accuracy Widget */}
-      {brainScores && (
+      {/* Client KPI Cards */}
+      {!isAdmin && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="kpi-row" data-tour="kpi-cards">
+          <KPICard label="Active Projects" value={data.kpis.activeProjects} subtext="Episodes in production" icon={Briefcase} trend={8} tooltipKey="activeProjects" delay={0} />
+          <KPICard label="Published (30d)" value={data.kpis.publishedLast30d} subtext="Last 30 days" icon={Radio} trend={12} tooltipKey="publishedLast30d" delay={0.05} />
+          <KPICard label="Total Assets" value={data.kpis.totalAssets} subtext="Video, audio, and design" icon={FolderOpen} tooltipKey="totalAssets" delay={0.1} />
+          <KPICard label="Est. ROI (30d)" value={`$${data.kpis.roiLast30d.toLocaleString()}`} subtext="At a glance ROI" icon={DollarSign} trend={15} tooltipKey="estRoi" delay={0.15} />
+        </div>
+      )}
+
+      {/* Brain Accuracy Widget - Only for clients */}
+      {!isAdmin && brainScores && (
         <Card 
           className={`bg-[#0B1120] border-[#1F2933] cursor-pointer hover:border-indigo-500/30 transition-colors ${
             brainScores.accuracy_percentage >= 80 

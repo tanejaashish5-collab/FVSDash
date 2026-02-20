@@ -116,3 +116,6 @@ def channel_snapshots_collection():
 
 def brain_scores_collection():
     return get_db().brain_scores
+
+def calendar_suggestions_collection():
+    return get_db().calendar_suggestions

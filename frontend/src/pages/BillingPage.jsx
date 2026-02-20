@@ -1,12 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { 
   CreditCard, Check, Calendar, AlertCircle, Zap, 
-  ArrowUpRight, Shield, Settings, HelpCircle 
+  ArrowUpRight, Shield, Settings, HelpCircle, ExternalLink, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -17,14 +18,20 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const statusCfg = {
   Active: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
+  active: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20' },
   PastDue: { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
+  past_due: { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20' },
   Cancelled: { bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/20' },
+  cancelled: { bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/20' },
 };
 
 const planColors = {
   Starter: 'border-zinc-600',
+  starter: 'border-zinc-600',
   Pro: 'border-indigo-500',
+  pro: 'border-indigo-500',
   Enterprise: 'border-violet-500',
+  enterprise: 'border-violet-500',
 };
 
 function PlanCard({ plan, price, features, isCurrent, onSelect }) {

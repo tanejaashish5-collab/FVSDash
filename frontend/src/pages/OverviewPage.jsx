@@ -367,6 +367,20 @@ export default function OverviewPage() {
           </CardContent>
         </Card>
       )}
+      
+      {/* Active Challenges Link - Under Brain Widget */}
+      {!isAdmin && activeChallenges?.total_active > 0 && (
+        <div 
+          className="flex items-center justify-center gap-2 py-2 px-4 bg-amber-500/10 border border-amber-500/20 rounded-lg cursor-pointer hover:bg-amber-500/15 transition-colors"
+          onClick={() => navigate('/dashboard/fvs#active-challenges')}
+          data-testid="active-challenges-link"
+        >
+          <Swords className="h-4 w-4 text-amber-400" />
+          <span className="text-sm text-amber-400 font-medium">
+            {activeChallenges.total_active} active prediction{activeChallenges.total_active !== 1 ? 's' : ''} awaiting verdict
+          </span>
+        </div>
+      )}
 
       {/* YouTube Channel Stats - Real Data - Only for clients */}
       {!isAdmin && analyticsOverview && (

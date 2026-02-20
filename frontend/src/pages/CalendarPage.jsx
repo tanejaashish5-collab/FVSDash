@@ -788,11 +788,11 @@ export default function CalendarPage() {
                         ))}
                       </div>
 
-                      {/* Calendar grid - Sprint 13: Increased cell height */}
+                      {/* Calendar grid - HOTFIX: 130px cells, subtle watermarks */}
                       <div className="grid grid-cols-7 gap-px bg-[#1F2933]/50 rounded-lg overflow-hidden">
                         {/* Padding for start of month */}
                         {Array.from({ length: startPadding }).map((_, i) => (
-                          <div key={`pad-${i}`} className="min-h-[120px] bg-[#060c17]/50 p-2" />
+                          <div key={`pad-${i}`} className="min-h-[130px] bg-[#060c17]/50 p-2" />
                         ))}
 
                         {/* Days */}
@@ -819,7 +819,7 @@ export default function CalendarPage() {
                                 />
                               ))}
                               {daySubmissions.length > 2 && (
-                                <p className="text-[8px] text-zinc-500 pl-1">+{daySubmissions.length - 2} more</p>
+                                <p className="text-[10px] text-zinc-500 pl-1 mt-1">+{daySubmissions.length - 2} more</p>
                               )}
                               {/* AI Suggestion Ghost Pill */}
                               {suggestion && daySubmissions.length === 0 && (

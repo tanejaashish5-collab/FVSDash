@@ -277,6 +277,28 @@ export default function SettingsPage() {
       setRefreshingToken(null);
     }
   };
+  
+  // Sync YouTube channel data
+  const handleSyncChannel = async () => {
+    setSyncingChannel(true);
+    try {
+      const res = await axios.post(buildApiUrl(`${API}/oauth/youtube/sync`), {}, { headers: authHeaders });
+      const data = res.data;
+      
+      if (data.isMock) {
+        toast.info('Mock sync completed. Connect a real YouTube account to import actual data.');
+      } else {
+        toast.success(`Imported ${data.shortsImported} Shorts from your channel!`);
+      }
+      
+      // Refresh OAuth status to update account info
+      fetchOAuthStatus();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to sync channel data');
+    } finally {
+      setSyncingChannel(false);
+    }
+  };
 
   if (loading) {
     return (

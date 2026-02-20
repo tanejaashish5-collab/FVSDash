@@ -73,6 +73,10 @@ export default function FvsSystemPage() {
   const [scanning, setScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState(null);
   
+  // Brain Scores State
+  const [brainScores, setBrainScores] = useState(null);
+  const [brainScoresExpanded, setBrainScoresExpanded] = useState(false);
+  
   // Side panel state
   const [selectedIdea, setSelectedIdea] = useState(null);
   const [panelOpen, setPanelOpen] = useState(false);

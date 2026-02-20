@@ -348,20 +348,24 @@ Generate 3 recommendations as JSON array:"""
 
         # Call Gemini 2.0 Flash via emergentintegrations
         try:
-            from emergentintegrations.llm.gemini import GeminiChat
+            from emergentintegrations.llm.chat import LlmChat, UserMessage
             
-            chat = GeminiChat(
-                api_key=os.environ.get("EMERGENT_LLM_KEY"),
-                model="gemini-2.0-flash"
-            )
+            api_key = os.environ.get("EMERGENT_LLM_KEY")
+            if not api_key:
+                result["error"] = "EMERGENT_LLM_KEY not configured"
+                return result
             
-            response = await asyncio.wait_for(
-                asyncio.to_thread(
-                    chat.send_message,
-                    system_prompt + "\n\n" + user_prompt
-                ),
+            chat = LlmChat(
+                api_key=api_key,
+                session_id=str(uuid.uuid4()),
+                system_message=system_prompt
+            ).with_model("gemini", "gemini-2.0-flash")
+            
+            response_obj = await asyncio.wait_for(
+                chat.send_message(UserMessage(text=user_prompt)),
                 timeout=30.0
             )
+            response = response_obj if isinstance(response_obj, str) else str(response_obj)
             
             # Parse JSON response
             response_text = response.strip()

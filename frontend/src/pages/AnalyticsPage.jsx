@@ -205,7 +205,7 @@ export default function AnalyticsPage() {
         console.error(err);
       });
     
-    Promise.all([overviewReq, videosReq, competitorsReq, trendingReq, dashboardReq])
+    Promise.all([overviewReq, videosReq, competitorsReq, trendingReq, brainScoresReq, brainTrendReq, brainLeaderboardReq, dashboardReq])
       .finally(() => setLoading(false));
   }, [authHeaders, range, customFrom, customTo]);
 

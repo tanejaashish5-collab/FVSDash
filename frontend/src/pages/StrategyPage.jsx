@@ -302,6 +302,39 @@ export default function StrategyPage() {
       setCreatingSubmission(false);
     }
   };
+  
+  // Send to Production - Pipeline flow
+  const handleSendToProduction = async () => {
+    if (!activeSessionId) {
+      toast.error('No active session. Generate content first.');
+      return;
+    }
+    
+    if (!script) {
+      toast.error('Generate a script first before sending to production.');
+      return;
+    }
+    
+    setSendingToProduction(true);
+    try {
+      const res = await axios.post(`${API}/pipeline/script-to-submission`, {
+        strategy_session_id: activeSessionId
+      }, { headers: authHeaders });
+      
+      if (res.data.success) {
+        setPipelineSubmissionId(res.data.submission_id);
+        setPipelineSubmissionTitle(res.data.title);
+        setShowPipelineSuccess(true);
+        toast.success(`Submission created: "${res.data.title}" 🎬`);
+      } else {
+        toast.error(res.data.error || 'Failed to create submission');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to send to production');
+    } finally {
+      setSendingToProduction(false);
+    }
+  };
 
   // Load a session from history
   const loadSession = async (session) => {

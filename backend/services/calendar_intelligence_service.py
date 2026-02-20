@@ -346,7 +346,7 @@ async def apply_suggestion(
             "id": str(uuid.uuid4()),
             "clientId": user_id,
             "title": rec_title,
-            "description": f"Created from AI recommendation",
+            "description": "Created from AI recommendation",
             "contentType": "Short",
             "status": "SCHEDULED",
             "priority": "High",

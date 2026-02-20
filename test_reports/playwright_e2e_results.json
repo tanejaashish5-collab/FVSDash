@@ -1,9 +1,55 @@
 {
-  "timestamp": "2026-02-20T11:56:59.455267",
-  "total": 22,
-  "passed": 16,
-  "failed": 6,
-  "pass_rate": "72.7%",
+  "timestamp": "2026-02-20T11:59:15.732364",
+  "total": 47,
+  "passed": 43,
+  "failed": 4,
+  "pass_rate": "91.5%",
+  "pages_summary": {
+    "Login": {
+      "passed": 2,
+      "failed": 0
+    },
+    "Overview": {
+      "passed": 3,
+      "failed": 1
+    },
+    "Submissions": {
+      "passed": 5,
+      "failed": 0
+    },
+    "Calendar": {
+      "passed": 4,
+      "failed": 0
+    },
+    "FVS System": {
+      "passed": 3,
+      "failed": 1
+    },
+    "Analytics": {
+      "passed": 6,
+      "failed": 0
+    },
+    "Strategy Lab": {
+      "passed": 5,
+      "failed": 0
+    },
+    "Publishing": {
+      "passed": 4,
+      "failed": 1
+    },
+    "Settings": {
+      "passed": 5,
+      "failed": 0
+    },
+    "Header Search": {
+      "passed": 3,
+      "failed": 0
+    },
+    "AI Video Lab": {
+      "passed": 3,
+      "failed": 1
+    }
+  },
   "results": [
     {
       "page": "Login",
@@ -15,31 +61,49 @@
       "page": "Login",
       "test": "Login successful",
       "passed": true,
-      "details": "Redirected to dashboard"
+      "details": "URL: https://video-monetize-flow.preview.emergentagent."
     },
     {
       "page": "Overview",
-      "test": "Page title visible",
+      "test": "Welcome title visible",
+      "passed": false,
+      "details": "ForgeVoice"
+    },
+    {
+      "page": "Overview",
+      "test": "Stats data loaded",
+      "passed": true,
+      "details": "Found 161 numbers"
+    },
+    {
+      "page": "Overview",
+      "test": "YouTube section visible",
       "passed": true,
       "details": ""
     },
     {
       "page": "Overview",
-      "test": "Page load",
-      "passed": false,
-      "details": "Locator expected to be visible\nActual value: None\nError: strict mode violation: locator(\"text=PUBLIS"
-    },
-    {
-      "page": "Submissions",
-      "test": "Page container visible",
+      "test": "Sidebar visible",
       "passed": true,
       "details": ""
     },
     {
       "page": "Submissions",
-      "test": "Submissions loaded",
-      "passed": false,
-      "details": "Found 0 items"
+      "test": "Page content loaded",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Submissions",
+      "test": "Filter tabs visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Submissions",
+      "test": "Search input visible",
+      "passed": true,
+      "details": ""
     },
     {
       "page": "Submissions",
@@ -49,19 +113,25 @@
     },
     {
       "page": "Submissions",
-      "test": "Filter buttons visible",
+      "test": "Submission items visible",
+      "passed": true,
+      "details": "Found 2"
+    },
+    {
+      "page": "Calendar",
+      "test": "Calendar days visible",
       "passed": true,
       "details": ""
     },
     {
       "page": "Calendar",
-      "test": "Calendar container visible",
+      "test": "Today button visible",
       "passed": true,
       "details": ""
     },
     {
       "page": "Calendar",
-      "test": "Navigation buttons visible",
+      "test": "Month toggle visible",
       "passed": true,
       "details": ""
     },
@@ -73,13 +143,37 @@
     },
     {
       "page": "FVS System",
-      "test": "Page load",
+      "test": "FVS content visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "FVS System",
+      "test": "Brain panel visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "FVS System",
+      "test": "Scan button visible",
       "passed": false,
-      "details": "Locator expected to be visible\nActual value: None\nError: element(s) not found \nCall log:\n  - Expect "
+      "details": ""
+    },
+    {
+      "page": "FVS System",
+      "test": "Challenges/Recommendations visible",
+      "passed": true,
+      "details": ""
     },
     {
       "page": "Analytics",
-      "test": "Page container visible",
+      "test": "Views metric visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Analytics",
+      "test": "Subscribers visible",
       "passed": true,
       "details": ""
     },
@@ -91,37 +185,109 @@
     },
     {
       "page": "Analytics",
-      "test": "Trend Intelligence tab clickable",
+      "test": "Trend tab visible",
       "passed": true,
       "details": ""
     },
     {
       "page": "Analytics",
-      "test": "Charts/visualizations visible",
+      "test": "Trend tab clickable",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Analytics",
+      "test": "Charts visible",
       "passed": true,
       "details": ""
     },
     {
       "page": "Strategy Lab",
-      "test": "Page load",
-      "passed": false,
-      "details": "Locator expected to be visible\nActual value: None\nError: element(s) not found \nCall log:\n  - Expect "
+      "test": "Strategy content visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Strategy Lab",
+      "test": "Input fields visible",
+      "passed": true,
+      "details": "Found 4"
+    },
+    {
+      "page": "Strategy Lab",
+      "test": "Generate button visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Strategy Lab",
+      "test": "Content tabs visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Strategy Lab",
+      "test": "History visible",
+      "passed": true,
+      "details": ""
     },
     {
       "page": "Publishing",
-      "test": "Page load",
-      "passed": false,
-      "details": "Locator expected to be visible\nActual value: None\nError: element(s) not found \nCall log:\n  - Expect "
+      "test": "Publishing content visible",
+      "passed": true,
+      "details": ""
     },
     {
-      "page": "Settings",
-      "test": "Page container visible",
+      "page": "Publishing",
+      "test": "Stats cards visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Publishing",
+      "test": "YouTube platform visible",
+      "passed": false,
+      "details": ""
+    },
+    {
+      "page": "Publishing",
+      "test": "Content tabs visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Publishing",
+      "test": "Quota indicator visible",
       "passed": true,
       "details": ""
     },
     {
       "page": "Settings",
+      "test": "Settings content visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Settings",
+      "test": "Profile section visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Settings",
+      "test": "Form fields visible",
+      "passed": true,
+      "details": "Found 5"
+    },
+    {
+      "page": "Settings",
       "test": "Save button visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Settings",
+      "test": "Connections section visible",
       "passed": true,
       "details": ""
     },
@@ -133,9 +299,39 @@
     },
     {
       "page": "Header Search",
-      "test": "Search dropdown",
+      "test": "Search dropdown visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "Header Search",
+      "test": "Results grouped",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "AI Video Lab",
+      "test": "Video Lab content visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "AI Video Lab",
+      "test": "Provider selector visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "AI Video Lab",
+      "test": "Prompt input visible",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "page": "AI Video Lab",
+      "test": "Generate button visible",
       "passed": false,
-      "details": "Not visible after typing"
+      "details": ""
     }
   ]
 }

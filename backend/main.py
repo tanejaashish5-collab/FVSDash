@@ -61,6 +61,7 @@ api_router.include_router(notifications.router)
 api_router.include_router(oauth.router)
 api_router.include_router(youtube_publish.router)
 api_router.include_router(trends.router)
+api_router.include_router(brain.router)
 
 # Include API router in app
 app.include_router(api_router)

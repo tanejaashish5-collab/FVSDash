@@ -216,48 +216,48 @@ export default function ROIPage() {
         <div className="flex items-center justify-center h-64">
           <div className="h-6 w-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : !data || data.episodesPublished === 0 ? (
+      ) : realViews === 0 && videoCount === 0 ? (
         <Card className="bg-[#0B1120] border-[#1F2933]">
           <CardContent className="py-16 text-center">
             <Calculator className="h-12 w-12 text-zinc-700 mx-auto mb-3" />
             <p className="text-sm text-zinc-500">Not enough data yet to compute ROI.</p>
-            <p className="text-xs text-zinc-600 mt-1">Publish more episodes to see ROI here.</p>
+            <p className="text-xs text-zinc-600 mt-1">Connect your YouTube channel and sync analytics to see revenue estimates.</p>
           </CardContent>
         </Card>
       ) : (
         <>
-          {/* KPI Cards */}
+          {/* KPI Cards - YouTube-Native Metrics */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="kpi-row">
             <KPICard
-              label="Total Cost"
-              value={`$${data.totalCost.toLocaleString()}`}
-              subtext={`Last ${data.range.days} days`}
-              icon={DollarSign}
-              color="amber"
-              tooltipText={tooltipContent.roiCenter.totalInvestment}
+              label="Total Views"
+              value={realViews.toLocaleString()}
+              subtext="From connected channel"
+              icon={Eye}
+              color="indigo"
+              tooltipText="Real view count from your YouTube channel"
             />
             <KPICard
-              label="Total ROI"
-              value={`$${data.totalROI.toLocaleString()}`}
-              subtext="Estimated return"
-              icon={TrendingUp}
+              label="Est. Ad Revenue"
+              value={`$${estimatedAdRevenue.toFixed(2)}`}
+              subtext={`Based on $${cpmRate.toFixed(2)} CPM`}
+              icon={DollarSign}
               color="emerald"
               tooltipText={tooltipContent.roiCenter.totalReturn}
             />
             <KPICard
-              label="ROI Multiple"
-              value={`${data.roiMultiple}x`}
-              subtext="Return on investment"
-              icon={Zap}
+              label="Est. Sponsorship"
+              value={`$${estimatedSponsorshipRevenue.toFixed(2)}`}
+              subtext={`${videoCount} videos × $${sponsorshipPerVideo}`}
+              icon={TrendingUp}
               color="violet"
-              tooltipText={tooltipContent.roiCenter.paybackPeriod}
+              tooltipText="Potential sponsorship revenue based on your rate per video"
             />
             <KPICard
-              label="Episodes"
-              value={data.episodesPublished}
-              subtext="Published in period"
-              icon={BarChart3}
-              color="indigo"
+              label="Total Revenue"
+              value={`$${totalEstimatedRevenue.toFixed(2)}`}
+              subtext="Ad + Sponsorship"
+              icon={Zap}
+              color="amber"
             />
           </div>
 

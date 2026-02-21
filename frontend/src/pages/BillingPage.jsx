@@ -288,23 +288,6 @@ export default function BillingPage() {
             </CardContent>
           </Card>
         </div>
-      ) : !data?.billing ? (
-        <Card className="bg-[#0B1120] border-[#1F2933]">
-          <CardContent className="py-16 text-center">
-            <CreditCard className="h-12 w-12 text-zinc-700 mx-auto mb-3" />
-            <p className="text-sm text-zinc-500">No billing information is configured yet.</p>
-            <p className="text-xs text-zinc-600 mt-1">Please contact support to set up your subscription.</p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-4 h-8 text-xs bg-zinc-950 border-zinc-800 hover:border-indigo-500/30 text-zinc-300"
-              onClick={() => toast.info('Contact support at support@forgevoice.com')}
-            >
-              <HelpCircle className="h-3.5 w-3.5 mr-1.5" />
-              Contact Support
-            </Button>
-          </CardContent>
-        </Card>
       ) : (
         <>
           {/* Current Plan Card */}

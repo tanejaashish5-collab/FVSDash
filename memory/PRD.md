@@ -1826,16 +1826,16 @@ ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM  # Optional, defaults to Rachel
 - [x] Identity Fix - Alex Chen → Chanakya Sutra ✅ (Feb 20, 2026)
 
 ### P1 — Remaining
+- [x] "Quick Test Upload" helper for developers ✅ (Feb 21, 2026) - ffmpeg fallback working
+- [x] Refactor media services (S3 as primary storage) ✅ (Feb 20, 2026)
 - [ ] Full OAuth integration for TikTok and Instagram Reels
-- [ ] "Quick Test Upload" helper for developers
 - [ ] Configure user-provided VEO_API_KEY for real video generation
 - [ ] Configure user-provided ELEVENLABS_API_KEY for real audio generation
 - [ ] Real Runway video provider integration
-- [ ] Refactor media services (S3 as primary storage)
 
-### P2 — Integrations
-- [ ] Stripe billing (replace placeholder)
-- [ ] Google Drive file upload / First-party storage (S3/GCS)
+### P2 — Integrations (Parked)
+- [ ] Stripe billing (parked until real clients) - `/app/backend/services/stripe_service.py` is stub
+- [ ] Google Drive file upload
 - [ ] Airtable integration
 
 ## Demo Data Configuration

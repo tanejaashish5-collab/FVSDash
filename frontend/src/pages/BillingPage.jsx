@@ -183,6 +183,111 @@ export default function BillingPage() {
         <div className="flex items-center justify-center h-64">
           <div className="h-6 w-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
         </div>
+      ) : !data?.stripeConfigured ? (
+        /* Coming Soon State - Stripe not yet integrated */
+        <div className="space-y-6">
+          {/* Hero Card */}
+          <Card className="bg-gradient-to-br from-[#0B1120] to-[#131B2E] border-[#1F2933] overflow-hidden relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-violet-500/5 to-indigo-500/5" />
+            <CardContent className="py-12 text-center relative">
+              <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-violet-500/20 to-indigo-500/20 flex items-center justify-center mx-auto mb-5 ring-1 ring-violet-500/20">
+                <CreditCard className="h-8 w-8 text-violet-400" />
+              </div>
+              <Badge className="mb-4 bg-violet-500/10 text-violet-400 border-violet-500/20 text-xs px-3 py-1">
+                Coming Soon
+              </Badge>
+              <h2 className="text-2xl font-bold text-white mb-3" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                Billing & Subscriptions
+              </h2>
+              <p className="text-sm text-zinc-400 max-w-md mx-auto mb-6">
+                We're setting up secure payment processing powered by Stripe. 
+                You'll be able to manage your subscription, view invoices, and update payment methods here.
+              </p>
+              <div className="flex flex-wrap justify-center gap-3 mb-6">
+                <Badge variant="outline" className="text-[11px] px-3 py-1 bg-zinc-950 border-zinc-800 text-zinc-400">
+                  <Shield className="h-3 w-3 mr-1.5" />
+                  Bank-level Security
+                </Badge>
+                <Badge variant="outline" className="text-[11px] px-3 py-1 bg-zinc-950 border-zinc-800 text-zinc-400">
+                  <Zap className="h-3 w-3 mr-1.5" />
+                  Instant Invoices
+                </Badge>
+                <Badge variant="outline" className="text-[11px] px-3 py-1 bg-zinc-950 border-zinc-800 text-zinc-400">
+                  <Settings className="h-3 w-3 mr-1.5" />
+                  Easy Management
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Current Access Card */}
+          <Card className="bg-[#0B1120] border-[#1F2933]">
+            <CardContent className="p-5">
+              <div className="flex items-start gap-4">
+                <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                  <Check className="h-5 w-5 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-white mb-1">You Have Full Access</h3>
+                  <p className="text-xs text-zinc-500">
+                    During our setup phase, you have complete access to all ForgeVoice Studio features. 
+                    We'll notify you when billing is ready.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Preview Plans */}
+          <div>
+            <h3 className="text-sm font-semibold text-white mb-4" style={{ fontFamily: 'Manrope, sans-serif' }}>
+              Preview Available Plans
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 opacity-75">
+              {[
+                { plan: 'Starter', price: 49, features: ['5 Shorts/month', 'Basic Analytics', 'Email Support'] },
+                { plan: 'Pro', price: 149, features: ['20 Shorts/month', 'Advanced Analytics', 'Priority Support', 'Brand Brain AI'] },
+                { plan: 'Enterprise', price: 299, features: ['Unlimited Shorts', 'Full Analytics Suite', 'Dedicated Manager', 'Custom Integrations'] }
+              ].map(({ plan, price, features }) => (
+                <Card key={plan} className="bg-[#0B1120] border-[#1F2933]">
+                  <CardContent className="p-5">
+                    <h4 className="text-lg font-semibold text-white mb-1">{plan}</h4>
+                    <div className="mb-3">
+                      <span className="text-2xl font-bold text-white">${price}</span>
+                      <span className="text-xs text-zinc-500">/month</span>
+                    </div>
+                    <ul className="space-y-1.5">
+                      {features.map((f, i) => (
+                        <li key={i} className="flex items-center gap-2 text-xs text-zinc-400">
+                          <Check className="h-3 w-3 text-zinc-600 shrink-0" />
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Contact */}
+          <Card className="bg-[#0B1120] border-[#1F2933] border-dashed">
+            <CardContent className="py-6 text-center">
+              <p className="text-xs text-zinc-500 mb-3">
+                Questions about pricing or need a custom plan?
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs bg-zinc-950 border-zinc-800 hover:border-indigo-500/30 text-zinc-300"
+                onClick={() => toast.info('Contact us at support@forgevoice.com')}
+              >
+                <HelpCircle className="h-3.5 w-3.5 mr-1.5" />
+                Contact Support
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       ) : !data?.billing ? (
         <Card className="bg-[#0B1120] border-[#1F2933]">
           <CardContent className="py-16 text-center">

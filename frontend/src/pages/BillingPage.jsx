@@ -183,8 +183,8 @@ export default function BillingPage() {
         <div className="flex items-center justify-center h-64">
           <div className="h-6 w-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : !data?.stripeConfigured ? (
-        /* Coming Soon State - Stripe not yet integrated */
+      ) : !data?.billing ? (
+        /* Coming Soon State - Billing not yet configured */
         <div className="space-y-6">
           {/* Hero Card */}
           <Card className="bg-gradient-to-br from-[#0B1120] to-[#131B2E] border-[#1F2933] overflow-hidden relative">

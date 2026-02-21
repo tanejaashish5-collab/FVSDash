@@ -1,19 +1,31 @@
 <analysis>**original_problem_statement:**
-The user has provided requirements for two consecutive sprints, Sprint 14 and Sprint 15, following the completion of Sprint 13 and a subsequent hotfix. The agent has partially implemented Sprint 14 and has just begun creating files for Sprint 15.
+The user's goal is to make the ForgeVoice Studio application production-ready. This involved several large sprints and verification steps.
 
-**PRODUCT REQUIREMENTS (Sprint 14):**
-*   **Part A: Real YouTube Publishing:** Replace the mocked YouTube upload flow with a real implementation using the Google API client, including background tasks, progress tracking, and quota management. The frontend should reflect the upload status and provide a link to the published video.
-*   **Part B: Stripe Billing Integration:** Integrate Stripe for handling subscriptions. This includes creating backend services and endpoints for Stripe Checkout and Customer Portal, handling webhooks, and updating the frontend billing page to interact with the real Stripe flows.
-*   **Part C: Quick Test Upload Helper:** Implement a developer-only feature to generate and attach a small, valid MP4 file to a submission, allowing the publishing flow to be tested without a real video asset.
+*   **Sprint 14 (Completed, except Stripe):** Implement real YouTube publishing, a Stripe billing integration, and a test video upload helper. The user later instructed to skip the Stripe implementation and testing.
+*   **Sprint 15 (Completed):** Refactor file storage to use AWS S3, build a comprehensive backend E2E test suite, implement various reliability fixes (global search, notification bell, calendar AI), and build a Script-to-Short pipeline automating the workflow from script generation to video submission.
+*   **Data Wipe (Completed):** Remove all test and agent-generated data from the database, leaving only real production data from the client's YouTube channel.
+*   **Playwright UI Testing (Completed):** Build and pass a comprehensive UI E2E test suite covering all major pages and interactions.
+*   **S3 Configuration (Completed):** Configure the live application with AWS S3 credentials and verify the integration works.
+*   **Codebase Audit & Fixes (In Progress):** The user requested a reality audit of the codebase, which revealed three issues. The current task is to fix them:
+    1.  The  dependency for the test video helper is missing. A fallback needs to be created.
+    2.  Analytics data was wiped and needs to be re-synced.
+    3.  Three backend tests are failing due to the  issue.
 
-**PRODUCT REQUIREMENTS (Sprint 15):**
-*   **Part A: S3 as Primary Storage:** Refactor all file handling to use AWS S3 as the primary storage, with a graceful fallback to the local filesystem if S3 is not configured. This includes a migration path for existing local assets.
-*   **Part B: Full End-to-End Test Suite:** Create a comprehensive E2E test suite using ============================= test session starts ==============================
+**User's preferred language**: English
+
+**what currently exists?**
+The application is a feature-complete full-stack platform (FastAPI, React, MongoDB) for a content creator. Sprints 14 and 15, which added core production features like real YouTube publishing, S3 storage, a full Script-to-Short automated pipeline, and comprehensive backend/frontend E2E test suites, are fully implemented. The application has been configured with production S3 credentials and passed a deployment readiness check. A recent codebase audit identified a missing  dependency, which is currently being addressed.
+
+**Last working item**:
+    - Last item agent was working: The agent started working on the user's request to fix three issues identified during a codebase audit. The first issue is the missing  dependency. The agent has reviewed the relevant file () and is about to create a fallback mechanism using a pre-existing MP4 file.
+    - Status: IN PROGRESS
+    - Agent Testing Done: N
+    - Which testing method agent to use? The agent should first create a minimal MP4 file, then use  to modify the Python code. After the fix, the agent must run the full ============================= test session starts ==============================
 platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
 rootdir: /app
-plugins: asyncio-1.3.0, anyio-4.12.1
+plugins: asyncio-1.3.0, anyio-4.12.1, playwright-0.7.2, base-url-2.1.0
 asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
-collected 448 items / 2 errors
+collected 477 items / 2 errors
 
 ==================================== ERRORS ====================================
 ______________ ERROR collecting backend/tests/test_onboarding.py _______________
@@ -37,6 +49,26 @@ backend/tests/test_publishing.py:4: in <module>
     from main import app
 E   ModuleNotFoundError: No module named 'main'
 =============================== warnings summary ===============================
+backend/tests/test_e2e_workflow.py:49
+  /app/backend/tests/test_e2e_workflow.py:49: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:145
+  /app/backend/tests/test_e2e_workflow.py:145: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:212
+  /app/backend/tests/test_e2e_workflow.py:212: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:264
+  /app/backend/tests/test_e2e_workflow.py:264: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:348
+  /app/backend/tests/test_e2e_workflow.py:348: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
 ../root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12
   /root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
     import multipart
@@ -45,8 +77,8 @@ E   ModuleNotFoundError: No module named 'main'
   /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
     from crypt import crypt as _crypt
 
-backend/main.py:80
-  /app/backend/main.py:80: DeprecationWarning: 
+backend/main.py:82
+  /app/backend/main.py:82: DeprecationWarning: 
           on_event is deprecated, use lifespan event handlers instead.
   
           Read more about it in the
@@ -64,8 +96,8 @@ backend/main.py:80
           
     return self.router.on_event(event_type)
 
-backend/main.py:110
-  /app/backend/main.py:110: DeprecationWarning: 
+backend/main.py:112
+  /app/backend/main.py:112: DeprecationWarning: 
           on_event is deprecated, use lifespan event handlers instead.
   
           Read more about it in the
@@ -78,134 +110,263 @@ backend/main.py:110
 ERROR backend/tests/test_onboarding.py
 ERROR backend/tests/test_publishing.py
 !!!!!!!!!!!!!!!!!!! Interrupted: 2 errors during collection !!!!!!!!!!!!!!!!!!!!
-======================== 6 warnings, 2 errors in 2.82s ========================= and  to validate key user journeys, including content creation, the brain feedback loop, analytics, admin functions, and publishing.
-*   **Part C: Reliability Fixes:** Implement the non-functional global search bar, fix the stale notification count in the header, ensure the Apply Full Schedule button on the Calendar AI panel works correctly, and verify admin role UI fixes.
-*   **Part D: Script-to-Short Pipeline:** Create a new automated workflow that connects the Strategy Lab (script generation) to the AI Video Lab (video creation) and finally to the Submissions pipeline, reducing manual steps for the user. This involves a new  and UI elements across multiple pages.
-
-**User's preferred language**: English
-
-**what currently exists?**
-The application is in a partially-implemented state. Sprint 13 (Content Calendar AI, Brain Prediction Challenge, Admin UI fixes) and a subsequent hotfix (data and visual corrections) are complete. The agent then began implementing Sprint 14, creating the necessary backend services (, ), routers (, ), and updating the corresponding frontend pages (, ). However, this work was not completed or tested. The agent then received the prompt for Sprint 15 and created placeholder files for its features (, ) before the session ended.
-
-**Last working item**:
-    - Last item agent was working: The agent had just received the prompt for Sprint 15 and created two empty files:  (for the Script-to-Short pipeline) and  (for the global search feature). This was an immediate pivot from the incomplete work on Sprint 14.
-    - Status: IN PROGRESS
-    - Agent Testing Done: N
-    - Which testing method agent to use? Both backend and frontend testing agents are required. The agent should first test the partially implemented Sprint 14 features using  and screenshots, and then use the  for the comprehensive E2E tests required in Sprint 15.
+======================== 11 warnings, 2 errors in 1.45s ======================== suite to verify that the 3 previously failing tests now pass and that no regressions were introduced.
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  - Issue 1:  event loop errors (Priority: P1)
+  - Issue 1: Test video upload helper is broken due to a missing  dependency (Priority: P0).
+  - Issue 2: Analytics data on the dashboard is all zeros after a data wipe (Priority: P1).
 
   Issues Detail:
   - Issue 1: 
-     - Attempted fixes: The agent has repeatedly encountered  event loop errors when running newly created asynchronous tests. The agent has bypassed this by manually testing endpoints with  instead of fixing the test runner configuration.
+     - Attempted fixes: The agent identified the root cause ( is not installed in the container) during a reality audit. The fix has not been implemented yet.
      - Next debug checklist: 
-       - Review  for any async configuration.
-       - Examine the test client setup in  or equivalent test fixtures.
-       - Ensure the  mode is set correctly (e.g., ).
-       - Compare the test setup with the official FastAPI documentation for testing async applications.
-     - Why fix this issue and what will be achieved with the fix? The backend test suite is unreliable. Fixing this will enable the 5 new E2E tests required in Sprint 15 and ensure the 8 new tests from Sprints 13 & 14 can run, leading to a stable and maintainable codebase.
-     - Status:  NOT STARTED
+       1.  Generate and save a minimal, valid MP4 file to .
+       2.  Modify the  function in  to first try using , and if it fails, fall back to copying the pre-existing .
+       3.  Verify the fix by calling  and ensuring it returns .
+       4.  Run the full ============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
+rootdir: /app
+plugins: asyncio-1.3.0, anyio-4.12.1, playwright-0.7.2, base-url-2.1.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 477 items / 2 errors
+
+==================================== ERRORS ====================================
+______________ ERROR collecting backend/tests/test_onboarding.py _______________
+ImportError while importing test module '/app/backend/tests/test_onboarding.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_onboarding.py:4: in <module>
+    from main import app
+E   ModuleNotFoundError: No module named 'main'
+______________ ERROR collecting backend/tests/test_publishing.py _______________
+ImportError while importing test module '/app/backend/tests/test_publishing.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_publishing.py:4: in <module>
+    from main import app
+E   ModuleNotFoundError: No module named 'main'
+=============================== warnings summary ===============================
+backend/tests/test_e2e_workflow.py:49
+  /app/backend/tests/test_e2e_workflow.py:49: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:145
+  /app/backend/tests/test_e2e_workflow.py:145: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:212
+  /app/backend/tests/test_e2e_workflow.py:212: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:264
+  /app/backend/tests/test_e2e_workflow.py:264: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:348
+  /app/backend/tests/test_e2e_workflow.py:348: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+../root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12
+  /root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+../root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854
+  /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+backend/main.py:82
+  /app/backend/main.py:82: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+../root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495
+../root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495
+  /root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+backend/main.py:112
+  /app/backend/main.py:112: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+ERROR backend/tests/test_onboarding.py
+ERROR backend/tests/test_publishing.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 2 errors during collection !!!!!!!!!!!!!!!!!!!!
+======================== 11 warnings, 2 errors in 0.91s ======================== suite to confirm the 3 related tests now pass.
+     - Why fix this issue and what will be achieved with the fix? This will make the developer/testing tooling robust and reliable across different environments. It will unblock the 3 failing backend E2E tests and ensure the test suite passes 100%.
+     - Status:  IN PROGRESS
      - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix? Backend
+     - Blocked on other issue: None
+  - Issue 2: 
+     - Attempted fixes: None. The issue was identified in the audit.
+     - Next debug checklist: 
+       1.  Execute a  request to the  endpoint using .
+       2.  Verify the request is successful.
+       3.  Execute a  request to  and confirm that  and  are now non-zero values.
+     - Why fix this issue and what will be achieved with the fix? To restore core functionality to the Analytics dashboard, which is currently showing empty data after a deliberate data wipe.
+     - Status:  NOT STARTED
+     - Is recurring issue? N
      - Should Test frontend/backend/both after fix? Backend
      - Blocked on other issue: None
 
 **In progress Task List**:
-  - Task 1: Complete and Test Sprint 14 (Priority: P0)
-  - Task 2: Implement Sprint 15 (Priority: P1)
+  - Task 1: Complete the Fix 3 Real Issues Only request (Priority: P0)
 
  Task Detail:
   - Task 1: 
-     - Where to resume: The code for all three parts of Sprint 14 has been written but is not fully integrated or tested. The agent must resume by systematically testing and debugging each part.
-        - **Part A (YouTube Upload):** Test the  endpoint. Verify that the background task is created and that the  correctly interacts with the Google API. Test the frontend  to ensure progress is shown and errors are handled.
-        - **Part B (Stripe Billing):** Test the checkout and portal session creation endpoints. Verify the  correctly redirects to Stripe. A mock webhook payload should be sent to  to test subscription status updates.
-        - **Part C (Test Upload):** Test the  endpoint and verify the Attach Test Video button works on the frontend.
-     - What will be achieved with this? This will deliver the core monetization (Stripe) and publishing (YouTube) features of the application.
+     - Where to resume: The agent must first create the fallback video file () and then modify  to implement the fallback logic.
+     - What will be achieved with this? A reliable test video helper, refreshed production analytics data, and a fully passing backend test suite (13 passed, 4 skipped).
      - Status:  IN PROGRESS
-     - Should Test frontend/backend/both after fix? Both
+     - Should Test frontend/backend/both after fix? Backend
      - Blocked on something: None
 
-  - Task 2: 
-     - Where to resume: The agent has only created placeholder files. The next step is to begin implementation, starting with Part A (S3 Storage).
-        - **Part A (S3 Storage):** Enhance the existing  to support S3 uploads/downloads with a local fallback. Integrate this service across all file-handling routes (, , ).
-        - **Part B (E2E Tests):** Create  and implement the 5 specified end-to-end journey tests. This is blocked by the  issue.
-        - **Part C (Reliability Fixes):** Implement the global search feature (backend router and frontend component), fix the notification bell logic, and verify the Apply Full Schedule functionality.
-        - **Part D (Script-to-Short):** Implement the  logic and the extensive frontend changes on the Strategy Lab, AI Video Lab, Submissions, and Overview pages.
-     - What will be achieved with this? This will make the application's infrastructure robust (S3), improve reliability, and deliver a key automated workflow (Script-to-Short).
-     - Status:  NOT STARTED
-     - Should Test frontend/backend/both after fix? Both
-     - Blocked on something: E2E tests are blocked by the  issue.
-
 **Upcoming and Future Tasks**
-*   None. Sprints 14 and 15 cover all outstanding user requests.
+*   **Future Tasks:**
+    *   **Implement Stripe Billing (P2):** The  is currently a stub file with no real implementation. Per user instruction, this feature is parked but remains the only unimplemented part of Sprint 14.
 
 **Completed work in this session**
-- **Sprint 13 (DONE):**
-  - **Admin Role Fix:** Completed data cleanup, hid client-only tools from the admin sidebar, and built a dedicated Admin Overview dashboard.
-  - **Content Calendar AI:** Implemented a backend service for posting-time analysis and a frontend slide-over for viewing and applying AI-generated schedules.
-  - **Brain Prediction Challenge:** Gamified the feedback loop with an Active Challenges UI, countdowns, and verdict notifications.
-  - **Calendar UI Upgrade:** Overhauled the Strategic Calendar page with larger cells, subtle cadence watermarks, and improved event card styling.
-- **Hotfix (DONE):**
-  - Corrected the data aggregation logic for the Admin Overview KPIs.
-  - Refined the visual styling of calendar watermarks and event cards to match user specifications.
-  - Cleaned up leftover test data from the  collection.
-  - Fixed a critical data integrity bug where the  on user and submission records did not match.
+- **Sprint 14 Functional:** Real YouTube publishing with token auto-refresh and the developer test-upload helper were implemented, tested, and fixed. Stripe was intentionally skipped.
+- **Sprint 15 Complete:** All parts were implemented: S3 storage service, a full backend E2E test suite (============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
+rootdir: /app
+plugins: asyncio-1.3.0, anyio-4.12.1, playwright-0.7.2, base-url-2.1.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 477 items / 2 errors
+
+==================================== ERRORS ====================================
+______________ ERROR collecting backend/tests/test_onboarding.py _______________
+ImportError while importing test module '/app/backend/tests/test_onboarding.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_onboarding.py:4: in <module>
+    from main import app
+E   ModuleNotFoundError: No module named 'main'
+______________ ERROR collecting backend/tests/test_publishing.py _______________
+ImportError while importing test module '/app/backend/tests/test_publishing.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_publishing.py:4: in <module>
+    from main import app
+E   ModuleNotFoundError: No module named 'main'
+=============================== warnings summary ===============================
+backend/tests/test_e2e_workflow.py:49
+  /app/backend/tests/test_e2e_workflow.py:49: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:145
+  /app/backend/tests/test_e2e_workflow.py:145: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:212
+  /app/backend/tests/test_e2e_workflow.py:212: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:264
+  /app/backend/tests/test_e2e_workflow.py:264: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:348
+  /app/backend/tests/test_e2e_workflow.py:348: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+../root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12
+  /root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+../root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854
+  /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+backend/main.py:82
+  /app/backend/main.py:82: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+../root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495
+../root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495
+  /root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+backend/main.py:112
+  /app/backend/main.py:112: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+ERROR backend/tests/test_onboarding.py
+ERROR backend/tests/test_publishing.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 2 errors during collection !!!!!!!!!!!!!!!!!!!!
+======================== 11 warnings, 2 errors in 1.17s ======================== + ), reliability fixes (global search, notifications), and the full-stack Script-to-Short automation pipeline.
+- **Data Integrity:** A full data wipe was performed to remove test data, leaving only real production records.
+- **UI Test Suite:** A comprehensive Playwright E2E UI test suite (47 tests) was created, debugged, and is now passing 100%.
+- **Production Configuration:** The application was successfully configured to use live AWS S3 credentials, and the switch was verified.
+- **Deployment Readiness:** The  confirmed the app is healthy and ready for deployment.
+- **Code Audit:** A read-only audit was performed, which identified the  and analytics data issues that are now being fixed.
+- **Recurring Bug Fix:** The persistent  event loop error was permanently fixed by creating a  file.
 
 **Earlier issues found/mentioned but not fixed**
-   - None.
+   - Issue 1: Stripe integration for billing () is a stub file. The user has explicitly requested to park this feature, so it is not a bug but an incomplete, deferred feature.
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: The  event loop error when running new async tests.
-  - Recurrence count: 2 (First seen in Sprint 12 handoff, recurred in Sprint 13 implementation).
-  - Status: NOT STARTED
+  - Issue recurrence in previous fork:  event loop errors when running async tests.
+  - Recurrence count: 2
+  - Status: RESOLVED
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Sprint 13:** Conditional rendering for roles ( vs. ), background task for AI generation, complex state management for slide-over panels, dynamic UI styling.
-- **Sprint 14 (In Progress):** Real-time API integration with Google APIs (YouTube) and Stripe, handling OAuth2 token refresh, processing webhooks, and managing background upload tasks.
-- **Sprint 15 (Planned):** Cloud storage integration (AWS S3), writing comprehensive end-to-end tests with , implementing a global search with debouncing, and orchestrating a multi-step workflow across different application modules.
-
-**key DB schema**
-  - **users**: Added , . The logic for deriving  from uid=0(root) gid=0(root) groups=0(root) was fixed.
-  - **calendar_suggestions (new collection)**: , , .
-  - **brain_scores**: Added , and computed fields , .
-
-**changes in tech stack**
-  -  was added for timezone handling.
-  - , ,  were installed for YouTube integration.
-  -  was installed for billing integration.
-  -  is planned for S3 integration.
-  -  is planned for E2E tests.
-
-**All files of reference**
-- **Sprint 13 & Hotfix (Created/Updated):**
-  - : Logic for analyzing posting times and generating AI schedules.
-  - : Endpoints for the Calendar AI features.
-  - : Updated with a new admin overview endpoint.
-  - : Updated with logic for the Brain Prediction Challenge.
-  - : Fixed the bug in .
-  - : Major overhaul to support a separate Admin Dashboard view.
-  - : Major overhaul for UI upgrade and Calendar AI slide-over.
-  - : Updated to include the Active Challenges panel.
-  - : Updated to hide more client-only links from admins.
-- **Sprint 14 (In Progress):**
-  - , 
-  - , 
-  - , 
-- **Sprint 15 (Not Started):**
-  -  (empty),  (empty)
-
-**Areas that need refactoring**:
-- **File Storage:** All local file operations (, ) need to be refactored to use the new  as mandated by Sprint 15.
-- **Testing:** The entire ============================= test session starts ==============================
+- **Cloud Storage:** S3 integration using  with a graceful local storage fallback.
+- **Testing:**
+    - Backend E2E testing with ============================= test session starts ==============================
 platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
 rootdir: /app
-plugins: asyncio-1.3.0, anyio-4.12.1
+plugins: asyncio-1.3.0, anyio-4.12.1, playwright-0.7.2, base-url-2.1.0
 asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
-collected 448 items / 2 errors
+collected 477 items / 2 errors
 
 ==================================== ERRORS ====================================
 ______________ ERROR collecting backend/tests/test_onboarding.py _______________
@@ -229,6 +390,26 @@ backend/tests/test_publishing.py:4: in <module>
     from main import app
 E   ModuleNotFoundError: No module named 'main'
 =============================== warnings summary ===============================
+backend/tests/test_e2e_workflow.py:49
+  /app/backend/tests/test_e2e_workflow.py:49: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:145
+  /app/backend/tests/test_e2e_workflow.py:145: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:212
+  /app/backend/tests/test_e2e_workflow.py:212: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:264
+  /app/backend/tests/test_e2e_workflow.py:264: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:348
+  /app/backend/tests/test_e2e_workflow.py:348: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
 ../root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12
   /root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
     import multipart
@@ -237,8 +418,8 @@ E   ModuleNotFoundError: No module named 'main'
   /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
     from crypt import crypt as _crypt
 
-backend/main.py:80
-  /app/backend/main.py:80: DeprecationWarning: 
+backend/main.py:82
+  /app/backend/main.py:82: DeprecationWarning: 
           on_event is deprecated, use lifespan event handlers instead.
   
           Read more about it in the
@@ -256,8 +437,8 @@ backend/main.py:80
           
     return self.router.on_event(event_type)
 
-backend/main.py:110
-  /app/backend/main.py:110: DeprecationWarning: 
+backend/main.py:112
+  /app/backend/main.py:112: DeprecationWarning: 
           on_event is deprecated, use lifespan event handlers instead.
   
           Read more about it in the
@@ -270,134 +451,363 @@ backend/main.py:110
 ERROR backend/tests/test_onboarding.py
 ERROR backend/tests/test_publishing.py
 !!!!!!!!!!!!!!!!!!! Interrupted: 2 errors during collection !!!!!!!!!!!!!!!!!!!!
-======================== 6 warnings, 2 errors in 1.30s ========================= setup needs to be reviewed to fix the async event loop issue, enabling a reliable test suite.
+======================== 11 warnings, 2 errors in 0.99s ======================== and  ().
+    - Frontend E2E testing with  ().
+- **Automation:** A full-stack pipeline () that orchestrates tasks across multiple services (Strategy Lab -> AI Video Lab -> Submissions).
+- **Reliability:** Debounced global search, optimistic UI updates for notifications, and robust API endpoints.
+- **DevOps:** API-driven data migration (), data synchronization (), and readiness checks.
+
+**key DB schema**
+  - **submissions**: Added  and  to track items created by the new automation pipeline.
+
+**changes in tech stack**
+  -  and  were added for S3 integration and file handling.
+  -  was formally added to .
+  -  was installed for the UI test suite.
+
+**All files of reference**
+- **S3 Storage:** ,  (for migration endpoint).
+- **E2E Tests:** .
+- **UI Tests:** .
+- **Script-to-Short Pipeline:**
+    - 
+    - 
+    - 
+    - 
+- **Reliability Fixes:**
+    - 
+    -  (for search bar and notification bell)
+- **Current Fix:**  (for ffmpeg fallback).
+
+**Areas that need refactoring**:
+- None. The  file is an incomplete feature, not code that needs refactoring.
 
 **key api endpoints**
-- **New (Sprint 13):**
-  - : Stats for the admin dashboard.
-  - : Trigger AI schedule generation.
-  - : Get top performing post times.
-  - : Get pending predictions for the challenge UI.
-- **New (Sprint 14 - In Progress):**
-  - : Trigger a real YouTube upload.
-  - : Create a Stripe Checkout session.
-  - : Create a Stripe Customer Portal session.
-  - : Receive webhooks from Stripe.
-  - : Attach a test video file.
+- **Pipeline:** , 
+- **Search:** 
+- **Admin/Dev:** , 
+- **Analytics:** 
 
 **Critical Info for New Agent**
-- **PRIORITY:** You must **complete and test Sprint 14 first**. The code has been written but is unverified. Do not start Sprint 15 until Sprint 14 is fully functional.
-- **Data Integrity Bug:** The previous agent fixed a critical bug where  was being read incorrectly from the user document. Be aware that past data inconsistencies might still exist.
-- **Recurring Test Failure:** You will likely encounter a  event loop error when running backend tests. Do not bypass this with . You need to investigate and fix the test runner configuration. This is critical for the E2E tests in Sprint 15.
-- **Incomplete Sprints:** The codebase is in a mixed state with incomplete features from Sprint 14 and placeholder files for Sprint 15. Follow the task list carefully to bring order to the implementation.
+- **Priority:** Your immediate task is to complete the Fix 3 Real Issues Only prompt. Start by creating the fallback  and modifying . Then, run the analytics sync. Finally, run the full ============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
+rootdir: /app
+plugins: asyncio-1.3.0, anyio-4.12.1, playwright-0.7.2, base-url-2.1.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 477 items / 2 errors
+
+==================================== ERRORS ====================================
+______________ ERROR collecting backend/tests/test_onboarding.py _______________
+ImportError while importing test module '/app/backend/tests/test_onboarding.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_onboarding.py:4: in <module>
+    from main import app
+E   ModuleNotFoundError: No module named 'main'
+______________ ERROR collecting backend/tests/test_publishing.py _______________
+ImportError while importing test module '/app/backend/tests/test_publishing.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_publishing.py:4: in <module>
+    from main import app
+E   ModuleNotFoundError: No module named 'main'
+=============================== warnings summary ===============================
+backend/tests/test_e2e_workflow.py:49
+  /app/backend/tests/test_e2e_workflow.py:49: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:145
+  /app/backend/tests/test_e2e_workflow.py:145: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:212
+  /app/backend/tests/test_e2e_workflow.py:212: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:264
+  /app/backend/tests/test_e2e_workflow.py:264: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:348
+  /app/backend/tests/test_e2e_workflow.py:348: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+../root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12
+  /root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+../root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854
+  /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+backend/main.py:82
+  /app/backend/main.py:82: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+../root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495
+../root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495
+  /root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+backend/main.py:112
+  /app/backend/main.py:112: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+ERROR backend/tests/test_onboarding.py
+ERROR backend/tests/test_publishing.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 2 errors during collection !!!!!!!!!!!!!!!!!!!!
+======================== 11 warnings, 2 errors in 0.89s ======================== suite to confirm all fixes.
+- **Stripe:** The Stripe billing feature is intentionally on hold as per user instructions. Do not work on it.
+- **Test Suites:** The project has two critical E2E test suites: a backend ============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
+rootdir: /app
+plugins: asyncio-1.3.0, anyio-4.12.1, playwright-0.7.2, base-url-2.1.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 477 items / 2 errors
+
+==================================== ERRORS ====================================
+______________ ERROR collecting backend/tests/test_onboarding.py _______________
+ImportError while importing test module '/app/backend/tests/test_onboarding.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_onboarding.py:4: in <module>
+    from main import app
+E   ModuleNotFoundError: No module named 'main'
+______________ ERROR collecting backend/tests/test_publishing.py _______________
+ImportError while importing test module '/app/backend/tests/test_publishing.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_publishing.py:4: in <module>
+    from main import app
+E   ModuleNotFoundError: No module named 'main'
+=============================== warnings summary ===============================
+backend/tests/test_e2e_workflow.py:49
+  /app/backend/tests/test_e2e_workflow.py:49: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:145
+  /app/backend/tests/test_e2e_workflow.py:145: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:212
+  /app/backend/tests/test_e2e_workflow.py:212: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:264
+  /app/backend/tests/test_e2e_workflow.py:264: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:348
+  /app/backend/tests/test_e2e_workflow.py:348: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+../root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12
+  /root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+../root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854
+  /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+backend/main.py:82
+  /app/backend/main.py:82: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+../root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495
+../root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495
+  /root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+backend/main.py:112
+  /app/backend/main.py:112: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+ERROR backend/tests/test_onboarding.py
+ERROR backend/tests/test_publishing.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 2 errors during collection !!!!!!!!!!!!!!!!!!!!
+======================== 11 warnings, 2 errors in 0.89s ======================== suite and a frontend  suite. Both must pass before completing any major task. The 3 failures in the ============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
+rootdir: /app
+plugins: asyncio-1.3.0, anyio-4.12.1, playwright-0.7.2, base-url-2.1.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 477 items / 2 errors
+
+==================================== ERRORS ====================================
+______________ ERROR collecting backend/tests/test_onboarding.py _______________
+ImportError while importing test module '/app/backend/tests/test_onboarding.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_onboarding.py:4: in <module>
+    from main import app
+E   ModuleNotFoundError: No module named 'main'
+______________ ERROR collecting backend/tests/test_publishing.py _______________
+ImportError while importing test module '/app/backend/tests/test_publishing.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_publishing.py:4: in <module>
+    from main import app
+E   ModuleNotFoundError: No module named 'main'
+=============================== warnings summary ===============================
+backend/tests/test_e2e_workflow.py:49
+  /app/backend/tests/test_e2e_workflow.py:49: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:145
+  /app/backend/tests/test_e2e_workflow.py:145: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:212
+  /app/backend/tests/test_e2e_workflow.py:212: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:264
+  /app/backend/tests/test_e2e_workflow.py:264: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+backend/tests/test_e2e_workflow.py:348
+  /app/backend/tests/test_e2e_workflow.py:348: PytestUnknownMarkWarning: Unknown pytest.mark.e2e - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    @pytest.mark.e2e
+
+../root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12
+  /root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+../root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854
+  /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+backend/main.py:82
+  /app/backend/main.py:82: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+../root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495
+../root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495
+  /root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+backend/main.py:112
+  /app/backend/main.py:112: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+ERROR backend/tests/test_onboarding.py
+ERROR backend/tests/test_publishing.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 2 errors during collection !!!!!!!!!!!!!!!!!!!!
+======================== 11 warnings, 2 errors in 1.07s ======================== suite are expected and are what you need to fix.
 
 **documents and test reports created in this job**
--  (updated)
+- 
+- 
+- 
+- 
 - 
 - 
 
-**Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Provided the prompt for Sprint 15. (Status: **In Progress**)
-2.  **User**: Provided the prompt for the hotfix. (Status: **Completed**)
-3.  **User**: Provided the prompt for Sprint 14. (Status: **In Progress**)
-4.  **User**: Provided the prompt for Sprint 13. (Status: **Completed**)
+**Last 10 User Messages and any pending HUMAN messages** 
+1.  **User:** Fix the 4 failing Playwright tests... (Status: **Completed**)
+2.  **Agent:** Fixed the Playwright test selectors.
+3.  **Agent:** Confirmed all 47/47 Playwright tests passed.
+4.  **User:** Provided AWS S3 credentials and instructed the agent to configure them, run migration, and re-run tests. (Status: **Completed**)
+5.  **Agent:** Configured S3, ran migration (0 assets moved), tested upload, and confirmed all 47 Playwright tests passed.
+6.  **User:** Call Deployer Agent and Run Health Check... (Status: **Completed**)
+7.  **Agent:** Ran deployment agent and reported the application is ready to deploy.
+8.  **User:** Requested a Codebase Reality Audit to verify the actual state of implementation. (Status: **Completed**)
+9.  **Agent:** Provided a detailed audit report, highlighting discrepancies like the stubbed Stripe service and missing .
+10. **User:** Fix 3 Real Issues Only: Fix ffmpeg fallback, sync analytics, and re-run tests. (Status: **In Progress**)
 
 **Project Health Check:**
 - **Broken**:
-    - The YouTube publish flow is partially integrated but non-functional.
-    - The Stripe billing flow is partially integrated but non-functional.
-    - The backend test runner fails on new asynchronous tests.
+    - The test video upload helper () is non-functional because its  dependency is not installed. A fix is in progress.
 - **Mocked**:
     -  video provider.
 
 **3rd Party Integrations**
-- **YouTube Data API v3 & Analytics API**: Live integration for analytics; upload functionality is being built.
+- **YouTube Data API v3 & Analytics API**: Live.
 - **Google OAuth 2.0**: Live.
 - **Gemini 2.0 Flash (Text Generation)**: Live (via ).
 - **ElevenLabs (Voice Generation)**: Live.
-- **Stripe (Payments)**: **In progress**.  package installed, services and endpoints created but untested.
-- **Runway (Video Generation)**: Mocked.
-- **AWS S3 (Storage)**: Planned for Sprint 15.
+- **AWS S3 (Storage)**: Live and configured.  package installed.
+- **Stripe (Payments)**: **Stubbed/Parked**. The  exists but contains no implementation. The  package is installed.
 
 **Testing status**
-  - Testing agent used after significant changes: YES (for Sprint 13).
+  - Testing agent used after significant changes: YES
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: []
-  - Known regressions: None, but major features are untested.
+  - Test files created:
+    - 
+    - 
+  - Known regressions: 3 backend tests (, , ) are failing due to the missing  dependency. This is the issue currently being resolved.
 
 **Credentials to test flow:**
--   **Client**:  /  (Name: Chanakya Sutra)
+-   **Client**:  / 
 -   **Admin**:  / 
 
 **What agent forgot to execute**
-The agent did not finish Sprint 14 before moving on to Sprint 15. It laid down all the code for YouTube publishing, Stripe integration, and the test upload helper but did not perform any testing or final integration, leaving these critical features in a broken state. It also continued to bypass the recurring ============================= test session starts ==============================
-platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
-rootdir: /app
-plugins: asyncio-1.3.0, anyio-4.12.1
-asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
-collected 448 items / 2 errors
-
-==================================== ERRORS ====================================
-______________ ERROR collecting backend/tests/test_onboarding.py _______________
-ImportError while importing test module '/app/backend/tests/test_onboarding.py'.
-Hint: make sure your test modules/packages have valid Python names.
-Traceback:
-/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module
-    return _bootstrap._gcd_import(name[level:], package, level)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-backend/tests/test_onboarding.py:4: in <module>
-    from main import app
-E   ModuleNotFoundError: No module named 'main'
-______________ ERROR collecting backend/tests/test_publishing.py _______________
-ImportError while importing test module '/app/backend/tests/test_publishing.py'.
-Hint: make sure your test modules/packages have valid Python names.
-Traceback:
-/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module
-    return _bootstrap._gcd_import(name[level:], package, level)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-backend/tests/test_publishing.py:4: in <module>
-    from main import app
-E   ModuleNotFoundError: No module named 'main'
-=============================== warnings summary ===============================
-../root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12
-  /root/.venv/lib/python3.11/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
-    import multipart
-
-../root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854
-  /root/.venv/lib/python3.11/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
-    from crypt import crypt as _crypt
-
-backend/main.py:80
-  /app/backend/main.py:80: DeprecationWarning: 
-          on_event is deprecated, use lifespan event handlers instead.
-  
-          Read more about it in the
-          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-          
-    @app.on_event("startup")
-
-../root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495
-../root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495
-  /root/.venv/lib/python3.11/site-packages/fastapi/applications.py:4495: DeprecationWarning: 
-          on_event is deprecated, use lifespan event handlers instead.
-  
-          Read more about it in the
-          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-          
-    return self.router.on_event(event_type)
-
-backend/main.py:110
-  /app/backend/main.py:110: DeprecationWarning: 
-          on_event is deprecated, use lifespan event handlers instead.
-  
-          Read more about it in the
-          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-          
-    @app.on_event("shutdown")
-
--- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-=========================== short test summary info ============================
-ERROR backend/tests/test_onboarding.py
-ERROR backend/tests/test_publishing.py
-!!!!!!!!!!!!!!!!!!! Interrupted: 2 errors during collection !!!!!!!!!!!!!!!!!!!!
-======================== 6 warnings, 2 errors in 1.57s ========================= issue instead of fixing it.</analysis>
+The previous agent's implementation of the test upload helper did not account for the production container not having  installed, leading to broken functionality and failing tests that were discovered in the user-initiated audit. The agent is now actively fixing this oversight by implementing a robust fallback mechanism.</analysis>

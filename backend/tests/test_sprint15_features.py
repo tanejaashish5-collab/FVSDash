@@ -16,7 +16,7 @@ import httpx
 import uuid
 import os
 
-API_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://video-monetize-flow.preview.emergentagent.com")
+API_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://video-studio-fix.preview.emergentagent.com")
 if not API_URL.startswith("http"):
     API_URL = f"https://{API_URL}"
 

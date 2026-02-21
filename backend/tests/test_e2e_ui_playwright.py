@@ -9,7 +9,7 @@ from datetime import datetime
 from playwright.async_api import async_playwright
 
 # Configuration
-BASE_URL = "https://video-monetize-flow.preview.emergentagent.com"
+BASE_URL = "https://video-studio-fix.preview.emergentagent.com"
 CLIENT_EMAIL = "alex@company.com"
 CLIENT_PASSWORD = "client123"
 

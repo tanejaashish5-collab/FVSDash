@@ -7,7 +7,7 @@ import requests
 import os
 
 # Get backend URL from environment or use default
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://video-monetize-flow.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://video-studio-fix.preview.emergentagent.com').rstrip('/')
 
 
 def get_client_token():

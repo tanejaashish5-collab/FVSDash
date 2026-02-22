@@ -78,6 +78,11 @@ export default function FvsSystemPage() {
   const [brainScoresExpanded, setBrainScoresExpanded] = useState(false);
   const [activeChallenges, setActiveChallenges] = useState(null);
   
+  // Prediction Feedback State
+  const [selectedPrediction, setSelectedPrediction] = useState(null);
+  const [predictionNotes, setPredictionNotes] = useState('');
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  
   // Side panel state
   const [selectedIdea, setSelectedIdea] = useState(null);
   const [panelOpen, setPanelOpen] = useState(false);

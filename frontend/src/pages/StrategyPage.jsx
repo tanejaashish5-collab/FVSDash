@@ -353,6 +353,27 @@ export default function StrategyPage() {
     }
   };
 
+  // Navigate to Video Lab with script pre-populated
+  const handleProduceInVideoLab = () => {
+    if (!script) {
+      toast.error('Generate a script first.');
+      return;
+    }
+    
+    // Build query params to pass script to Video Lab
+    const params = new URLSearchParams({
+      source: 'strategy',
+      sessionId: activeSessionId || '',
+      prompt: (selectedTitle || topic || 'Video from Strategy Lab').slice(0, 100),
+      scriptText: script.slice(0, 2000) // Limit to 2KB for URL safety
+    });
+    
+    toast.success('Opening Video Lab', {
+      description: 'Your script is ready to produce'
+    });
+    navigate(`/dashboard/video-lab?${params.toString()}`);
+  };
+
   // Load a session from history
   const loadSession = async (session) => {
     try {

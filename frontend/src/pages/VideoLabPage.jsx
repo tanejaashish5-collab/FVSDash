@@ -546,6 +546,7 @@ export default function VideoLabPage() {
                       const sc = statusCfg[task.status] || statusCfg.PENDING;
                       const StatusIcon = sc.icon;
                       const pc = VIDEO_PROVIDERS.find(p => p.value === task.provider);
+                      const isMocked = task.isMocked || task.warnings?.some(w => w.includes('mock'));
                       
                       return (
                         <TableRow
@@ -554,9 +555,14 @@ export default function VideoLabPage() {
                           data-testid={`task-row-${task.id}`}
                         >
                           <TableCell>
-                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${pc?.color}`}>
-                              {pc?.label || task.provider}
-                            </Badge>
+                            <div className="flex flex-col gap-0.5">
+                              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${pc?.color}`}>
+                                {pc?.label || task.provider}
+                              </Badge>
+                              {isMocked && (
+                                <span className="text-[9px] text-amber-500">Mock</span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             <span className="text-xs text-zinc-400 capitalize">{task.mode}</span>
@@ -565,10 +571,22 @@ export default function VideoLabPage() {
                             <span className="text-xs text-zinc-500">{task.outputProfile?.replace('_', ' ')}</span>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${sc.bg} ${sc.text}`}>
-                              <StatusIcon className={`h-3 w-3 mr-1 ${task.status === 'PROCESSING' ? 'animate-spin' : ''}`} />
-                              {task.status}
-                            </Badge>
+                            <div className="flex flex-col gap-0.5">
+                              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${sc.bg} ${sc.text}`}>
+                                <StatusIcon className={`h-3 w-3 mr-1 ${task.status === 'PROCESSING' ? 'animate-spin' : ''}`} />
+                                {task.status}
+                              </Badge>
+                              {task.warnings?.length > 0 && (
+                                <span className="text-[9px] text-amber-500 truncate max-w-[120px]" title={task.warnings[0]}>
+                                  {task.warnings[0].slice(0, 25)}...
+                                </span>
+                              )}
+                              {task.error && (
+                                <span className="text-[9px] text-red-400 truncate max-w-[120px]" title={task.error}>
+                                  {task.error.slice(0, 25)}...
+                                </span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             <span className="text-xs font-mono text-zinc-500">{formatDate(task.createdAt)}</span>

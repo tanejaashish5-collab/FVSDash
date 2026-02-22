@@ -1,4 +1,5 @@
 """Video task routes."""
+import os
 from fastapi import APIRouter, Depends
 
 from models.content import VideoTaskCreate
@@ -9,6 +10,55 @@ from services.video_task_service import (
 from db.mongo import video_tasks_collection
 
 router = APIRouter(tags=["video"])
+
+
+@router.get("/video-tasks/provider-status")
+async def get_provider_status(user: dict = Depends(get_current_user)):
+    """
+    Check availability of video generation providers.
+    Returns status for each provider so frontend can warn users before they start.
+    """
+    providers = {}
+    
+    # Check Veo
+    veo_key = os.environ.get("VEO_API_KEY")
+    if veo_key:
+        try:
+            from google import genai
+            # Just check if SDK is available and key is set
+            providers["veo"] = {
+                "available": True,
+                "label": "Veo",
+                "reason": None
+            }
+        except ImportError:
+            providers["veo"] = {
+                "available": False,
+                "label": "Veo", 
+                "reason": "Google GenAI SDK not installed"
+            }
+    else:
+        providers["veo"] = {
+            "available": False,
+            "label": "Veo",
+            "reason": "VEO_API_KEY not configured"
+        }
+    
+    # Runway is mocked intentionally
+    providers["runway"] = {
+        "available": False,
+        "label": "Runway",
+        "reason": "Using mock mode (real integration parked)"
+    }
+    
+    # Kling is always mocked
+    providers["kling"] = {
+        "available": False,
+        "label": "Kling",
+        "reason": "Using mock mode (demo only)"
+    }
+    
+    return providers
 
 
 @router.get("/video-tasks")

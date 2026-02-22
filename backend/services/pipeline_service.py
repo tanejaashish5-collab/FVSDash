@@ -172,7 +172,7 @@ async def submission_to_video(
     user_id: str,
     client_id: str,
     submission_id: str,
-    video_provider: str = "kling"
+    video_provider: str = "veo"
 ) -> Dict[str, Any]:
     """
     Trigger video generation for a submission.
@@ -182,7 +182,7 @@ async def submission_to_video(
         user_id: The user's ID
         client_id: The client's ID
         submission_id: The submission ID
-        video_provider: Video generation provider (kling, runway, veo)
+        video_provider: Video generation provider (veo)
         
     Returns:
         Result dict with video_task_id, status, message

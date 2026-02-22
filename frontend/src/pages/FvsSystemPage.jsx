@@ -1407,10 +1407,10 @@ export default function FvsSystemPage() {
               {/* Action Buttons */}
               <div className="space-y-3">
                 <Button
-                  onClick={handleCreateSubmissionFromIdea}
+                  onClick={handleDevelopInStrategyLab}
                   disabled={creatingSubmission}
                   className="w-full h-10 bg-indigo-600 hover:bg-indigo-700 text-white"
-                  data-testid="create-submission-from-idea-btn"
+                  data-testid="develop-in-strategy-lab-btn"
                 >
                   {creatingSubmission ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />

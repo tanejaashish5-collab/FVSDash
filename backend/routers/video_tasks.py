@@ -16,7 +16,7 @@ router = APIRouter(tags=["video"])
 async def get_provider_status(user: dict = Depends(get_current_user)):
     """
     Check availability of video generation providers.
-    Returns status for each provider so frontend can warn users before they start.
+    Returns status for Veo so frontend can warn users before they start.
     """
     providers = {}
     
@@ -43,20 +43,6 @@ async def get_provider_status(user: dict = Depends(get_current_user)):
             "label": "Veo",
             "reason": "VEO_API_KEY not configured"
         }
-    
-    # Runway is mocked intentionally
-    providers["runway"] = {
-        "available": False,
-        "label": "Runway",
-        "reason": "Using mock mode (real integration parked)"
-    }
-    
-    # Kling is always mocked
-    providers["kling"] = {
-        "available": False,
-        "label": "Kling",
-        "reason": "Using mock mode (demo only)"
-    }
     
     return providers
 

@@ -280,15 +280,3 @@ async def set_primary_thumbnail(
         "submission": updated_submission,
         "primaryThumbnail": updated_asset
     }
-
-
-@router.get("/submissions/list")
-async def get_submissions_list(
-    user: dict = Depends(get_current_user),
-    impersonateClientId: Optional[str] = Query(None)
-):
-    """Returns a minimal list of submissions for dropdown/linking purposes"""
-    client_id = get_client_id_from_user(user, impersonateClientId)
-    db = submissions_collection()
-    query = {"clientId": client_id} if client_id else {}
-    return await db.find(query, {"_id": 0, "id": 1, "title": 1, "contentType": 1}).to_list(1000)

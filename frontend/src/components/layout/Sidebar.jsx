@@ -170,14 +170,10 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <ScrollArea className="flex-1 py-3">
+        {/* Main - Overview */}
         <NavSection items={mainNav} currentPath={currentPath} submissionCount={submissionCount} />
         
-        {/* Client-only nav items (Blog) - hidden for admin */}
-        {!isAdmin && (
-          <NavSection items={clientOnlyNav} currentPath={currentPath} submissionCount={submissionCount} />
-        )}
-        
-        {/* Labs section - hidden for admin users (client-facing tools) */}
+        {/* Labs section - workflow order: FVS → Strategy → Video Lab */}
         {!isAdmin && (
           <>
             <Separator className="my-2 mx-4 bg-white/[0.06]" />
@@ -185,8 +181,33 @@ export default function Sidebar() {
           </>
         )}
         
+        {/* Content section - after production */}
+        {!isAdmin && (
+          <>
+            <Separator className="my-2 mx-4 bg-white/[0.06]" />
+            <NavSection title="Content" items={contentNav} currentPath={currentPath} submissionCount={submissionCount} />
+          </>
+        )}
+        
+        {/* Insights section */}
         <Separator className="my-2 mx-4 bg-white/[0.06]" />
         <NavSection title="Insights" items={insightsNav} currentPath={currentPath} submissionCount={submissionCount} />
+        
+        {/* Resources section */}
+        {!isAdmin && (
+          <>
+            <Separator className="my-2 mx-4 bg-white/[0.06]" />
+            <NavSection title="Resources" items={resourcesNav} currentPath={currentPath} submissionCount={submissionCount} />
+          </>
+        )}
+        
+        {/* Client-only nav items (Blog, ROI) - hidden for admin */}
+        {!isAdmin && (
+          <>
+            <NavSection items={clientOnlyNav} currentPath={currentPath} submissionCount={submissionCount} />
+          </>
+        )}
+        
         <Separator className="my-2 mx-4 bg-white/[0.06]" />
         <NavSection title="Management" items={mgmtNav} currentPath={currentPath} submissionCount={submissionCount} />
 

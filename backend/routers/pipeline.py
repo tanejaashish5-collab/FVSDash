@@ -27,7 +27,7 @@ class ScriptToSubmissionRequest(BaseModel):
 
 class SubmissionToVideoRequest(BaseModel):
     submission_id: str
-    video_provider: str = "kling"
+    video_provider: str = "veo"
 
 
 class LinkVideoRequest(BaseModel):

@@ -24,9 +24,7 @@ LLM_PROVIDERS = {
 }
 
 VIDEO_PROVIDERS = {
-    "runway": {"enabled": False, "mock": True},
-    "veo": {"enabled": False, "mock": True},
-    "kling": {"enabled": True, "mock": True}
+    "veo": {"enabled": True, "mock": False}
 }
 
 
@@ -40,11 +38,7 @@ def get_enabled_llm_providers() -> list:
 
 def get_enabled_video_providers() -> list:
     """Return list of enabled video provider names."""
-    providers = []
-    for name, config in VIDEO_PROVIDERS.items():
-        if config.get("enabled") or config.get("mock"):
-            providers.append(name)
-    return providers
+    return ["veo"]
 
 
 async def call_llm(provider: str, task: str, input_data: dict) -> dict:

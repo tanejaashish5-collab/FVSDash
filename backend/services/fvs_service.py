@@ -579,15 +579,15 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
             del audio_asset["_id"]
         
         # =================================================================
-        # STEP 8: Create Video Task (MOCKED - video providers P2)
+        # STEP 8: Create Video Task (using Veo when available)
         # =================================================================
         video_prompt = f"Create a {idea.get('format', 'short')}-form video for: {title}"
-        provider_job_id = f"fvs-kling-{uuid.uuid4()}"
+        provider_job_id = f"fvs-veo-{uuid.uuid4()}"
         
         video_task = {
             "id": str(uuid.uuid4()),
             "clientId": client_id,
-            "provider": "kling",
+            "provider": "veo",
             "providerJobId": provider_job_id,
             "prompt": video_prompt,
             "mode": "audio",
@@ -597,10 +597,10 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
             "aspectRatio": "9:16" if idea.get("format") == "short" else "16:9",
             "outputProfile": "shorts" if idea.get("format") == "short" else "youtube_long",
             "submissionId": submission_id,
-            "status": "READY",
-            "videoUrl": "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+            "status": "PROCESSING",
+            "videoUrl": None,
             "fvsGenerated": True,
-            "isMocked": True,
+            "isMocked": False,
             "createdAt": now,
             "updatedAt": now
         }
@@ -609,7 +609,7 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
             del video_task["_id"]
         
         # =================================================================
-        # STEP 9: Create Video Asset (from mocked video task)
+        # STEP 9: Create Video Asset (pending until video task completes)
         # =================================================================
         video_asset = {
             "id": str(uuid.uuid4()),
@@ -617,12 +617,12 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
             "submissionId": submission_id,
             "name": f"FVS Video - {title[:40]}",
             "type": "Video",
-            "url": video_task["videoUrl"],
+            "url": None,
             "status": "Draft",
-            "provider": "kling",
+            "provider": "veo",
             "sourceVideoTaskId": video_task["id"],
             "fvsGenerated": True,
-            "isMocked": True,
+            "isMocked": False,
             "createdAt": now,
             "updatedAt": now
         }

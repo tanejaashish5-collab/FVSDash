@@ -388,6 +388,25 @@ export default function FvsSystemPage() {
     }
   };
 
+  // Navigate to Strategy Lab with idea pre-populated
+  const handleDevelopInStrategyLab = () => {
+    if (!selectedIdea) return;
+    
+    // Build query params to pass idea data to Strategy Lab
+    const params = new URLSearchParams({
+      topic: selectedIdea.topic || '',
+      format: selectedIdea.format || 'short',
+      source: 'fvs',
+      ideaId: selectedIdea.id || ''
+    });
+    
+    toast.success('Opening Strategy Lab', {
+      description: 'Develop your idea into a complete script'
+    });
+    handleClosePanel();
+    navigate(`/dashboard/strategy?${params.toString()}`);
+  };
+
   const formatDate = (dateStr) => {
     if (!dateStr) return '—';
     const date = new Date(dateStr);

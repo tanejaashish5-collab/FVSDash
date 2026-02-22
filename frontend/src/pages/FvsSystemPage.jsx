@@ -1420,6 +1420,82 @@ export default function FvsSystemPage() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Prediction Feedback Modal */}
+      <Dialog open={!!selectedPrediction} onOpenChange={(open) => !open && setSelectedPrediction(null)}>
+        <DialogContent className="bg-[#0B1120] border-[#1F2933] max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Swords className="h-5 w-5 text-amber-400" />
+              Brain Prediction Feedback
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Do you agree with this Brain prediction?
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedPrediction && (
+            <div className="space-y-4 py-4">
+              {/* Prediction Details */}
+              <div className="p-4 rounded-lg bg-zinc-900/50 border border-zinc-800">
+                <h4 className="text-sm font-medium text-white mb-2">
+                  {selectedPrediction.predicted_title}
+                </h4>
+                <div className="flex items-center gap-2 text-xs text-zinc-400">
+                  <Badge variant="outline" className={`text-[10px] ${
+                    selectedPrediction.predicted_tier === 'High' 
+                      ? 'border-amber-500/40 text-amber-400' 
+                      : 'border-teal-500/40 text-teal-400'
+                  }`}>
+                    {selectedPrediction.predicted_tier} Potential
+                  </Badge>
+                  <span>•</span>
+                  <span>{selectedPrediction.days_remaining} days remaining</span>
+                </div>
+                {selectedPrediction.prediction_reason && (
+                  <p className="text-xs text-zinc-500 mt-2 italic">
+                    "{selectedPrediction.prediction_reason}"
+                  </p>
+                )}
+              </div>
+              
+              {/* Notes Field */}
+              <div className="space-y-2">
+                <Label className="text-sm text-zinc-400">Add context (optional)</Label>
+                <Textarea
+                  value={predictionNotes}
+                  onChange={(e) => setPredictionNotes(e.target.value)}
+                  placeholder="Why do you agree or disagree with this prediction?"
+                  className="h-24 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600 resize-none"
+                  data-testid="prediction-notes-input"
+                />
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter className="flex gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              onClick={() => handlePredictionFeedback('reject')}
+              disabled={submittingFeedback}
+              className="flex-1 border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50"
+              data-testid="prediction-reject-btn"
+            >
+              {submittingFeedback ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4 mr-2" />}
+              I Disagree
+            </Button>
+            <Button
+              onClick={() => handlePredictionFeedback('confirm')}
+              disabled={submittingFeedback}
+              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+              data-testid="prediction-confirm-btn"
+            >
+              {submittingFeedback ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
+              I Agree
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

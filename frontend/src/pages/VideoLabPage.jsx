@@ -87,6 +87,26 @@ export default function VideoLabPage() {
   const [pollingTaskIds, setPollingTaskIds] = useState(new Set());
   const [providerStatus, setProviderStatus] = useState(null);
 
+  // Handle Strategy Lab pre-population
+  useEffect(() => {
+    const source = searchParams.get('source');
+    if (source === 'strategy') {
+      const strategyPrompt = searchParams.get('prompt');
+      const strategyScript = searchParams.get('scriptText');
+      
+      if (strategyPrompt) {
+        setPrompt(strategyPrompt);
+      }
+      if (strategyScript) {
+        setScriptText(decodeURIComponent(strategyScript));
+        setMode('script');
+        toast.info('Script loaded from Strategy Lab', {
+          description: 'Ready to produce your video'
+        });
+      }
+    }
+  }, [searchParams]);
+
   // Fetch initial data
   useEffect(() => {
     const fetchData = async () => {

@@ -243,6 +243,38 @@ export default function FvsSystemPage() {
     }
   };
 
+  // Handle prediction feedback (Confirm/Reject)
+  const handlePredictionFeedback = async (verdict) => {
+    if (!selectedPrediction) return;
+    
+    setSubmittingFeedback(true);
+    try {
+      await axios.post(`${API}/brain/challenge-feedback`, {
+        challenge_id: selectedPrediction.id,
+        verdict: verdict, // 'confirm' or 'reject'
+        notes: predictionNotes
+      }, { headers: authHeaders });
+      
+      // Update local state to mark as responded
+      setActiveChallenges(prev => ({
+        ...prev,
+        active_challenges: prev.active_challenges.map(c => 
+          c.id === selectedPrediction.id 
+            ? { ...c, user_verdict: verdict, user_notes: predictionNotes }
+            : c
+        )
+      }));
+      
+      toast.success('Feedback recorded — the Brain will learn from this');
+      setSelectedPrediction(null);
+      setPredictionNotes('');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to submit feedback');
+    } finally {
+      setSubmittingFeedback(false);
+    }
+  };
+
   // Open idea detail panel
   const handleOpenIdeaPanel = async (idea) => {
     setSelectedIdea(idea);

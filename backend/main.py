@@ -70,6 +70,11 @@ api_router.include_router(pipeline.router)
 # Include API router in app
 app.include_router(api_router)
 
+# Mount static files for uploads (audio, thumbnails, etc.)
+uploads_dir = os.path.join(os.path.dirname(__file__), "..", "uploads")
+if os.path.exists(uploads_dir):
+    app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,

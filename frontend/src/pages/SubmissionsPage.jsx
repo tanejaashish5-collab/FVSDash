@@ -369,16 +369,17 @@ export default function SubmissionsPage() {
           <h1 className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
             Submissions
           </h1>
-          <p className="text-sm text-zinc-500 mt-0.5">Submit new episodes and track their progress.</p>
+          <p className="text-sm text-zinc-500 mt-0.5">Content packages ready for review and publishing.</p>
         </div>
         <AuraTooltip content={tooltipContent.submissions.newSubmission} position="left">
           <Button
             onClick={() => setIsFormOpen(true)}
-            className="bg-teal-600 hover:bg-teal-700 text-white font-medium h-9 text-sm gap-2"
+            variant="outline"
+            className="border-zinc-700 text-white hover:bg-zinc-800 font-medium h-9 text-sm gap-2"
             data-testid="new-submission-btn"
           >
             <Plus className="h-4 w-4" />
-            New Submission
+            Manual Entry
           </Button>
         </AuraTooltip>
       </div>

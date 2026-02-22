@@ -94,16 +94,18 @@ export default function VideoLabPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [capRes, tasksRes, assetsRes, subsRes] = await Promise.all([
+        const [capRes, tasksRes, assetsRes, subsRes, statusRes] = await Promise.all([
           axios.get(`${API}/ai/capabilities`, { headers: authHeaders }),
           axios.get(`${API}/video-tasks`, { headers: authHeaders }),
           axios.get(`${API}/assets/library`, { headers: authHeaders }),
           axios.get(`${API}/submissions/list`, { headers: authHeaders }),
+          axios.get(`${API}/video-tasks/provider-status`, { headers: authHeaders }).catch(() => ({ data: null })),
         ]);
         setCapabilities(capRes.data);
         setTasks(tasksRes.data || []);
         setAssets(assetsRes.data || []);
         setSubmissions(subsRes.data || []);
+        setProviderStatus(statusRes.data);
       } catch (err) {
         console.error(err);
       } finally {
@@ -112,6 +114,32 @@ export default function VideoLabPage() {
     };
     fetchData();
   }, [authHeaders]);
+
+  // Auto-poll for PROCESSING tasks
+  useEffect(() => {
+    const processingTasks = tasks.filter(t => t.status === 'PROCESSING');
+    if (processingTasks.length === 0) return;
+
+    const pollInterval = setInterval(async () => {
+      for (const task of processingTasks) {
+        try {
+          const res = await axios.get(`${API}/video-tasks/${task.id}`, { headers: authHeaders });
+          setTasks(prev => prev.map(t => t.id === task.id ? res.data : t));
+          
+          if (res.data.status === 'READY') {
+            toast.success(`Video ready: ${res.data.prompt?.slice(0, 30)}...`);
+          } else if (res.data.status === 'FAILED') {
+            const errorMsg = res.data.error || res.data.warnings?.[0] || 'Unknown error';
+            toast.error(`Video failed: ${errorMsg}`);
+          }
+        } catch (err) {
+          console.error(`Failed to poll task ${task.id}:`, err);
+        }
+      }
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [tasks, authHeaders]);
   
   // Pre-load from submission via query param
   useEffect(() => {

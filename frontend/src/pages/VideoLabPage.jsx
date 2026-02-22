@@ -271,6 +271,22 @@ export default function VideoLabPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Panel: Generation Form */}
         <div className="lg:col-span-5 space-y-4">
+          {/* Provider Status Warning */}
+          {providerStatus && !providerStatus[provider]?.available && (
+            <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <p className="text-sm text-amber-300 font-medium">
+                  {providerStatus[provider]?.label || provider} Unavailable
+                </p>
+                <p className="text-xs text-amber-400/70 mt-0.5">
+                  {providerStatus[provider]?.reason || 'This provider is not configured or has no credits.'}
+                  {' '}Videos will use mock generation.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Pipeline Info Banner */}
           {pipelineSubmission && (
             <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center gap-3">

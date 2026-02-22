@@ -233,15 +233,10 @@ async def check_veo_job(job_id: str) -> VideoStatusResult:
 
 async def create_video_job(provider: str, task_data: dict) -> VideoJobResult:
     """
-    Create a video generation job with the specified provider.
-    
-    Supports:
-    - veo: Google Veo (REAL with VEO_API_KEY, or mocked fallback)
-    - runway: MOCKED
-    - kling: MOCKED
+    Create a video generation job with Veo.
     
     Args:
-        provider: Video provider name
+        provider: Video provider name (only 'veo' supported)
         task_data: Dict with prompt, mode, scriptText, aspectRatio
         
     Returns:
@@ -249,24 +244,8 @@ async def create_video_job(provider: str, task_data: dict) -> VideoJobResult:
     """
     if provider == "veo":
         return await create_veo_job(task_data)
-    elif provider == "kling":
-        # Kling remains mocked - TODO: P2 integrate real API
-        return VideoJobResult(
-            job_id=f"kling-mock-{uuid.uuid4()}",
-            provider="mock_kling",
-            is_mocked=True,
-            warning="Kling integration is mocked (P2)"
-        )
-    elif provider == "runway":
-        # Runway remains mocked - TODO: P2 integrate real API
-        return VideoJobResult(
-            job_id=f"runway-mock-{uuid.uuid4()}",
-            provider="mock_runway",
-            is_mocked=True,
-            warning="Runway integration is mocked (P2)"
-        )
     else:
-        raise HTTPException(status_code=400, detail=f"Unknown video provider: {provider}")
+        raise HTTPException(status_code=400, detail=f"Unknown video provider: {provider}. Only 'veo' is supported.")
 
 
 async def check_video_job(provider: str, job_id: str) -> VideoStatusResult:

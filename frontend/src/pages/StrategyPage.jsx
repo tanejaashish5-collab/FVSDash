@@ -156,6 +156,22 @@ export default function StrategyPage() {
     }
   }, [searchParams, authHeaders]);
 
+  // Handle FVS System idea pre-population
+  useEffect(() => {
+    const source = searchParams.get('source');
+    if (source === 'fvs') {
+      const fvsTopic = searchParams.get('topic');
+      const fvsFormat = searchParams.get('format');
+      
+      if (fvsTopic) {
+        setTopic(fvsTopic);
+        toast.info('Idea loaded from FVS System', {
+          description: 'Develop your idea into a complete script'
+        });
+      }
+    }
+  }, [searchParams]);
+
   // Fetch session history
   const fetchSessions = useCallback(async () => {
     if (!authHeaders) return;

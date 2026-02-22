@@ -86,6 +86,8 @@ export default function VideoLabPage() {
   const [creating, setCreating] = useState(false);
   const [refreshingTask, setRefreshingTask] = useState(null);
   const [previewVideo, setPreviewVideo] = useState(null);
+  const [pollingTaskIds, setPollingTaskIds] = useState(new Set());
+  const [providerStatus, setProviderStatus] = useState(null);
 
   // Fetch initial data
   useEffect(() => {

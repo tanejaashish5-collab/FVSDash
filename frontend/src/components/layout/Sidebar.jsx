@@ -16,32 +16,42 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 // Main nav items - Blog is client-only (requires channel for content)
 const mainNav = [
   { label: 'Overview', path: '/dashboard/overview', icon: LayoutDashboard },
+];
+
+// Labs section - reordered for correct workflow: FVS → Strategy → Video Lab
+const labNav = [
+  { label: 'FVS System', path: '/dashboard/system', icon: Brain },
+  { label: 'Strategy Lab', path: '/dashboard/strategy', icon: FlaskConical },
+  { label: 'AI Video Lab', path: '/dashboard/video-lab', icon: Video },
+];
+
+// Content section - after production
+const contentNav = [
   { label: 'Submissions', path: '/dashboard/submissions', icon: FileText, showBadge: true },
-  { label: 'Calendar', path: '/dashboard/calendar', icon: Calendar },
-  { label: 'Production Files', path: '/dashboard/deliverables', icon: Package },
-  { label: 'Assets', path: '/dashboard/assets', icon: FolderOpen },
   { label: 'Publishing', path: '/dashboard/publishing', icon: Send },
+];
+
+// Insights section
+const insightsNav = [
+  { label: 'Analytics', path: '/dashboard/analytics', icon: BarChart3 },
+  { label: 'Calendar', path: '/dashboard/calendar', icon: Calendar },
+];
+
+// Resources section
+const resourcesNav = [
+  { label: 'Assets', path: '/dashboard/assets', icon: FolderOpen },
+  { label: 'Production Files', path: '/dashboard/deliverables', icon: Package },
 ];
 
 // Client-only nav items (require YouTube channel)
 const clientOnlyNav = [
   { label: 'Blog', path: '/dashboard/blog', icon: BookOpen },
-];
-
-const labNav = [
-  { label: 'Strategy Lab', path: '/dashboard/strategy', icon: FlaskConical },
-  { label: 'AI Video Lab', path: '/dashboard/video-lab', icon: Video },
-  { label: 'FVS System', path: '/dashboard/system', icon: Brain },
-];
-
-const insightsNav = [
-  { label: 'Analytics', path: '/dashboard/analytics', icon: BarChart3 },
   { label: 'ROI Center', path: '/dashboard/roi', icon: TrendingUp },
 ];
 
 const mgmtNav = [
-  { label: 'Billing', path: '/dashboard/billing', icon: CreditCard },
   { label: 'Settings', path: '/dashboard/settings', icon: Settings },
+  { label: 'Billing', path: '/dashboard/billing', icon: CreditCard },
   { label: 'Help / Support', path: '/dashboard/help', icon: HelpCircle },
 ];
 

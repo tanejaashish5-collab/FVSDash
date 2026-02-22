@@ -16,7 +16,7 @@ import {
   Brain, Sparkles, Zap, Play, X, Check, Loader2, RefreshCw,
   Lightbulb, TrendingUp, Clock, Activity, Settings, Radio,
   FileText, Video, Image, Music, ChevronRight, AlertCircle, Eye,
-  Copy, Send, Hash, Target, Users, ExternalLink, Radar, Swords
+  Copy, Send, Hash, Target, Users, ExternalLink, Radar, Swords, FlaskConical
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';

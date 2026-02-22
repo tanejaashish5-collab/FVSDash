@@ -263,46 +263,26 @@ async def check_video_job(provider: str, job_id: str) -> VideoStatusResult:
     """
     if provider == "veo":
         return await check_veo_job(job_id)
-    elif provider == "kling":
-        # Kling mock - always ready
-        return VideoStatusResult(
-            status="READY",
-            video_url=MOCK_VIDEO_URLS[0],
-            is_mocked=True
-        )
-    elif provider == "runway":
-        # Runway mock - simulated processing
-        hash_val = int(hashlib.md5(job_id.encode()).hexdigest()[:8], 16)
-        if hash_val % 3 == 0:
-            return VideoStatusResult(
-                status="READY",
-                video_url=MOCK_VIDEO_URLS[1],
-                is_mocked=True
-            )
-        return VideoStatusResult(
-            status="PROCESSING",
-            is_mocked=True
-        )
     
     return VideoStatusResult(
         status="FAILED",
         is_mocked=True,
-        warning=f"Unknown provider: {provider}"
+        warning=f"Unknown provider: {provider}. Only 'veo' is supported."
     )
 
 
 async def create_video_task(client_id: str, data: dict) -> dict:
     """Create a new video generation task.
     
-    Supports real Veo integration and mocked providers with graceful fallbacks.
+    Supports real Veo integration.
     """
-    valid_providers = ["runway", "veo", "kling"]
+    valid_providers = ["veo"]
     valid_modes = ["script", "audio", "remix"]
     valid_aspects = ["16:9", "9:16", "1:1"]
     valid_profiles = ["youtube_long", "shorts", "reel"]
     
     if data["provider"] not in valid_providers:
-        raise HTTPException(status_code=400, detail=f"Invalid provider. Must be one of: {valid_providers}")
+        raise HTTPException(status_code=400, detail=f"Invalid provider. Only 'veo' is supported.")
     if data["mode"] not in valid_modes:
         raise HTTPException(status_code=400, detail=f"Invalid mode. Must be one of: {valid_modes}")
     if data.get("aspectRatio", "16:9") not in valid_aspects:

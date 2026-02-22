@@ -429,9 +429,21 @@ export default function SubmissionsPage() {
             </div>
           ) : submissions.length === 0 ? (
             <div className="text-center py-12">
-              <FileText className="h-8 w-8 text-zinc-700 mx-auto mb-2" />
-              <p className="text-xs text-zinc-500">No submissions found.</p>
-              <p className="text-[10px] text-zinc-600 mt-1">Click "+ New Submission" to create your first piece of content.</p>
+              <FileText className="h-10 w-10 text-zinc-700 mx-auto mb-3" />
+              <p className="text-sm text-zinc-400 font-medium">No submissions yet</p>
+              <p className="text-xs text-zinc-600 mt-1 max-w-xs mx-auto">
+                Complete a production in Video Lab to create your first submission, or use the workflow:
+              </p>
+              <p className="text-[10px] text-zinc-500 mt-2">
+                FVS System → Strategy Lab → Video Lab → Submissions
+              </p>
+              <Button
+                onClick={() => navigate('/dashboard/video-lab')}
+                variant="outline"
+                className="mt-4 h-8 text-xs border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+              >
+                Go to Video Lab
+              </Button>
             </div>
           ) : (
             <Table>

@@ -598,7 +598,7 @@ export default function FvsSystemPage() {
                 Active Predictions
               </CardTitle>
               <CardDescription className="text-xs text-zinc-500">
-                Brain predictions awaiting verdict as videos collect views.
+                Brain predictions awaiting verdict. Click to provide feedback.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -608,30 +608,50 @@ export default function FvsSystemPage() {
                     const isUrgent = challenge.days_remaining <= 3;
                     const isHighPotential = challenge.predicted_tier === 'High';
                     const progressPercent = ((30 - challenge.days_remaining) / 30) * 100;
+                    const hasResponded = challenge.user_verdict;
                     
                     return (
-                      <div 
+                      <button 
                         key={challenge.id}
-                        className={`p-4 rounded-lg border transition-colors ${
+                        onClick={() => !hasResponded && setSelectedPrediction(challenge)}
+                        disabled={hasResponded}
+                        data-testid={`prediction-card-${challenge.id}`}
+                        className={`w-full text-left p-4 rounded-lg border transition-all ${
                           isHighPotential 
                             ? 'bg-gradient-to-br from-amber-500/5 to-amber-600/10 border-amber-500/30' 
                             : 'bg-gradient-to-br from-teal-500/5 to-teal-600/10 border-teal-500/30'
-                        } ${isUrgent ? 'animate-pulse' : ''}`}
+                        } ${isUrgent && !hasResponded ? 'animate-pulse' : ''} ${
+                          hasResponded 
+                            ? 'opacity-60 cursor-default' 
+                            : 'hover:border-white/30 hover:bg-white/5 cursor-pointer'
+                        }`}
                       >
                         <div className="flex items-start justify-between mb-2">
                           <h4 className="text-sm font-medium text-white truncate max-w-[200px]">
                             {challenge.predicted_title}
                           </h4>
-                          <Badge variant="outline" className={`text-[10px] px-2 py-0.5 ${
-                            isHighPotential ? 'border-amber-500/40 text-amber-400' : 'border-teal-500/40 text-teal-400'
-                          }`}>
-                            {challenge.predicted_tier}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            {hasResponded && (
+                              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${
+                                challenge.user_verdict === 'confirm' 
+                                  ? 'border-emerald-500/40 text-emerald-400' 
+                                  : 'border-red-500/40 text-red-400'
+                              }`}>
+                                {challenge.user_verdict === 'confirm' ? 'Agreed' : 'Disagreed'}
+                              </Badge>
+                            )}
+                            <Badge variant="outline" className={`text-[10px] px-2 py-0.5 ${
+                              isHighPotential ? 'border-amber-500/40 text-amber-400' : 'border-teal-500/40 text-teal-400'
+                            }`}>
+                              {challenge.predicted_tier}
+                            </Badge>
+                          </div>
                         </div>
                         
                         <div className="flex items-center gap-2 text-xs text-zinc-400 mb-2">
                           <Clock className="h-3 w-3" />
                           <span>Verdict in {challenge.days_remaining} days</span>
+                          {!hasResponded && <ChevronRight className="h-3 w-3 ml-auto" />}
                         </div>
                         
                         {/* Progress bar showing time elapsed */}
@@ -646,7 +666,7 @@ export default function FvsSystemPage() {
                         <p className="text-[10px] text-zinc-600 mt-1 text-right">
                           {challenge.days_remaining} days remaining
                         </p>
-                      </div>
+                      </button>
                     );
                   })}
                   

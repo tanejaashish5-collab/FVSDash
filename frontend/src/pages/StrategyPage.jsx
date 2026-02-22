@@ -1126,13 +1126,22 @@ export default function StrategyPage() {
           </DialogContent>
         </Dialog>
         
-        {/* Send to Production Button - Fixed at bottom when script exists */}
+        {/* Action Buttons - Fixed at bottom when script exists */}
         {script && activeSessionId && (
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3">
+            <Button
+              onClick={handleProduceInVideoLab}
+              className="h-12 px-6 bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-white font-semibold shadow-xl shadow-indigo-500/20 rounded-full"
+              data-testid="produce-in-video-lab-btn"
+            >
+              <Video className="h-5 w-5 mr-2" />
+              Produce in Video Lab
+            </Button>
             <Button
               onClick={handleSendToProduction}
               disabled={sendingToProduction}
-              className="h-12 px-8 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-semibold shadow-xl shadow-amber-500/20 rounded-full"
+              variant="outline"
+              className="h-12 px-6 border-zinc-700 text-white hover:bg-zinc-800 font-semibold rounded-full"
               data-testid="send-to-production-btn"
             >
               {sendingToProduction ? (
@@ -1140,7 +1149,7 @@ export default function StrategyPage() {
               ) : (
                 <ArrowRight className="h-5 w-5 mr-2" />
               )}
-              Send to Production
+              Create Submission
             </Button>
           </div>
         )}

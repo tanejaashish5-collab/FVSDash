@@ -173,7 +173,7 @@ export const tooltipContent = {
     notificationPreferences: "Control which events trigger email or in-app alerts (new submissions, publish confirmations, etc.).",
     defaultPlatform: "Set which publishing platform is pre-selected when you schedule new episodes.",
     brandKit: "Upload your logo, brand colours, and fonts so AI-generated assets stay on-brand.",
-    apiKeys: "Connect third-party services like ElevenLabs, Runway, or Make.com using their API credentials.",
+    apiKeys: "Connect third-party services like ElevenLabs or Make.com using their API credentials.",
     timezone: "All scheduled publish times use this timezone. Keep it synced with your target audience.",
     channelName: "Your channel or brand name. Used in AI-generated content and publishing metadata.",
     channelDescription: "A brief description of your channel's focus and style. Helps AI understand your brand.",

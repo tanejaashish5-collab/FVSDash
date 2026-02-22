@@ -284,7 +284,10 @@ async def get_active_challenges(db, user_id: str) -> Dict[str, Any]:
                 "predicted_tier": score.get("predicted_tier", "Medium"),
                 "days_remaining": days_remaining,
                 "created_at": score.get("created_at"),
-                "submission_id": score.get("submission_id")
+                "submission_id": score.get("submission_id"),
+                "user_verdict": score.get("user_verdict"),
+                "user_notes": score.get("user_notes"),
+                "prediction_reason": score.get("prediction_reason")
             })
     
     # Sort by days_remaining ascending (most urgent first)
@@ -293,6 +296,53 @@ async def get_active_challenges(db, user_id: str) -> Dict[str, Any]:
     return {
         "active_challenges": active_challenges,
         "total_active": len(active_challenges)
+    }
+
+
+async def record_challenge_feedback(
+    db, 
+    user_id: str, 
+    challenge_id: str, 
+    verdict: str, 
+    notes: str = ""
+) -> Dict[str, Any]:
+    """
+    Record user feedback on a brain prediction.
+    This helps the Brain learn from user judgment.
+    
+    Args:
+        db: Database instance
+        user_id: Client/User ID
+        challenge_id: The brain_score record ID
+        verdict: 'confirm' or 'reject'
+        notes: Optional user notes explaining their judgment
+    
+    Returns:
+        Updated challenge info
+    """
+    now = datetime.now(timezone.utc)
+    
+    result = await db.brain_scores.update_one(
+        {"id": challenge_id, "user_id": user_id},
+        {
+            "$set": {
+                "user_verdict": verdict,
+                "user_notes": notes,
+                "user_feedback_at": now.isoformat()
+            }
+        }
+    )
+    
+    if result.modified_count == 0:
+        return {"success": False, "error": "Challenge not found"}
+    
+    logger.info(f"Brain feedback recorded: challenge={challenge_id}, verdict={verdict}, user={user_id}")
+    
+    return {
+        "success": True,
+        "challenge_id": challenge_id,
+        "verdict": verdict,
+        "message": "Feedback recorded — the Brain will learn from this"
     }
 
 

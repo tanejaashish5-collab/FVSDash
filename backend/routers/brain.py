@@ -64,3 +64,26 @@ async def get_active_challenges(user: dict = Depends(get_current_user)):
     client_id = get_client_id_from_user(user)
     db = get_db()
     return await brain_service.get_active_challenges(db, client_id)
+
+
+@router.post("/challenge-feedback")
+async def submit_challenge_feedback(
+    data: dict,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Submit user feedback on a brain prediction (confirm/reject).
+    This helps the Brain learn from user judgment.
+    
+    Args:
+        data: { challenge_id, verdict ('confirm'|'reject'), notes (optional) }
+    """
+    client_id = get_client_id_from_user(user)
+    db = get_db()
+    return await brain_service.record_challenge_feedback(
+        db, 
+        client_id, 
+        data.get("challenge_id"),
+        data.get("verdict"),
+        data.get("notes", "")
+    )

@@ -306,7 +306,22 @@ export default function AssetsPage() {
                               <TypeIcon className={`h-4 w-4 ${tc.split(' ')[1]}`} />
                             </div>
                           )}
-                          <span className="text-sm text-white font-medium truncate max-w-[180px]">{asset.name}</span>
+                          <div className="flex flex-col gap-1 min-w-0 flex-1">
+                            <span className="text-sm text-white font-medium truncate max-w-[180px]">{asset.name}</span>
+                            {/* Inline audio player for Audio assets */}
+                            {asset.type === 'Audio' && asset.url && (
+                              <audio 
+                                controls 
+                                src={asset.url} 
+                                className="h-8 w-full max-w-[200px]"
+                                style={{ 
+                                  filter: 'invert(1) hue-rotate(180deg)',
+                                  opacity: 0.8
+                                }}
+                                data-testid={`audio-player-${asset.id}`}
+                              />
+                            )}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>

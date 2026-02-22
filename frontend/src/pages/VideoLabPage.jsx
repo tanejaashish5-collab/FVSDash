@@ -57,7 +57,7 @@ export default function VideoLabPage() {
   const navigate = useNavigate();
   
   // Provider & capabilities
-  const [provider, setProvider] = useState('kling');
+  const [provider, setProvider] = useState('veo');
   const [mode, setMode] = useState('script');
   const [capabilities, setCapabilities] = useState({ llmProviders: [], videoProviders: [] });
   

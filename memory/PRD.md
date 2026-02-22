@@ -1949,3 +1949,32 @@ The FVS (ForgeVoice System) is an autonomous "brain + orchestrator" for content 
 #### REAL Components:
 - LLM calls for idea generation (Gemini via emergentintegrations)
 - LLM calls for script generation (Gemini via emergentintegrations)
+
+---
+
+### Phase 36 — Video Lab Pipeline Diagnosis & Fix (Feb 22, 2026)
+
+**Summary**: Diagnosed and fixed critical issues preventing Video Lab tasks from displaying and processing.
+
+#### Root Cause Analysis:
+1. **Route Ordering Bug**: `/api/submissions/list` was defined after `/api/submissions/{submission_id}` in FastAPI router, causing "list" to be matched as a submission ID → 404 error
+2. **Promise.all Cascade Failure**: The 404 error caused the entire data fetch in VideoLabPage to fail silently, resulting in "No video tasks yet" even when 15+ tasks existed
+3. **No Auto-Polling**: Frontend wasn't automatically checking task status updates
+
+#### Fixes Applied:
+1. **Fixed route ordering** in `/app/backend/routers/submissions.py` - moved `/submissions/list` BEFORE parameterized routes
+2. **Added provider status endpoint** (`GET /api/video-tasks/provider-status`) - shows availability of Veo, Runway, Kling
+3. **Added provider status warning banner** in frontend - alerts users before task creation
+4. **Added auto-polling** (5-second interval) for PROCESSING tasks
+5. **Added mock indicator** - clearly shows "Mock" label on tasks using mocked video generation
+6. **Added warnings display** - shows provider warnings in task status column
+
+#### Key Discovery:
+- **Video Lab does NOT call ElevenLabs** - Only FVS System (Strategy Lab → Produce Episode) generates audio
+- ElevenLabs credit consumption is from FVS/Strategy Lab, not Video Lab
+
+#### Files Modified:
+- `/app/frontend/src/pages/VideoLabPage.jsx` - Added auto-polling, provider status, mock indicators
+- `/app/backend/routers/video_tasks.py` - Added `/provider-status` endpoint
+- `/app/backend/routers/submissions.py` - Fixed route ordering bug
+

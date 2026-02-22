@@ -1415,9 +1415,9 @@ export default function FvsSystemPage() {
                   {creatingSubmission ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
-                    <Send className="h-4 w-4 mr-2" />
+                    <FlaskConical className="h-4 w-4 mr-2" />
                   )}
-                  Create Submission from Idea
+                  Develop in Strategy Lab
                 </Button>
                 
                 <Button
@@ -1432,7 +1432,7 @@ export default function FvsSystemPage() {
                   ) : (
                     <Video className="h-4 w-4 mr-2" />
                   )}
-                  Create AI Video Task from Idea
+                  Produce in Video Lab
                 </Button>
               </div>
             </>

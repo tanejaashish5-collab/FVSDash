@@ -112,7 +112,7 @@ export const tooltipContent = {
     generateVoiceover: "Creates a full AI-narrated audio track from your script in the selected voice.",
     sceneBreakdown: "The AI splits your script into individual scenes, each matched to a visual or B-roll suggestion.",
     exportPackage: "Downloads all generated assets — audio, scenes, and captions — as a ready-to-edit package.",
-    videoProvider: "Select the AI video generation model: Google Veo for quality, Runway for speed.",
+    videoProvider: "Select the AI video generation model: Google Veo for high-quality video.",
     imageProvider: "Choose the AI image model for thumbnails and graphics: OpenAI GPT-Image or Gemini.",
   },
 

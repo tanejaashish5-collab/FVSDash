@@ -23,9 +23,7 @@ import { tooltipContent } from '@/constants/tooltipContent';
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const VIDEO_PROVIDERS = [
-  { value: 'runway', label: 'Runway', color: 'bg-purple-500/10 text-purple-400 border-purple-500/20' },
   { value: 'veo', label: 'Veo', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
-  { value: 'kling', label: 'Kling (Mock)', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
 ];
 
 const MODES = [

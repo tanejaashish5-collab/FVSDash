@@ -24,7 +24,8 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (token) {
       axios.get(`${API}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 8000,
       })
         .then(res => {
           setUser(res.data);

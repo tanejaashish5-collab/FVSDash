@@ -1,0 +1,6 @@
+{
+  "framework": null,
+  "buildCommand": "cd frontend && yarn install && craco build",
+  "outputDirectory": "frontend/build",
+  "installCommand": "cd frontend && yarn install"
+}

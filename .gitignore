@@ -1,0 +1,29 @@
+# Python
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+
+# Environment files (never commit actual secrets)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+backend/.env
+
+# Frontend
+frontend/node_modules/
+frontend/build/
+frontend/.env.local
+
+# Video temp files
+/tmp/fvs_video/
+backend/uploads/
+
+# OS
+.DS_Store
+Thumbs.db

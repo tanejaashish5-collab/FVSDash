@@ -1,0 +1,16 @@
+[phases.setup]
+nixPkgs = ["python311", "ffmpeg", "fontconfig", "freetype", "dejavu_fonts"]
+
+[phases.install]
+cmds = [
+  "pip install --upgrade pip",
+  "pip install -r backend/requirements.txt"
+]
+
+[phases.build]
+cmds = [
+  "python3 -c \"import fastapi; print('FastAPI OK')\""
+]
+
+[start]
+cmd = "uvicorn backend.main:app --host 0.0.0.0 --port $PORT"

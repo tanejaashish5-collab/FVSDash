@@ -88,25 +88,31 @@ async def health_check():
 @app.on_event("startup")
 async def startup():
     """Initialize database indexes and seed data on startup."""
-    db = get_db()
-    await db.users.create_index("email", unique=True)
-    await db.users.create_index("id", unique=True)
-    await db.clients.create_index("id", unique=True)
-    await db.publishing_tasks.create_index("clientId")
-    await db.publishing_tasks.create_index([("status", 1), ("scheduledAt", 1)])
-    await db.platform_connections.create_index([("clientId", 1), ("platform", 1)], unique=True)
-    await db.oauth_tokens.create_index([("clientId", 1), ("platform", 1)], unique=True)
-    await db.publish_jobs.create_index("clientId")
-    await db.publish_jobs.create_index([("status", 1), ("createdAt", -1)])
-    await db.brain_scores.create_index("user_id")
-    await db.brain_scores.create_index([("user_id", 1), ("performance_verdict", 1)])
+    try:
+        db = get_db()
+        await db.users.create_index("email", unique=True)
+        await db.users.create_index("id", unique=True)
+        await db.clients.create_index("id", unique=True)
+        await db.publishing_tasks.create_index("clientId")
+        await db.publishing_tasks.create_index([("status", 1), ("scheduledAt", 1)])
+        await db.platform_connections.create_index([("clientId", 1), ("platform", 1)], unique=True)
+        await db.oauth_tokens.create_index([("clientId", 1), ("platform", 1)], unique=True)
+        await db.publish_jobs.create_index("clientId")
+        await db.publish_jobs.create_index([("status", 1), ("createdAt", -1)])
+        await db.brain_scores.create_index("user_id")
+        await db.brain_scores.create_index([("user_id", 1), ("performance_verdict", 1)])
+        logger.info("Database indexes created successfully")
+    except Exception as e:
+        logger.error(f"Index creation error (non-fatal): {e}")
+
     try:
         result = await run_seed()
         if result:
             logger.info("Demo data seeded successfully")
-        
+
         # Run identity migration (Sprint 12)
         from migrations.versions.s12_identity_fix import run_identity_migration
+        db = get_db()
         await run_identity_migration(db)
     except Exception as e:
         logger.error(f"Seed error: {e}")

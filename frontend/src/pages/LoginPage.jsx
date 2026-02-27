@@ -23,7 +23,13 @@ export default function LoginPage() {
       toast.success('Welcome back!');
       navigate('/dashboard/overview');
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Login failed');
+      if (!err.response) {
+        // Network error or CORS — no response from server
+        toast.error('Cannot reach server. Check your connection or contact support.');
+        console.error('Login network error:', err.message, 'API URL:', `${process.env.REACT_APP_BACKEND_URL}/api/auth/login`);
+      } else {
+        toast.error(err.response?.data?.detail || 'Login failed');
+      }
     } finally {
       setLoading(false);
     }

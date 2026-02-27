@@ -14,7 +14,9 @@ RUN pip install --upgrade pip && pip install -r backend/requirements.txt
 
 COPY . .
 
+RUN chmod +x /app/start.sh
+
 ENV PORT=8000
 EXPOSE 8000
 
-CMD ["sh", "-c", "cd /app/backend && exec uvicorn main:app --host 0.0.0.0 --port $PORT"]
+CMD ["/app/start.sh"]

@@ -1,0 +1,862 @@
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/context/AuthContext';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
+import { 
+  Settings, User, Palette, Brain, Globe, Sparkles, 
+  Save, Loader2, Plus, X, Tag, Send, Youtube, Instagram,
+  CheckCircle2, XCircle, Link2, Unlink, RefreshCw, AlertTriangle, Clock, Check
+} from 'lucide-react';
+import { toast } from 'sonner';
+import axios from 'axios';
+import { AuraTooltip } from '@/components/ui/AuraTooltip';
+import { tooltipContent } from '@/constants/tooltipContent';
+import { AuraSpinner } from '@/components/animations/AuraSpinner';
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+// TikTok icon component
+const TikTokIcon = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+  </svg>
+);
+
+// Platform configuration for OAuth
+const platformCfg = {
+  youtube: { 
+    label: 'YouTube', 
+    icon: Youtube, 
+    color: 'text-red-400', 
+    bg: 'bg-red-500/10',
+    border: 'border-red-500/20',
+    description: 'Upload Shorts and videos to YouTube'
+  },
+  tiktok: { 
+    label: 'TikTok', 
+    icon: TikTokIcon, 
+    color: 'text-pink-400', 
+    bg: 'bg-pink-500/10',
+    border: 'border-pink-500/20',
+    description: 'Share videos on TikTok',
+    comingSoon: true
+  },
+  instagram: { 
+    label: 'Instagram Reels', 
+    icon: Instagram, 
+    color: 'text-purple-400', 
+    bg: 'bg-purple-500/10',
+    border: 'border-purple-500/20',
+    description: 'Publish Reels to Instagram',
+    comingSoon: true
+  },
+};
+
+// Token status badges
+const tokenStatusBadge = {
+  valid: { label: 'Connected', className: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
+  expiring_soon: { label: 'Expiring Soon', className: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
+  expired: { label: 'Token Expired', className: 'bg-red-500/10 text-red-400 border-red-500/20' },
+};
+
+export default function SettingsPage() {
+  const { user, authHeaders, buildApiUrl } = useAuth();
+  
+  // Client Settings (legacy)
+  const [settings, setSettings] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  
+  // Channel Profile state
+  const [channelProfile, setChannelProfile] = useState(null);
+  const [profileOptions, setProfileOptions] = useState(null);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [newPillar, setNewPillar] = useState('');
+  
+  // OAuth Platform Connections state
+  const [oauthStatus, setOauthStatus] = useState({});
+  const [connectingPlatform, setConnectingPlatform] = useState(null);
+  const [refreshingToken, setRefreshingToken] = useState(null);
+  const [syncingChannel, setSyncingChannel] = useState(false);
+  const [noClientId, setNoClientId] = useState(false);
+  
+  // Platform Connections state (legacy, for backward compatibility)
+  const [platformConnections, setPlatformConnections] = useState([]);
+  
+  // OAuth popup ref
+  const oauthPopupRef = useRef(null);
+  
+  // Fetch OAuth status
+  const fetchOAuthStatus = useCallback(async () => {
+    if (!authHeaders) return;
+    try {
+      const res = await axios.get(buildApiUrl(`${API}/oauth/status`), { headers: authHeaders });
+      setOauthStatus(res.data);
+    } catch (err) {
+      console.error('Failed to fetch OAuth status:', err);
+    }
+  }, [authHeaders, buildApiUrl]);
+  
+  // Fetch both client settings and channel profile
+  const fetchData = useCallback(async () => {
+    if (!authHeaders) return;
+    setLoading(true);
+    setNoClientId(false);
+    
+    try {
+      const [settingsRes, profileRes, optionsRes, oauthRes] = await Promise.all([
+        axios.get(buildApiUrl(`${API}/settings`), { headers: authHeaders }).catch(() => ({ data: null })),
+        axios.get(buildApiUrl(`${API}/channel-profile`), { headers: authHeaders }).catch((e) => {
+          // If 400 error (no client ID), handle gracefully
+          if (e.response?.status === 400) {
+            setNoClientId(true);
+            return { data: null };
+          }
+          throw e;
+        }),
+        axios.get(buildApiUrl(`${API}/channel-profile/options`), { headers: authHeaders }),
+        axios.get(buildApiUrl(`${API}/oauth/status`), { headers: authHeaders }).catch(() => ({ data: {} }))
+      ]);
+      
+      setSettings(settingsRes.data || {
+        hourlyRate: 150,
+        hoursPerEpisode: 5,
+        competitorName: '',
+        brandVoiceDescription: ''
+      });
+      setChannelProfile(profileRes.data);
+      setProfileOptions(optionsRes.data);
+      setOauthStatus(oauthRes.data || {});
+    } catch (err) {
+      console.error('Failed to load settings:', err);
+      toast.error('Failed to load settings');
+    } finally {
+      setLoading(false);
+    }
+  }, [authHeaders, buildApiUrl]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Save client settings (legacy)
+  const handleSaveSettings = async () => {
+    setSaving(true);
+    try {
+      await axios.put(`${API}/settings`, settings, { headers: authHeaders });
+      toast.success('Settings saved successfully');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to save settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+  
+  // Save channel profile
+  const handleSaveProfile = async () => {
+    setSavingProfile(true);
+    try {
+      const response = await axios.put(`${API}/channel-profile`, channelProfile, { headers: authHeaders });
+      setChannelProfile(response.data);
+      toast.success('Channel Profile saved!');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to save Channel Profile');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+  
+  // Add content pillar
+  const addPillar = () => {
+    if (!newPillar.trim()) return;
+    const pillars = channelProfile?.contentPillars || [];
+    if (!pillars.includes(newPillar.trim())) {
+      setChannelProfile({
+        ...channelProfile,
+        contentPillars: [...pillars, newPillar.trim()]
+      });
+    }
+    setNewPillar('');
+  };
+  
+  // Remove content pillar
+  const removePillar = (pillar) => {
+    setChannelProfile({
+      ...channelProfile,
+      contentPillars: (channelProfile?.contentPillars || []).filter(p => p !== pillar)
+    });
+  };
+  
+  // Listen for OAuth popup messages
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.data?.type === 'oauth_success') {
+        const { platform, accountName, accountHandle } = event.data;
+        toast.success(`${platformCfg[platform]?.label || platform} connected successfully!`);
+        fetchOAuthStatus();
+        setConnectingPlatform(null);
+      } else if (event.data?.type === 'oauth_error') {
+        const { platform, error } = event.data;
+        toast.error(`Failed to connect ${platformCfg[platform]?.label || platform}: ${error}`);
+        setConnectingPlatform(null);
+      }
+    };
+    
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [fetchOAuthStatus]);
+  
+  // Connect platform via OAuth popup
+  const handleConnectPlatform = async (platform) => {
+    if (platformCfg[platform]?.comingSoon) {
+      toast.info(`${platformCfg[platform].label} integration coming soon!`);
+      return;
+    }
+    
+    setConnectingPlatform(platform);
+    try {
+      const res = await axios.post(buildApiUrl(`${API}/oauth/connect/${platform}`), {}, { headers: authHeaders });
+      const { authUrl, popupWidth, popupHeight } = res.data;
+      
+      // Calculate popup position (centered)
+      const left = window.screenX + (window.outerWidth - popupWidth) / 2;
+      const top = window.screenY + (window.outerHeight - popupHeight) / 2;
+      
+      // Open OAuth popup
+      oauthPopupRef.current = window.open(
+        authUrl,
+        `oauth_${platform}`,
+        `width=${popupWidth},height=${popupHeight},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes`
+      );
+      
+      // Check if popup was blocked
+      if (!oauthPopupRef.current) {
+        toast.error('Popup blocked. Please allow popups for this site.');
+        setConnectingPlatform(null);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to initiate OAuth');
+      setConnectingPlatform(null);
+    }
+  };
+  
+  // Disconnect platform
+  const handleDisconnectPlatform = async (platform) => {
+    if (!window.confirm(`Are you sure you want to disconnect ${platformCfg[platform]?.label || platform}?`)) {
+      return;
+    }
+    
+    setConnectingPlatform(platform);
+    try {
+      await axios.delete(buildApiUrl(`${API}/oauth/disconnect/${platform}`), { headers: authHeaders });
+      toast.success(`${platformCfg[platform]?.label || platform} disconnected`);
+      fetchOAuthStatus();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to disconnect platform');
+    } finally {
+      setConnectingPlatform(null);
+    }
+  };
+  
+  // Refresh expiring token
+  const handleRefreshToken = async (platform) => {
+    setRefreshingToken(platform);
+    try {
+      await axios.post(buildApiUrl(`${API}/oauth/refresh/${platform}`), {}, { headers: authHeaders });
+      toast.success('Token refreshed successfully');
+      fetchOAuthStatus();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to refresh token');
+    } finally {
+      setRefreshingToken(null);
+    }
+  };
+  
+  // Sync YouTube channel data
+  const handleSyncChannel = async () => {
+    setSyncingChannel(true);
+    try {
+      const res = await axios.post(buildApiUrl(`${API}/oauth/youtube/sync`), {}, { headers: authHeaders });
+      const data = res.data;
+      
+      if (data.isMock) {
+        toast.info('Mock sync completed. Connect a real YouTube account to import actual data.');
+      } else {
+        toast.success(`Imported ${data.shortsImported} Shorts from your channel!`);
+      }
+      
+      // Refresh OAuth status to update account info
+      fetchOAuthStatus();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to sync channel data');
+    } finally {
+      setSyncingChannel(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <AuraSpinner size="md" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6" data-testid="settings-page">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+          <Settings className="h-5 w-5 text-indigo-400" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-semibold text-white">Settings</h1>
+          <p className="text-sm text-zinc-400">Manage your account and Brand Brain</p>
+        </div>
+      </div>
+
+      <Tabs defaultValue="channel" className="w-full">
+        <TabsList className="bg-[#0B1120] border border-[#1F2933]">
+          <TabsTrigger value="channel" className="data-[state=active]:bg-indigo-500/20">
+            <Brain className="h-4 w-4 mr-2" />
+            Channel Profile
+          </TabsTrigger>
+          <TabsTrigger value="publishing" className="data-[state=active]:bg-indigo-500/20">
+            <Send className="h-4 w-4 mr-2" />
+            Publishing
+          </TabsTrigger>
+          <TabsTrigger value="account" className="data-[state=active]:bg-indigo-500/20">
+            <User className="h-4 w-4 mr-2" />
+            Account
+          </TabsTrigger>
+          <TabsTrigger value="roi" className="data-[state=active]:bg-indigo-500/20">
+            <Sparkles className="h-4 w-4 mr-2" />
+            ROI Settings
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Channel Profile Tab */}
+        <TabsContent value="channel" className="mt-6">
+          <Card className="bg-[#0B1120] border-[#1F2933]">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-500/20 to-indigo-500/20 flex items-center justify-center">
+                  <Brain className="h-5 w-5 text-purple-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-white">Brand Brain</CardTitle>
+                  <CardDescription>
+                    Configure how AI generates scripts, thumbnails, and content for your channel
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {noClientId || !channelProfile ? (
+                // Empty state for admin or no profile
+                <div className="text-center py-12">
+                  <Brain className="h-16 w-16 text-zinc-700 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-white mb-2">Set up your Brand Brain</h3>
+                  <p className="text-sm text-zinc-500 max-w-md mx-auto mb-6">
+                    {noClientId 
+                      ? "As an admin, please select a client to impersonate from the admin panel to configure their Brand Brain settings."
+                      : "Configure your channel profile to customize how AI generates content for you."}
+                  </p>
+                  {!noClientId && (
+                    <Button 
+                      onClick={() => setChannelProfile({
+                        languageStyle: 'english',
+                        thumbnailStyle: 'modern_clean',
+                        brandDescription: '',
+                        tone: 'professional and engaging',
+                        contentPillars: [],
+                        thumbnailsPerShort: 1
+                      })}
+                      className="bg-indigo-600 hover:bg-indigo-700"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Profile
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <>
+              {/* Language Style */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <AuraTooltip content={tooltipContent.settings.channelName} position="top">
+                    <Label className="text-zinc-300 flex items-center gap-2">
+                      <Globe className="h-4 w-4" />
+                      Language Style
+                    </Label>
+                  </AuraTooltip>
+                  <Select
+                    value={channelProfile?.languageStyle || 'english'}
+                    onValueChange={(value) => setChannelProfile({ ...channelProfile, languageStyle: value })}
+                  >
+                    <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white" data-testid="language-style-select">
+                      <SelectValue placeholder="Select language style" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-zinc-900 border-zinc-700">
+                      {profileOptions?.languageStyles && Object.entries(profileOptions.languageStyles).map(([key, name]) => (
+                        <SelectItem key={key} value={key} className="text-white hover:bg-zinc-800">
+                          {name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-zinc-500">
+                    {channelProfile?.languageStyle === 'hinglish' 
+                      ? 'Scripts will be in Hinglish with performance cues [pause], [emphatic], etc.'
+                      : 'Scripts will be in the selected language style'}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <AuraTooltip content={tooltipContent.settings.brandKit} position="top">
+                    <Label className="text-zinc-300 flex items-center gap-2">
+                      <Palette className="h-4 w-4" />
+                      Thumbnail Style
+                    </Label>
+                  </AuraTooltip>
+                  <Select
+                    value={channelProfile?.thumbnailStyle || 'modern_clean'}
+                    onValueChange={(value) => setChannelProfile({ ...channelProfile, thumbnailStyle: value })}
+                  >
+                    <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white" data-testid="thumbnail-style-select">
+                      <SelectValue placeholder="Select thumbnail style" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-zinc-900 border-zinc-700">
+                      {profileOptions?.thumbnailStyles && Object.entries(profileOptions.thumbnailStyles).map(([key, name]) => (
+                        <SelectItem key={key} value={key} className="text-white hover:bg-zinc-800">
+                          {name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <Separator className="bg-zinc-800" />
+
+              {/* Brand Description */}
+              <div className="space-y-2">
+                <Label className="text-zinc-300">Brand Description</Label>
+                <Textarea
+                  value={channelProfile?.brandDescription || ''}
+                  onChange={(e) => setChannelProfile({ ...channelProfile, brandDescription: e.target.value })}
+                  placeholder="e.g., Chanakya Sutra: strategic wisdom, sharp insights, stoic philosophy for modern life"
+                  className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-600 min-h-[80px]"
+                  data-testid="brand-description-input"
+                />
+                <p className="text-xs text-zinc-500">Describe your channel's identity. This guides AI tone and content focus.</p>
+              </div>
+
+              {/* Tone */}
+              <div className="space-y-2">
+                <Label className="text-zinc-300">Tone</Label>
+                <Input
+                  value={channelProfile?.tone || ''}
+                  onChange={(e) => setChannelProfile({ ...channelProfile, tone: e.target.value })}
+                  placeholder="e.g., strategic, sharp, guru-like, authoritative"
+                  className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-600"
+                  data-testid="tone-input"
+                />
+              </div>
+
+              {/* Content Pillars */}
+              <div className="space-y-3">
+                <Label className="text-zinc-300 flex items-center gap-2">
+                  <Tag className="h-4 w-4" />
+                  Content Pillars
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {(channelProfile?.contentPillars || []).map((pillar, idx) => (
+                    <Badge
+                      key={idx}
+                      variant="outline"
+                      className="bg-indigo-500/10 text-indigo-400 border-indigo-500/30 px-3 py-1"
+                    >
+                      {pillar}
+                      <button
+                        onClick={() => removePillar(pillar)}
+                        className="ml-2 hover:text-red-400 transition-colors"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    value={newPillar}
+                    onChange={(e) => setNewPillar(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && addPillar()}
+                    placeholder="Add content pillar (e.g., War, Money, Power)"
+                    className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-600 flex-1"
+                    data-testid="pillar-input"
+                  />
+                  <Button variant="outline" size="icon" onClick={addPillar} className="border-zinc-700 hover:bg-zinc-800">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-zinc-500">Core themes your channel covers. AI will incorporate these into ideas.</p>
+              </div>
+
+              <Separator className="bg-zinc-800" />
+
+              {/* Thumbnail Options */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-zinc-300">Thumbnails per Episode</Label>
+                  <Select
+                    value={String(channelProfile?.thumbnailsPerShort || 1)}
+                    onValueChange={(value) => setChannelProfile({ ...channelProfile, thumbnailsPerShort: parseInt(value) })}
+                  >
+                    <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white" data-testid="thumbnails-per-short-select">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-zinc-900 border-zinc-700">
+                      <SelectItem value="1" className="text-white">1 thumbnail</SelectItem>
+                      <SelectItem value="2" className="text-white">2 thumbnails</SelectItem>
+                      <SelectItem value="3" className="text-white">3 thumbnails (recommended)</SelectItem>
+                      <SelectItem value="4" className="text-white">4 thumbnails</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-zinc-500">Generate multiple options to choose the best one</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-zinc-300">Custom Thumbnail Prompt</Label>
+                  <Textarea
+                    value={channelProfile?.thumbnailPromptTemplate || ''}
+                    onChange={(e) => setChannelProfile({ ...channelProfile, thumbnailPromptTemplate: e.target.value })}
+                    placeholder="e.g., Black background, bold white text, one gold accent, no faces, high contrast"
+                    className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-600 min-h-[80px]"
+                    data-testid="thumbnail-prompt-input"
+                  />
+                  <p className="text-xs text-zinc-500">Custom instructions added to thumbnail generation prompts</p>
+                </div>
+              </div>
+
+              {/* Save Button */}
+              <div className="flex justify-end pt-4">
+                <Button
+                  onClick={handleSaveProfile}
+                  disabled={savingProfile}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                  data-testid="save-profile-btn"
+                >
+                  {savingProfile ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Save Channel Profile
+                </Button>
+              </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Publishing Tab - Connected Accounts */}
+        <TabsContent value="publishing" className="mt-6">
+          <Card className="bg-[#0B1120] border-[#1F2933]">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center">
+                  <Send className="h-5 w-5 text-indigo-400" />
+                </div>
+                <div>
+                  <CardTitle className="text-white">Connected Accounts</CardTitle>
+                  <CardDescription>
+                    Connect your social media accounts via OAuth to publish content directly
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {['youtube', 'tiktok', 'instagram'].map((platform) => {
+                const cfg = platformCfg[platform] || {};
+                const PlatformIcon = cfg.icon || Send;
+                const status = oauthStatus[platform] || {};
+                const isConnected = status.connected;
+                const isConnecting = connectingPlatform === platform;
+                const isRefreshing = refreshingToken === platform;
+                const tokenStatus = status.tokenStatus;
+                const statusBadge = tokenStatus ? tokenStatusBadge[tokenStatus] : null;
+                
+                return (
+                  <motion.div 
+                    key={platform}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`p-4 rounded-lg border transition-all ${
+                      isConnected 
+                        ? tokenStatus === 'expired' 
+                          ? 'border-amber-500/30 bg-amber-500/5' 
+                          : 'border-emerald-500/30 bg-emerald-500/5' 
+                        : 'border-zinc-700 bg-zinc-900/30'
+                    } ${cfg.comingSoon ? 'opacity-60' : ''}`}
+                    data-testid={`platform-card-${platform}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className={`h-12 w-12 rounded-lg ${cfg.bg} flex items-center justify-center relative`}>
+                          <PlatformIcon className={`h-6 w-6 ${cfg.color}`} />
+                          {isConnected && tokenStatus === 'valid' && (
+                            <div className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-emerald-500 border-2 border-[#0B1120] flex items-center justify-center">
+                              <Check className="h-2.5 w-2.5 text-white" />
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-white font-medium">{cfg.label}</h4>
+                            {cfg.comingSoon && (
+                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-zinc-800 text-zinc-400 border-zinc-700">
+                                Coming Soon
+                              </Badge>
+                            )}
+                          </div>
+                          {isConnected ? (
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              {statusBadge && (
+                                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${statusBadge.className}`}>
+                                  {tokenStatus === 'valid' && <CheckCircle2 className="h-3 w-3 mr-1" />}
+                                  {tokenStatus === 'expiring_soon' && <Clock className="h-3 w-3 mr-1" />}
+                                  {tokenStatus === 'expired' && <AlertTriangle className="h-3 w-3 mr-1" />}
+                                  {statusBadge.label}
+                                </Badge>
+                              )}
+                              <span className="text-sm text-zinc-400">{status.accountHandle}</span>
+                              {status.accountMeta?.subscriberCount && (
+                                <>
+                                  <span className="text-zinc-600">·</span>
+                                  <span className="text-xs text-zinc-500">{status.accountMeta.subscriberCount} subscribers</span>
+                                </>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-zinc-500 mt-0.5">{cfg.description}</p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        {isConnected && (tokenStatus === 'expired' || tokenStatus === 'expiring_soon') && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRefreshToken(platform)}
+                            disabled={isRefreshing}
+                            className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                            data-testid={`refresh-${platform}-btn`}
+                          >
+                            {isRefreshing ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <RefreshCw className="h-4 w-4 mr-1.5" />
+                                Refresh
+                              </>
+                            )}
+                          </Button>
+                        )}
+                        
+                        {/* Sync Channel Data button (YouTube only) */}
+                        {isConnected && platform === 'youtube' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleSyncChannel}
+                            disabled={syncingChannel || tokenStatus === 'expired'}
+                            className={`border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 ${tokenStatus === 'expired' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            data-testid="sync-youtube-btn"
+                            title={tokenStatus === 'expired' ? 'Refresh token first to sync' : 'Import Shorts from your YouTube channel'}
+                          >
+                            {syncingChannel ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                                Syncing...
+                              </>
+                            ) : (
+                              <>
+                                <RefreshCw className="h-4 w-4 mr-1.5" />
+                                Sync Channel
+                              </>
+                            )}
+                          </Button>
+                        )}
+                        
+                        {isConnected ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDisconnectPlatform(platform)}
+                            disabled={isConnecting}
+                            className="border-zinc-700 text-zinc-400 hover:text-red-400 hover:border-red-500/30"
+                            data-testid={`disconnect-${platform}-btn`}
+                          >
+                            {isConnecting ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Unlink className="h-4 w-4 mr-2" />
+                                Disconnect
+                              </>
+                            )}
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={() => handleConnectPlatform(platform)}
+                            disabled={isConnecting || cfg.comingSoon}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                            data-testid={`connect-${platform}-btn`}
+                          >
+                            {isConnecting ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                              <Link2 className="h-4 w-4 mr-2" />
+                            )}
+                            Connect
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+              
+              <Separator className="bg-zinc-800 my-4" />
+              
+              <div className="p-3 rounded-lg bg-indigo-500/5 border border-indigo-500/20">
+                <div className="flex items-start gap-2">
+                  <Sparkles className="h-4 w-4 text-indigo-400 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm text-indigo-300 font-medium">OAuth 2.0 Secure Connection</p>
+                    <p className="text-xs text-zinc-400 mt-0.5">
+                      Your credentials are never stored. We use industry-standard OAuth 2.0 with PKCE 
+                      to securely connect to your accounts. Tokens are encrypted and automatically refreshed.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="pt-2">
+                <p className="text-xs text-zinc-500">
+                  <span className="text-amber-400">Demo Mode:</span> This is a sandbox environment. 
+                  OAuth connections are simulated with mock accounts for testing the full publishing flow.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Account Tab */}
+        <TabsContent value="account" className="mt-6">
+          <Card className="bg-[#0B1120] border-[#1F2933]">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Account Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-zinc-400">Email</Label>
+                  <Input 
+                    value={user?.email || ''} 
+                    readOnly 
+                    className="bg-zinc-900/30 border-zinc-800 text-zinc-400"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-zinc-400">Name</Label>
+                  <Input 
+                    value={user?.name || ''} 
+                    readOnly 
+                    className="bg-zinc-900/30 border-zinc-800 text-zinc-400"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-zinc-400">Role</Label>
+                  <Badge 
+                    variant="outline" 
+                    className={user?.role === 'admin' 
+                      ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
+                      : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                    }
+                  >
+                    {user?.role || 'client'}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ROI Settings Tab */}
+        <TabsContent value="roi" className="mt-6">
+          <Card className="bg-[#0B1120] border-[#1F2933]">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Sparkles className="h-5 w-5" />
+                ROI Calculator Settings
+              </CardTitle>
+              <CardDescription>Configure how your ROI is calculated</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-zinc-300">Hourly Rate ($)</Label>
+                  <Input
+                    type="number"
+                    value={settings?.hourlyRate || 150}
+                    onChange={(e) => setSettings({ ...settings, hourlyRate: parseFloat(e.target.value) || 0 })}
+                    className="bg-zinc-900/50 border-zinc-700 text-white"
+                    data-testid="hourly-rate-input"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-zinc-300">Hours per Episode</Label>
+                  <Input
+                    type="number"
+                    value={settings?.hoursPerEpisode || 5}
+                    onChange={(e) => setSettings({ ...settings, hoursPerEpisode: parseFloat(e.target.value) || 0 })}
+                    className="bg-zinc-900/50 border-zinc-700 text-white"
+                    data-testid="hours-per-episode-input"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  onClick={handleSaveSettings}
+                  disabled={saving}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                  data-testid="save-settings-btn"
+                >
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Save ROI Settings
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}

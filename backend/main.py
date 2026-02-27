@@ -82,7 +82,17 @@ app.add_middleware(
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint for Railway deployment."""
-    return {"status": "ok", "service": "ForgeVoice Studio API"}
+    db_status = "ok"
+    try:
+        db = get_db()
+        await db.command("ping")
+    except Exception as e:
+        db_status = f"error: {str(e)}"
+    return {
+        "status": "ok" if db_status == "ok" else "degraded",
+        "service": "ForgeVoice Studio API",
+        "db": db_status
+    }
 
 
 @app.on_event("startup")

@@ -6,11 +6,20 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from passlib.context import CryptContext
 import jwt
 import os
+import logging
 
 from db.mongo import users_collection, clients_collection
 
+logger = logging.getLogger(__name__)
+
 # Configuration
-JWT_SECRET = os.environ.get('JWT_SECRET', 'forgevoice-fallback-secret')
+_JWT_SECRET_ENV = os.environ.get('JWT_SECRET', '')
+if not _JWT_SECRET_ENV:
+    logger.warning(
+        "JWT_SECRET environment variable is not set. "
+        "Using insecure fallback secret. Set JWT_SECRET in Railway environment variables."
+    )
+JWT_SECRET = _JWT_SECRET_ENV or 'forgevoice-fallback-secret'
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
 

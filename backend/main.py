@@ -70,10 +70,21 @@ api_router.include_router(pipeline.router)
 app.include_router(api_router)
 
 # Add CORS middleware
+# NOTE: allow_credentials=True is incompatible with allow_origins=['*'] (browser rejects it).
+# When CORS_ORIGINS is not set we fall back to wildcard with credentials disabled,
+# which is safe because the app uses Authorization headers (not cookies).
+_cors_origins_raw = os.environ.get('CORS_ORIGINS', '').strip()
+if not _cors_origins_raw or _cors_origins_raw == '*':
+    _allow_origins = ["*"]
+    _allow_credentials = False
+else:
+    _allow_origins = [o.strip() for o in _cors_origins_raw.split(',') if o.strip()]
+    _allow_credentials = True
+
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_credentials=_allow_credentials,
+    allow_origins=_allow_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -82,7 +93,17 @@ app.add_middleware(
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint for Railway deployment."""
-    return {"status": "ok", "service": "ForgeVoice Studio API"}
+    db_status = "ok"
+    try:
+        db = get_db()
+        await db.command("ping")
+    except Exception as e:
+        db_status = f"error: {str(e)}"
+    return {
+        "status": "ok" if db_status == "ok" else "degraded",
+        "service": "ForgeVoice Studio API",
+        "db": db_status
+    }
 
 
 @app.on_event("startup")

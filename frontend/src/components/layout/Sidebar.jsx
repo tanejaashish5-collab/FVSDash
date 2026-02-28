@@ -167,13 +167,8 @@ export default function Sidebar() {
           <NavSection items={clientOnlyNav} currentPath={currentPath} submissionCount={submissionCount} />
         )}
         
-        {/* Labs section - hidden for admin users (client-facing tools) */}
-        {!isAdmin && (
-          <>
-            <Separator className="my-2 mx-4 bg-white/[0.06]" />
-            <NavSection title="Labs" items={labNav} currentPath={currentPath} submissionCount={submissionCount} />
-          </>
-        )}
+        <Separator className="my-2 mx-4 bg-white/[0.06]" />
+        <NavSection title="Labs" items={labNav} currentPath={currentPath} submissionCount={submissionCount} />
         
         <Separator className="my-2 mx-4 bg-white/[0.06]" />
         <NavSection title="Insights" items={insightsNav} currentPath={currentPath} submissionCount={submissionCount} />

@@ -197,19 +197,27 @@ class StorageService:
             raise StorageUploadError(f"S3 upload failed: {type(e).__name__}")
     
     async def _upload_to_local(self, file_data: bytes, object_key: str) -> str:
-        """Upload to local filesystem."""
+        """Upload to local filesystem and return an HTTP-accessible path.
+
+        Files are stored under LOCAL_STORAGE_DIR and served by the FastAPI
+        /api/files/{path} endpoint, so the browser can load them directly.
+        The key is also stored as local://{path} in internal operations
+        (read_file / delete_file) for consistency, but the returned URL is
+        the public HTTP path /api/files/{object_key}.
+        """
         try:
             file_path = LOCAL_STORAGE_DIR / object_key
             file_path.parent.mkdir(parents=True, exist_ok=True)
-            
+
             async with aiofiles.open(file_path, "wb") as f:
                 await f.write(file_data)
-            
-            # Return local path (not URL)
-            local_path = f"local://{file_path}"
-            logger.info(f"Local upload successful: {local_path}")
-            return local_path
-            
+
+            # Return a browser-accessible URL served by the /api/files endpoint.
+            # This avoids the local:// scheme which browsers cannot load.
+            http_path = f"/api/files/{object_key}"
+            logger.info(f"Local upload successful: {http_path}")
+            return http_path
+
         except Exception as e:
             logger.error(f"Local upload error: {e}")
             raise StorageUploadError(f"Local upload failed: {e}")
@@ -217,20 +225,26 @@ class StorageService:
     async def get_file_url(self, file_path: str, expiry_seconds: int = 3600) -> str:
         """
         Get a usable URL for a file.
-        
+
         For S3: returns presigned URL with expiry
-        For local: returns the local path as-is
-        
+        For local: returns HTTP-accessible /api/files/ path
+
         Args:
-            file_path: The stored file path (S3 URL or local:// path)
+            file_path: The stored file path (S3 URL, /api/files/ path, or legacy local:// path)
             expiry_seconds: Presigned URL expiry time (S3 only)
-            
+
         Returns:
             Usable URL or path
         """
-        if file_path.startswith("local://"):
-            # Return local path as-is
+        if file_path.startswith("/api/files/"):
+            # Already an HTTP-accessible path
             return file_path
+
+        if file_path.startswith("local://"):
+            # Legacy format — convert to HTTP path
+            actual = Path(file_path[8:])
+            relative = str(actual).replace(str(LOCAL_STORAGE_DIR), "").lstrip("/")
+            return f"/api/files/{relative}"
         
         if file_path.startswith("s3://"):
             # Parse s3:// URL and generate presigned
@@ -269,14 +283,23 @@ class StorageService:
     async def delete_file(self, file_path: str) -> bool:
         """
         Delete a file from storage.
-        
+
         Args:
-            file_path: The stored file path
-            
+            file_path: The stored file path (S3 URL, /api/files/ path, or legacy local://)
+
         Returns:
             True if deleted, False otherwise
         """
         try:
+            if file_path.startswith("/api/files/"):
+                # New format — resolve to actual filesystem path
+                relative = file_path[len("/api/files/"):]
+                local_path = LOCAL_STORAGE_DIR / relative
+                if local_path.exists():
+                    local_path.unlink()
+                    logger.info(f"Deleted local file: {local_path}")
+                return True
+
             if file_path.startswith("local://"):
                 local_path = Path(file_path[8:])
                 if local_path.exists():
@@ -306,14 +329,22 @@ class StorageService:
     async def read_file(self, file_path: str) -> Optional[bytes]:
         """
         Read a file from storage.
-        
+
         Args:
-            file_path: The stored file path
-            
+            file_path: The stored file path (S3 URL, /api/files/ path, or legacy local://)
+
         Returns:
             File bytes or None if not found
         """
         try:
+            if file_path.startswith("/api/files/"):
+                relative = file_path[len("/api/files/"):]
+                local_path = LOCAL_STORAGE_DIR / relative
+                if local_path.exists():
+                    async with aiofiles.open(local_path, "rb") as f:
+                        return await f.read()
+                return None
+
             if file_path.startswith("local://"):
                 local_path = Path(file_path[8:])
                 if local_path.exists():

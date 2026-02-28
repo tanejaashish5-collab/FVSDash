@@ -34,6 +34,19 @@ async def ai_generate(data: AIGenerateRequest, user: dict = Depends(get_current_
     return result
 
 
+@router.post("/ai/generate-thumbnail")
+async def generate_thumbnail_endpoint(data: dict, user: dict = Depends(get_current_user)):
+    """Generate a thumbnail image using DALL-E for a given topic/script."""
+    from services.media_service import generate_thumbnail
+    topic = data.get("topic", "")
+    tone = data.get("tone", "")
+    title = data.get("title", topic)
+    if not topic:
+        raise HTTPException(status_code=400, detail="topic is required")
+    result = await generate_thumbnail(topic=topic, brand_voice=tone, title=title, format="short")
+    return {"url": result.url, "isMocked": result.is_mocked, "warning": getattr(result, "warning", None)}
+
+
 @router.post("/ai/generate-voice")
 async def generate_voice(data: dict, user: dict = Depends(get_current_user)):
     """Generate voiceover audio using ElevenLabs."""

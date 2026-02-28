@@ -105,7 +105,7 @@ export default function SubmissionsPage() {
   // List state
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('pipeline'); // 'pipeline' = all except PUBLISHED
   const [filterType, setFilterType] = useState('all');
 
   // Detail panel
@@ -126,10 +126,15 @@ export default function SubmissionsPage() {
 
   const fetchSubmissions = useCallback(() => {
     const params = new URLSearchParams();
-    if (filterStatus !== 'all') params.append('status', filterStatus);
+    // 'pipeline' = fetch all, filter out PUBLISHED client-side
+    if (filterStatus !== 'all' && filterStatus !== 'pipeline') params.append('status', filterStatus);
     if (filterType !== 'all') params.append('content_type', filterType);
     axios.get(`${API}/submissions?${params}`, { headers: authHeaders })
-      .then(res => setSubmissions(res.data))
+      .then(res => {
+        let items = res.data || [];
+        if (filterStatus === 'pipeline') items = items.filter(s => s.status !== 'PUBLISHED');
+        setSubmissions(items);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [authHeaders, filterStatus, filterType]);
@@ -402,6 +407,7 @@ export default function SubmissionsPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-[#0B1120] border-[#1F2933]">
+                <SelectItem value="pipeline" className="text-xs text-zinc-300">Active Pipeline</SelectItem>
                 <SelectItem value="all" className="text-xs text-zinc-300">All Statuses</SelectItem>
                 {STATUSES.map(s => (
                   <SelectItem key={s} value={s} className="text-xs text-zinc-300">{s}</SelectItem>

@@ -8,6 +8,7 @@ from fastapi import FastAPI, APIRouter
 from starlette.middleware.cors import CORSMiddleware
 import os
 import logging
+import tempfile
 
 # Import routers
 from routers import (
@@ -104,6 +105,25 @@ async def health_check():
         "service": "ForgeVoice Studio API",
         "db": db_status
     }
+
+
+def _bootstrap_gcp_credentials():
+    """
+    If GOOGLE_APPLICATION_CREDENTIALS_JSON is set (Railway env var containing
+    the full service account JSON), write it to a temp file and point
+    GOOGLE_APPLICATION_CREDENTIALS at it so the google-auth library can find it.
+    """
+    creds_json = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+    if creds_json and not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
+        try:
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+                f.write(creds_json)
+                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = f.name
+            logging.getLogger(__name__).info("GCP credentials written from GOOGLE_APPLICATION_CREDENTIALS_JSON")
+        except Exception as e:
+            logging.getLogger(__name__).warning(f"Failed to write GCP credentials: {e}")
+
+_bootstrap_gcp_credentials()
 
 
 @app.on_event("startup")

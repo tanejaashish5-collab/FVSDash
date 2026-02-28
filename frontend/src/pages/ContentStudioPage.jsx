@@ -114,7 +114,8 @@ export default function ContentStudioPage() {
     if (prefill) {
       try {
         const idea = JSON.parse(prefill);
-        if (idea.topic) setTopic(idea.topic);
+        if (idea.topic) { setTopic(idea.topic); setPublishTitle(idea.topic); }
+        if (idea.script) setScript(idea.script);
         sessionStorage.removeItem('studio_prefill_idea');
       } catch {}
     }

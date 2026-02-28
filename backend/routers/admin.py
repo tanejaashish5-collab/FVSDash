@@ -10,6 +10,15 @@ from services import admin_service
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
+# Exact titles seeded by seed.py — safe to target for deletion
+_SEED_SUBMISSION_TITLES = [
+    "The Future of AI in Content Creation",
+    "Building a Personal Brand Online",
+    "Quick Tips: Microphone Setup",
+    "Monetizing Your Content: A Webinar",
+    "SEO for Podcasters Guide",
+]
+
 
 @router.get("/clients", response_model=list[ClientMetrics])
 async def get_all_clients(user: dict = Depends(require_admin)):
@@ -145,4 +154,59 @@ async def migrate_local_assets_to_s3(user: dict = Depends(require_admin)):
         "message": f"Migrated {migrated} assets to S3",
         "migrated": migrated,
         "errors": errors if errors else None
+    }
+
+
+@router.delete("/seed-data")
+async def clear_seed_data(user: dict = Depends(require_admin)):
+    """
+    Delete all demo/seed data inserted by seed.py.
+    Only removes the 5 known mock submissions and their assets.
+    Safe to call multiple times (idempotent).
+    """
+    from db.mongo import (
+        submissions_collection, assets_collection,
+        analytics_snapshots_collection, video_tasks_collection,
+        blog_posts_collection
+    )
+
+    subs_db = submissions_collection()
+    assets_db = assets_collection()
+    analytics_db = analytics_snapshots_collection()
+    videos_db = video_tasks_collection()
+    blog_db = blog_posts_collection()
+
+    # Find seed submission IDs so we can delete their assets
+    seed_subs = await subs_db.find(
+        {"title": {"$in": _SEED_SUBMISSION_TITLES}}, {"id": 1}
+    ).to_list(length=100)
+    seed_ids = [s["id"] for s in seed_subs]
+
+    # Delete assets tied to seed submissions
+    assets_from_subs = await assets_db.delete_many({"submissionId": {"$in": seed_ids}})
+
+    # Delete standalone mock assets (no submissionId, not FVS-generated)
+    standalone_assets = await assets_db.delete_many({
+        "submissionId": None,
+        "fvsGenerated": False
+    })
+
+    # Delete seed submissions
+    subs_result = await subs_db.delete_many({"title": {"$in": _SEED_SUBMISSION_TITLES}})
+
+    # Delete fake analytics snapshots (seeded ones have no youtubeVideoId and no source field)
+    analytics_result = await analytics_db.delete_many({
+        "youtubeVideoId": None,
+        "source": {"$exists": False}
+    })
+
+    # Delete the demo video task seeded by seed.py
+    videos_result = await videos_db.delete_many({"providerJobId": "demo-veo-001"})
+
+    return {
+        "deleted_submissions": subs_result.deleted_count,
+        "deleted_assets": assets_from_subs.deleted_count + standalone_assets.deleted_count,
+        "deleted_analytics_snapshots": analytics_result.deleted_count,
+        "deleted_video_tasks": videos_result.deleted_count,
+        "seed_submission_ids": seed_ids,
     }

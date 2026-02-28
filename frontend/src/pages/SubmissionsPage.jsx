@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +19,8 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Loader2, CalendarIcon, FileText, ChevronDown, Link as LinkIcon, ExternalLink,
-  FileImage, Check, Send, Youtube, Instagram, X, CalendarClock, Settings, Plus, Sparkles
+  FileImage, Check, Send, Youtube, Instagram, X, CalendarClock, Settings, Plus, Sparkles,
+  Volume2, Video, Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -86,6 +87,7 @@ function DetailRow({ label, children }) {
 export default function SubmissionsPage() {
   const { authHeaders, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Form modal state
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -111,10 +113,15 @@ export default function SubmissionsPage() {
   // Detail panel
   const [selected, setSelected] = useState(null);
   
-  // Thumbnail state
+  // Thumbnail + asset state
   const [thumbnails, setThumbnails] = useState([]);
+  const [audioAssets, setAudioAssets] = useState([]);
+  const [videoAssets, setVideoAssets] = useState([]);
   const [loadingThumbnails, setLoadingThumbnails] = useState(false);
   const [selectingThumbnail, setSelectingThumbnail] = useState(null);
+  // Auto-open from Full Auto navigation
+  const [autoOpenId, setAutoOpenId] = useState(null);
+  const [clearingDemo, setClearingDemo] = useState(false);
   
   // Publishing state
   const [platformConnections, setPlatformConnections] = useState([]);
@@ -141,6 +148,21 @@ export default function SubmissionsPage() {
 
   useEffect(() => { fetchSubmissions(); }, [fetchSubmissions]);
 
+  // Read router state from Full Auto navigation → mark which submission to auto-open
+  useEffect(() => {
+    if (location.state?.openSubmissionId) {
+      setAutoOpenId(location.state.openSubmissionId);
+    }
+  }, [location.state]);
+
+  // After submissions load, auto-open the targeted submission
+  useEffect(() => {
+    if (autoOpenId && submissions.length > 0) {
+      const target = submissions.find(s => s.id === autoOpenId);
+      if (target) { setSelected(target); setAutoOpenId(null); }
+    }
+  }, [autoOpenId, submissions]);
+
   // Fetch thumbnails and publishing data when submission is selected
   useEffect(() => {
     if (!selected || !authHeaders) return;
@@ -154,11 +176,11 @@ export default function SubmissionsPage() {
           axios.get(`${API}/publishing-tasks?submissionId=${selected.id}`, { headers: authHeaders }).catch(() => ({ data: [] }))
         ]);
         
-        // Filter thumbnails for this submission
-        const subThumbnails = assetsRes.data.filter(
-          a => a.submissionId === selected.id && a.type === 'Thumbnail'
-        );
-        setThumbnails(subThumbnails);
+        // Filter assets by type for this submission
+        const allAssets = assetsRes.data.filter(a => a.submissionId === selected.id);
+        setThumbnails(allAssets.filter(a => a.type === 'Thumbnail'));
+        setAudioAssets(allAssets.filter(a => a.type === 'Audio'));
+        setVideoAssets(allAssets.filter(a => a.type === 'Video'));
         
         // Ensure all platforms are represented with a connection status
         const platforms = ['youtube_shorts', 'tiktok', 'instagram_reels'];
@@ -243,6 +265,21 @@ export default function SubmissionsPage() {
       if (selected?.id === id) setSelected(prev => ({ ...prev, status: newStatus }));
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to update status');
+    }
+  };
+
+  // Clear seed/demo data
+  const handleClearDemoData = async () => {
+    if (!window.confirm('Remove all demo/seed submissions and their assets? Your real submissions will stay.')) return;
+    setClearingDemo(true);
+    try {
+      await axios.delete(`${API}/admin/seed-data`, { headers: authHeaders });
+      toast.success('Demo data cleared');
+      fetchSubmissions();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to clear demo data');
+    } finally {
+      setClearingDemo(false);
     }
   };
 
@@ -425,6 +462,17 @@ export default function SubmissionsPage() {
                 ))}
               </SelectContent>
             </Select>
+            {user?.role === 'admin' && (
+              <button
+                onClick={handleClearDemoData}
+                disabled={clearingDemo}
+                className="ml-auto text-[10px] text-zinc-600 hover:text-red-400 transition-colors flex items-center gap-1 disabled:opacity-50"
+                title="Remove demo/seed submissions and assets"
+              >
+                {clearingDemo ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                Clear Demo Data
+              </button>
+            )}
           </div>
         </CardHeader>
         <CardContent className="px-0">
@@ -804,7 +852,17 @@ export default function SubmissionsPage() {
               <div>
                 <Button
                   variant="outline"
-                  onClick={() => navigate(`/dashboard/studio`)}
+                  onClick={async () => {
+                    const prefill = { topic: selected.title, script: selected.description || '' };
+                    if (selected.fvsIdeaId) {
+                      try {
+                        const res = await axios.get(`${API}/fvs/scripts?submissionId=${selected.id}`, { headers: authHeaders });
+                        if (res.data?.length > 0 && res.data[0].text) prefill.script = res.data[0].text;
+                      } catch { /* fall back to description */ }
+                    }
+                    sessionStorage.setItem('studio_prefill_idea', JSON.stringify(prefill));
+                    navigate('/dashboard/studio');
+                  }}
                   className="w-full h-9 text-xs border-zinc-800 text-zinc-300 hover:text-white hover:bg-white/5 justify-start"
                   data-testid="open-studio-btn"
                 >
@@ -872,6 +930,72 @@ export default function SubmissionsPage() {
                   </div>
                 )}
               </div>
+
+              {/* Audio Assets Section */}
+              {audioAssets.length > 0 && (
+                <>
+                  <Separator className="bg-[#1F2933] my-5" />
+                  <div data-testid="audio-section">
+                    <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold mb-3 flex items-center gap-2">
+                      <Volume2 className="h-3.5 w-3.5" />
+                      Audio
+                    </p>
+                    <div className="space-y-2">
+                      {audioAssets.map((asset) => (
+                        <div key={asset.id} className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-2.5">
+                          <p className="text-[10px] text-zinc-500 mb-1.5 truncate">{asset.name}</p>
+                          {asset.url ? (
+                            <audio controls className="w-full h-8" style={{ colorScheme: 'dark' }}>
+                              <source src={asset.url} />
+                            </audio>
+                          ) : (
+                            <p className="text-[10px] text-zinc-600 italic">No audio URL yet</p>
+                          )}
+                          {asset.isMocked && (
+                            <span className="text-[9px] text-amber-500/70 mt-1 block">Placeholder audio</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Video Assets Section */}
+              {videoAssets.length > 0 && (
+                <>
+                  <Separator className="bg-[#1F2933] my-5" />
+                  <div data-testid="video-section">
+                    <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold mb-3 flex items-center gap-2">
+                      <Video className="h-3.5 w-3.5" />
+                      Video
+                    </p>
+                    <div className="space-y-2">
+                      {videoAssets.map((asset) => (
+                        <div key={asset.id} className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-2.5">
+                          <p className="text-[10px] text-zinc-500 mb-1.5 truncate">{asset.name}</p>
+                          {asset.url ? (
+                            <a
+                              href={asset.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              Open Video
+                            </a>
+                          ) : (
+                            <p className="text-[10px] text-zinc-600 italic">Processing…</p>
+                          )}
+                          {asset.isMocked && (
+                            <span className="text-[9px] text-amber-500/70 mt-1 block">Sample video (Veo key not set)</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
 
               <Separator className="bg-[#1F2933] my-5" />
 

@@ -32,3 +32,8 @@ class TokenResponse(BaseModel):
 
 class OnboardingUpdate(BaseModel):
     onboarding_complete: bool
+
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str

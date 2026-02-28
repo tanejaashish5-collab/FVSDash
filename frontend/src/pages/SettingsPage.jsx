@@ -10,10 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Settings, User, Palette, Brain, Globe, Sparkles, 
+import {
+  Settings, User, Palette, Brain, Globe, Sparkles,
   Save, Loader2, Plus, X, Tag, Send, Youtube, Instagram,
-  CheckCircle2, XCircle, Link2, Unlink, RefreshCw, AlertTriangle, Clock, Check
+  CheckCircle2, XCircle, Link2, Unlink, RefreshCw, AlertTriangle, Clock, Check, Lock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -91,6 +91,34 @@ export default function SettingsPage() {
   // Platform Connections state (legacy, for backward compatibility)
   const [platformConnections, setPlatformConnections] = useState([]);
   
+  // Password change state
+  const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
+  const [pwSaving, setPwSaving] = useState(false);
+
+  const handleChangePassword = async () => {
+    if (pwForm.next.length < 8) {
+      toast.error('New password must be at least 8 characters');
+      return;
+    }
+    if (pwForm.next !== pwForm.confirm) {
+      toast.error('New passwords do not match');
+      return;
+    }
+    setPwSaving(true);
+    try {
+      await axios.patch(`${API}/auth/me/password`, {
+        current_password: pwForm.current,
+        new_password: pwForm.next,
+      }, { headers: authHeaders });
+      toast.success('Password updated successfully');
+      setPwForm({ current: '', next: '', confirm: '' });
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to update password');
+    } finally {
+      setPwSaving(false);
+    }
+  };
+
   // OAuth popup ref
   const oauthPopupRef = useRef(null);
   
@@ -774,32 +802,85 @@ export default function SettingsPage() {
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-zinc-400">Email</Label>
-                  <Input 
-                    value={user?.email || ''} 
-                    readOnly 
+                  <Input
+                    value={user?.email || ''}
+                    readOnly
                     className="bg-zinc-900/30 border-zinc-800 text-zinc-400"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-zinc-400">Name</Label>
-                  <Input 
-                    value={user?.name || ''} 
-                    readOnly 
+                  <Input
+                    value={user?.name || ''}
+                    readOnly
                     className="bg-zinc-900/30 border-zinc-800 text-zinc-400"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-zinc-400">Role</Label>
-                  <Badge 
-                    variant="outline" 
-                    className={user?.role === 'admin' 
-                      ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
+                  <Badge
+                    variant="outline"
+                    className={user?.role === 'admin'
+                      ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                       : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
                     }
                   >
                     {user?.role || 'client'}
                   </Badge>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-[#0B1120] border-[#1F2933] mt-6">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Lock className="h-5 w-5" />
+                Change Password
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-zinc-400">Current Password</Label>
+                  <Input
+                    type="password"
+                    value={pwForm.current}
+                    onChange={e => setPwForm(f => ({ ...f, current: e.target.value }))}
+                    className="bg-zinc-900/50 border-zinc-700 text-white"
+                    placeholder="••••••••"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-zinc-400">New Password</Label>
+                  <Input
+                    type="password"
+                    value={pwForm.next}
+                    onChange={e => setPwForm(f => ({ ...f, next: e.target.value }))}
+                    className="bg-zinc-900/50 border-zinc-700 text-white"
+                    placeholder="Min 8 characters"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-zinc-400">Confirm New Password</Label>
+                  <Input
+                    type="password"
+                    value={pwForm.confirm}
+                    onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))}
+                    className="bg-zinc-900/50 border-zinc-700 text-white"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  onClick={handleChangePassword}
+                  disabled={pwSaving || !pwForm.current || !pwForm.next || !pwForm.confirm}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                >
+                  {pwSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Lock className="h-4 w-4 mr-2" />}
+                  Update Password
+                </Button>
               </div>
             </CardContent>
           </Card>

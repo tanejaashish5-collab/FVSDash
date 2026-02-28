@@ -800,16 +800,16 @@ export default function SubmissionsPage() {
 
               <Separator className="bg-[#1F2933] my-5" />
 
-              {/* Open in Strategy Lab */}
+              {/* Open in Content Studio */}
               <div>
                 <Button
                   variant="outline"
-                  onClick={() => navigate(`/dashboard/strategy?submissionId=${selected.id}`)}
+                  onClick={() => navigate(`/dashboard/studio`)}
                   className="w-full h-9 text-xs border-zinc-800 text-zinc-300 hover:text-white hover:bg-white/5 justify-start"
-                  data-testid="open-strategy-lab-btn"
+                  data-testid="open-studio-btn"
                 >
-                  <Sparkles className="h-3.5 w-3.5 mr-2 text-amber-400" />
-                  Open in Strategy Lab
+                  <Sparkles className="h-3.5 w-3.5 mr-2 text-indigo-400" />
+                  Open in Content Studio
                 </Button>
               </div>
 

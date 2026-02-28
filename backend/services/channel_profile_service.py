@@ -31,6 +31,7 @@ DEFAULT_CHANNEL_PROFILE = {
     "thumbnailPromptTemplate": "Professional YouTube thumbnail, high contrast, bold text, clean design",
     "scriptsPerIdea": 1,
     "thumbnailsPerShort": 1,  # Default to 1, can be set to 3 for multi-thumbnail selection
+    "voiceId": "",  # ElevenLabs voice ID for this channel
 }
 
 # Available language styles
@@ -103,6 +104,7 @@ class ChannelProfile:
     thumbnailPromptTemplate: str = "Professional YouTube thumbnail, high contrast, bold text, clean design"
     scriptsPerIdea: int = 1
     thumbnailsPerShort: int = 1
+    voiceId: str = ""
     createdAt: str = ""
     updatedAt: str = ""
     
@@ -188,9 +190,10 @@ async def update_channel_profile(client_id: str, data: Dict[str, Any]) -> Dict[s
     update_fields = {"updatedAt": now}
     allowed_fields = [
         "languageStyle", "thumbnailStyle", "brandDescription", "tone",
-        "contentPillars", "thumbnailPromptTemplate", "scriptsPerIdea", "thumbnailsPerShort"
+        "contentPillars", "thumbnailPromptTemplate", "scriptsPerIdea", "thumbnailsPerShort",
+        "voiceId"
     ]
-    
+
     for field in allowed_fields:
         if field in data:
             update_fields[field] = data[field]

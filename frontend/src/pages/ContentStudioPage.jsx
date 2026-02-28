@@ -17,7 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   Lightbulb, FileText, Video, Send, Sparkles, Loader2,
   ChevronRight, CheckCircle, AlertCircle, Mic, History,
-  Plus, X, ImageIcon, RefreshCw, ExternalLink, Youtube
+  Plus, X, ImageIcon, RefreshCw, ExternalLink, Youtube, Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -78,6 +78,9 @@ export default function ContentStudioPage() {
   const [videoProvider, setVideoProvider] = useState('veo');
   const [capabilities, setCapabilities] = useState({ llmProviders: [], videoProviders: [] });
 
+  // Channel voice ID (from channel profile — persisted ElevenLabs voice preference)
+  const [channelVoiceId, setChannelVoiceId] = useState('');
+
   // Step 1: Idea
   const [topic, setTopic] = useState('');
   const [audience, setAudience] = useState('');
@@ -108,7 +111,7 @@ export default function ContentStudioPage() {
 
   const pollRef = useRef(null);
 
-  // Init: load capabilities + channel tone
+  // Init: load capabilities + channel tone + voice ID
   useEffect(() => {
     if (!authHeaders) return;
     // Pre-fill from FVS System "Send to Studio"
@@ -131,6 +134,8 @@ export default function ContentStudioPage() {
       const profile = profileRes.data;
       if (profile?.tone) setTone(profile.tone);
       else if (profile?.brandDescription) setTone(profile.brandDescription);
+      // Load saved ElevenLabs voice ID from channel profile
+      if (profile?.voiceId) setChannelVoiceId(profile.voiceId);
     });
     fetchSessions();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -147,7 +152,7 @@ export default function ContentStudioPage() {
     }
   }, [location.state]);
 
-  // Video polling
+  // Video polling — fix: backend returns `videoUrl` field (not resultUrl/previewUrl)
   useEffect(() => {
     if (videoTaskId && videoStatus === 'processing') {
       pollRef.current = setInterval(async () => {
@@ -155,10 +160,15 @@ export default function ContentStudioPage() {
           const res = await axios.get(`${API}/video-tasks/${videoTaskId}`, { headers: authHeaders });
           const s = res.data.status;
           if (s === 'READY') {
+            const vUrl = res.data.videoUrl || '';
             setVideoStatus('ready');
-            setVideoUrl(res.data.resultUrl || res.data.previewUrl || '');
+            setVideoUrl(vUrl);
             clearInterval(pollRef.current);
             toast.success('Video is ready!');
+            // Persist video URL to session so it survives logout
+            if (sessionId && vUrl) {
+              saveToSession(sessionId, { video_url: vUrl });
+            }
           } else if (s === 'FAILED') {
             setVideoStatus('failed');
             clearInterval(pollRef.current);
@@ -168,6 +178,7 @@ export default function ContentStudioPage() {
       }, 5000);
     }
     return () => clearInterval(pollRef.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoTaskId, videoStatus, authHeaders]);
 
   const fetchSessions = useCallback(async () => {
@@ -239,16 +250,45 @@ export default function ContentStudioPage() {
     setAudioStatus('generating');
     setAudioWarning('');
     try {
-      const res = await axios.post(`${API}/ai/generate-voice`, { text: script }, { headers: authHeaders });
-      const url = res.data.url || res.data.audioUrl || '';
-      setAudioUrl(url);
+      const sid = await ensureSession();
+      const res = await axios.post(`${API}/ai/generate-voice`, {
+        text: script,
+        // Pass saved voice ID from channel profile — falls back to backend default if empty
+        ...(channelVoiceId ? { voice_id: channelVoiceId } : {}),
+      }, { headers: authHeaders });
+
+      const rawUrl = res.data.url || res.data.audioUrl || '';
+
+      // Fix "00:00" display: data URLs don't expose MP3 metadata to the browser.
+      // Convert to a Blob URL so the audio element can read duration correctly.
+      let audioSrc = rawUrl;
+      if (rawUrl.startsWith('data:')) {
+        try {
+          const blob = await (await fetch(rawUrl)).blob();
+          audioSrc = URL.createObjectURL(blob);
+        } catch {
+          audioSrc = rawUrl; // fallback to data URL if conversion fails
+        }
+      }
+
+      setAudioUrl(audioSrc);
       setAudioStatus('ready');
       if (res.data.warning) setAudioWarning(res.data.warning);
       toast.success('Audio generated!');
+
+      // Persist to session so audio survives logout (store original URL, not blob URL)
+      if (sid) await saveToSession(sid, { audio_url: rawUrl });
     } catch (e) {
       setAudioStatus('error');
       toast.error(e.response?.data?.detail || 'Audio generation failed');
     }
+  };
+
+  const handleClearAudio = () => {
+    setAudioUrl('');
+    setAudioStatus('idle');
+    setAudioWarning('');
+    if (sessionId) saveToSession(sessionId, { audio_url: '' });
   };
 
   // ── Step 3: Thumbnail ─────────────────────────────────────────────────────
@@ -257,17 +297,29 @@ export default function ContentStudioPage() {
     setThumbnailStatus('generating');
     setThumbnailWarning('');
     try {
+      const sid = await ensureSession();
       const res = await axios.post(`${API}/ai/generate-thumbnail`, {
         topic, tone, title: publishTitle || topic,
       }, { headers: authHeaders });
-      setThumbnailUrl(res.data.url || '');
+      const url = res.data.url || '';
+      setThumbnailUrl(url);
       setThumbnailStatus('ready');
       if (res.data.warning) setThumbnailWarning(res.data.warning);
       toast.success('Thumbnail generated!');
+
+      // Persist to session
+      if (sid && url) await saveToSession(sid, { thumbnail_url: url });
     } catch (e) {
       setThumbnailStatus('error');
       toast.error(e.response?.data?.detail || 'Thumbnail generation failed');
     }
+  };
+
+  const handleClearThumbnail = () => {
+    setThumbnailUrl('');
+    setThumbnailStatus('idle');
+    setThumbnailWarning('');
+    if (sessionId) saveToSession(sessionId, { thumbnail_url: '' });
   };
 
   // ── Step 3: Video ─────────────────────────────────────────────────────────
@@ -275,17 +327,30 @@ export default function ContentStudioPage() {
     if (!topic.trim() && !script.trim()) { toast.error('Add a topic or script first'); return; }
     setVideoStatus('processing');
     try {
+      const sid = await ensureSession();
       const res = await axios.post(`${API}/video-tasks`, {
         provider: videoProvider, mode: 'script',
         prompt: topic, script_text: script.slice(0, 500),
         aspect_ratio: '9:16', output_profile: 'shorts',
       }, { headers: authHeaders });
-      setVideoTaskId(res.data.id || res.data.task_id);
+      const taskId = res.data.id || res.data.task_id;
+      setVideoTaskId(taskId);
       toast.info('Video generating — takes 1–3 mins. You can keep editing here.');
+
+      // Persist task ID to session
+      if (sid && taskId) await saveToSession(sid, { video_task_id: taskId });
     } catch (e) {
       setVideoStatus('failed');
       toast.error(e.response?.data?.detail || 'Video generation failed');
     }
+  };
+
+  const handleClearVideo = () => {
+    clearInterval(pollRef.current);
+    setVideoTaskId(null);
+    setVideoUrl('');
+    setVideoStatus('idle');
+    if (sessionId) saveToSession(sessionId, { video_task_id: '', video_url: '' });
   };
 
   // ── Step 4: Publish ───────────────────────────────────────────────────────
@@ -305,7 +370,7 @@ export default function ContentStudioPage() {
     } finally { setPublishing(false); }
   };
 
-  // ── Session load ──────────────────────────────────────────────────────────
+  // ── Session load — restores text AND previously generated asset URLs ───────
   const loadSession = async (session) => {
     try {
       const res = await axios.get(`${API}/strategy/sessions/${session.id}`, { headers: authHeaders });
@@ -317,12 +382,48 @@ export default function ContentStudioPage() {
       setSessionId(d.id);
       setPublishTitle(d.topic || '');
       setPublishDesc('');
-      setAudioUrl(''); setAudioStatus('idle');
-      setThumbnailUrl(''); setThumbnailStatus('idle');
-      setVideoTaskId(null); setVideoStatus('idle'); setVideoUrl('');
       setProposedIdeas([]);
       setPipelineUrl('');
       clearInterval(pollRef.current);
+
+      // Restore previously generated assets — no need to regenerate and waste credits
+      if (d.audio_url) {
+        // Convert stored data URL back to Blob URL for proper duration display
+        let audioSrc = d.audio_url;
+        if (d.audio_url.startsWith('data:')) {
+          try {
+            const blob = await (await fetch(d.audio_url)).blob();
+            audioSrc = URL.createObjectURL(blob);
+          } catch { audioSrc = d.audio_url; }
+        }
+        setAudioUrl(audioSrc);
+        setAudioStatus('ready');
+      } else {
+        setAudioUrl(''); setAudioStatus('idle');
+      }
+      setAudioWarning('');
+
+      if (d.thumbnail_url) {
+        setThumbnailUrl(d.thumbnail_url);
+        setThumbnailStatus('ready');
+      } else {
+        setThumbnailUrl(''); setThumbnailStatus('idle');
+      }
+      setThumbnailWarning('');
+
+      if (d.video_url) {
+        setVideoUrl(d.video_url);
+        setVideoStatus('ready');
+        setVideoTaskId(null);
+      } else if (d.video_task_id) {
+        // Video was submitted but may not be complete — resume polling
+        setVideoTaskId(d.video_task_id);
+        setVideoStatus('processing');
+        setVideoUrl('');
+      } else {
+        setVideoTaskId(null); setVideoStatus('idle'); setVideoUrl('');
+      }
+
       setHistoryOpen(false);
       toast.success('Session loaded');
     } catch { toast.error('Failed to load session'); }
@@ -517,8 +618,19 @@ export default function ContentStudioPage() {
                     <div className="flex items-center justify-between">
                       <Label className="text-xs text-zinc-400 flex items-center gap-1.5">
                         <Mic className="h-3.5 w-3.5" /> Audio via ElevenLabs
+                        {channelVoiceId && (
+                          <span className="text-[9px] text-emerald-400/60 font-mono">voice:{channelVoiceId.slice(0, 8)}…</span>
+                        )}
                       </Label>
-                      <StatusBadge status={audioStatus} labels={{ idle: 'Not generated', ready: 'Ready ✓' }} />
+                      <div className="flex items-center gap-1.5">
+                        <StatusBadge status={audioStatus} labels={{ idle: 'Not generated', ready: 'Ready ✓' }} />
+                        {audioStatus === 'ready' && (
+                          <button onClick={handleClearAudio} title="Clear audio"
+                            className="text-zinc-600 hover:text-red-400 transition-colors">
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <Button onClick={handleGenerateAudio} disabled={audioStatus === 'generating' || !hasScript} size="sm"
                       className="w-full h-9 bg-zinc-900 border border-zinc-800 hover:border-emerald-500/30 text-white text-xs justify-start">
@@ -555,7 +667,15 @@ export default function ContentStudioPage() {
                       <Label className="text-xs text-zinc-400 flex items-center gap-1.5">
                         <ImageIcon className="h-3.5 w-3.5" /> Thumbnail (DALL-E)
                       </Label>
-                      <StatusBadge status={thumbnailStatus} labels={{ idle: 'Not generated', ready: 'Ready ✓' }} />
+                      <div className="flex items-center gap-1.5">
+                        <StatusBadge status={thumbnailStatus} labels={{ idle: 'Not generated', ready: 'Ready ✓' }} />
+                        {thumbnailStatus === 'ready' && (
+                          <button onClick={handleClearThumbnail} title="Clear thumbnail"
+                            className="text-zinc-600 hover:text-red-400 transition-colors">
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <Button onClick={handleGenerateThumbnail}
                       disabled={!hasIdea || thumbnailStatus === 'generating'} size="sm"
@@ -585,7 +705,15 @@ export default function ContentStudioPage() {
                       <Label className="text-xs text-zinc-400 flex items-center gap-1.5">
                         <Video className="h-3.5 w-3.5" /> AI Video
                       </Label>
-                      <StatusBadge status={videoStatus} labels={{ idle: 'Not started', processing: 'Generating…', ready: 'Ready ✓' }} />
+                      <div className="flex items-center gap-1.5">
+                        <StatusBadge status={videoStatus} labels={{ idle: 'Not started', processing: 'Generating…', ready: 'Ready ✓' }} />
+                        {(videoStatus === 'ready' || videoStatus === 'processing' || videoStatus === 'failed') && (
+                          <button onClick={handleClearVideo} title="Clear video"
+                            className="text-zinc-600 hover:text-red-400 transition-colors">
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                     <div className="flex gap-2">
                       <Select value={videoProvider} onValueChange={setVideoProvider}>

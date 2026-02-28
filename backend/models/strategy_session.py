@@ -18,6 +18,10 @@ class StrategySessionUpdate(BaseModel):
     outline_output: Optional[str] = None
     script_output: Optional[str] = None
     metadata_output: Optional[str] = None
+    audio_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
+    video_task_id: Optional[str] = None
+    video_url: Optional[str] = None
 
 
 class StrategySessionListItem(BaseModel):
@@ -43,6 +47,10 @@ class StrategySessionFull(BaseModel):
     outline_output: Optional[str] = None
     script_output: Optional[str] = None
     metadata_output: Optional[str] = None
+    audio_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
+    video_task_id: Optional[str] = None
+    video_url: Optional[str] = None
     title: str
     created_at: str
     updated_at: str

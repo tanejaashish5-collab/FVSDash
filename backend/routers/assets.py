@@ -114,6 +114,24 @@ async def update_asset_submission(
     return {"message": "Asset submission updated", "submissionId": data.submissionId}
 
 
+@router.delete("/assets/{asset_id}")
+async def delete_asset(
+    asset_id: str,
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    """Hard-delete an asset record. Does not remove the file from S3."""
+    client_id = get_client_id_from_user(user, impersonateClientId)
+    db = assets_collection()
+    query = {"id": asset_id}
+    if client_id:
+        query["clientId"] = client_id
+    result = await db.delete_one(query)
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    return {"ok": True}
+
+
 @router.post("/assets/upload")
 async def upload_asset(
     file: UploadFile = File(...),

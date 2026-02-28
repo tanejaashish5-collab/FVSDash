@@ -40,6 +40,14 @@ import { toast } from 'sonner';
 import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
+
+/** Resolve a storage URL — relative /api/files/ paths need the backend origin prepended. */
+function resolveUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('/api/files/')) return `${BACKEND}${url}`;
+  return url;
+}
 
 // ---------------------------------------------------------------------------
 // Sortable clip card (used inside DnD context)
@@ -493,7 +501,7 @@ export default function VideoEditorPage() {
                   <CardContent className="p-3">
                     <div className="aspect-video bg-zinc-950 rounded-lg flex items-center justify-center overflow-hidden border border-zinc-800">
                       {selectedClip ? (
-                        <video key={selectedClip.url} controls src={selectedClip.url}
+                        <video key={selectedClip.url} controls src={resolveUrl(selectedClip.url)}
                           className="w-full h-full rounded-lg" />
                       ) : (
                         <div className="text-center">
@@ -517,9 +525,9 @@ export default function VideoEditorPage() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="px-3 pb-3 space-y-2">
-                      <video key={stitchedUrl} controls src={stitchedUrl}
+                      <video key={stitchedUrl} controls src={resolveUrl(stitchedUrl)}
                         className="w-full rounded-lg border border-emerald-500/20" style={{ maxHeight: 200 }} />
-                      <a href={stitchedUrl} download target="_blank" rel="noreferrer"
+                      <a href={resolveUrl(stitchedUrl)} download target="_blank" rel="noreferrer"
                         className="flex items-center gap-1.5 text-[10px] text-emerald-400 hover:underline">
                         <Download className="h-3 w-3" /> Download stitched video
                       </a>
@@ -637,7 +645,7 @@ export default function VideoEditorPage() {
                             <X className="h-3 w-3" />
                           </button>
                         </div>
-                        <audio key={audioUrl} controls src={audioUrl}
+                        <audio key={audioUrl} controls src={resolveUrl(audioUrl)}
                           className="w-full" style={{ height: 32, colorScheme: 'dark' }} />
                       </div>
                     ) : (
@@ -672,7 +680,7 @@ export default function VideoEditorPage() {
                     {thumbnailUrl ? (
                       <div className="space-y-2">
                         <div className="relative rounded-lg overflow-hidden border border-zinc-800">
-                          <img src={thumbnailUrl} alt="Thumbnail"
+                          <img src={resolveUrl(thumbnailUrl)} alt="Thumbnail"
                             className="w-full object-cover aspect-video" />
                           <button
                             onClick={() => { setThumbnailUrl(''); setThumbnailName(''); persistProject({ thumbnailUrl: '' }); }}

@@ -4,6 +4,7 @@
  * Sessions are auto-saved to the strategy sessions DB.
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -64,6 +65,7 @@ function StatusBadge({ status, labels = {} }) {
 
 export default function ContentStudioPage() {
   const { authHeaders } = useAuth();
+  const location = useLocation();
 
   // Session persistence
   const [sessionId, setSessionId] = useState(null);
@@ -133,6 +135,17 @@ export default function ContentStudioPage() {
     fetchSessions();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authHeaders]);
+
+  // Pre-fill from router state (passed via navigate from SubmissionsPage)
+  useEffect(() => {
+    const prefill = location.state?.prefill;
+    if (prefill) {
+      if (prefill.topic) { setTopic(prefill.topic); setPublishTitle(prefill.topic); }
+      if (prefill.script) setScript(prefill.script);
+      // Clear router state so back-navigation doesn't re-apply
+      window.history.replaceState({}, '');
+    }
+  }, [location.state]);
 
   // Video polling
   useEffect(() => {

@@ -85,6 +85,33 @@ api_router.include_router(search.router)
 api_router.include_router(pipeline.router)
 api_router.include_router(video_editor.router)
 
+# ---------------------------------------------------------------------------
+# Local file serving — active when S3 is not configured.
+# Files uploaded via StorageService land in /app/uploads/ and are served here
+# so the browser can load clips, stitched videos, thumbnails, and audio files
+# without needing S3 or a presigned URL.
+# ---------------------------------------------------------------------------
+from fastapi.responses import FileResponse as _FileResponse
+from pathlib import Path as _Path
+
+@api_router.get("/files/{file_path:path}", include_in_schema=False)
+async def serve_uploaded_file(file_path: str):
+    """Serve a locally-stored file (S3 fallback). Converts /api/files/{key} → disk path."""
+    from services.storage_service import LOCAL_STORAGE_DIR
+    safe_path = _Path(LOCAL_STORAGE_DIR) / file_path
+    # Prevent path traversal
+    try:
+        safe_path = safe_path.resolve()
+        LOCAL_STORAGE_DIR.resolve()
+        safe_path.relative_to(LOCAL_STORAGE_DIR.resolve())
+    except (ValueError, RuntimeError):
+        from fastapi import HTTPException as _HTTPException
+        raise _HTTPException(status_code=400, detail="Invalid file path")
+    if not safe_path.exists() or not safe_path.is_file():
+        from fastapi import HTTPException as _HTTPException
+        raise _HTTPException(status_code=404, detail="File not found")
+    return _FileResponse(str(safe_path))
+
 # Include API router in app
 app.include_router(api_router)
 

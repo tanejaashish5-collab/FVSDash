@@ -309,60 +309,46 @@ async def _generate_thumbnail_openai(
 
     try:
         import openai as openai_lib
-        import base64 as _base64
 
         openai_client = openai_lib.AsyncOpenAI(api_key=api_key)
+
+        # response_format="b64_json" returns the image inline in the API response.
+        # This eliminates a second HTTP download and avoids CORS/expiry issues
+        # with OpenAI's temporary image URLs.
         response = await openai_client.images.generate(
             model="dall-e-3",
             prompt=prompt,
             size="1024x1024",
             quality="standard",
-            n=1
+            n=1,
+            response_format="b64_json",
         )
 
-        image_url_direct = response.data[0].url
+        b64_data = response.data[0].b64_json
+        if not b64_data:
+            raise ValueError("DALL-E returned no image data")
 
-        # Try to download and upload to S3; fall back to direct URL
-        import httpx as _httpx
-        image_data = None
-        try:
-            async with _httpx.AsyncClient(timeout=30) as _client:
-                img_resp = await _client.get(image_url_direct)
-                if img_resp.status_code == 200:
-                    image_data = img_resp.content
-        except Exception:
-            pass
+        image_data = base64.b64decode(b64_data)
 
-        if image_data is None:
-            # Use the direct URL from OpenAI (valid for ~1 hour)
-            return ThumbnailGenerationResult(
-                url=image_url_direct,
-                provider="openai_dall_e_3",
-                is_mocked=False,
-                prompt_used=prompt[:500],
-                storage_provider="openai_temp_url",
-                warning="Image stored as temporary OpenAI URL"
-            )
-        
         # S3 is the PRIMARY storage - try to upload first
         s3_url, storage_provider, s3_error = await _try_upload_to_s3(
             image_data,
             "image/png",
             f"thumbnails/gpt-image/{uuid.uuid4()}"
         )
-        
+
         warning = None
         if s3_url:
             image_url = s3_url
             logger.info(f"Thumbnail uploaded to S3: {len(image_data)} bytes")
         else:
-            # Graceful fallback: store as data URL with warning
-            image_b64 = base64.b64encode(image_data).decode()
-            image_url = f"data:image/png;base64,{image_b64}"
+            # Fallback: embed as data URL — always browser-accessible,
+            # no CORS issues, no expiry. Safe to pass directly to <img src>.
+            image_url = f"data:image/png;base64,{b64_data}"
             storage_provider = "data_url"
-            warning = f"S3 not configured - thumbnail stored as data URL. {s3_error}"
+            warning = f"S3 not configured — thumbnail stored as data URL. {s3_error}"
             logger.warning(f"Thumbnail fallback to data URL: {s3_error}")
-        
+
         logger.info(f"Generated thumbnail via OpenAI DALL-E-3 ({len(image_data)} bytes)")
 
         return ThumbnailGenerationResult(

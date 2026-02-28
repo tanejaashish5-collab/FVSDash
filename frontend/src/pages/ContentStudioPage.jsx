@@ -24,6 +24,24 @@ import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+/**
+ * Convert a data: URL to a Blob URL so the browser can read audio/video metadata.
+ * Uses atob() (synchronous, no network) instead of fetch() which can be blocked
+ * by CSP or browser security policies in some deployment environments.
+ */
+function dataUrlToBlobUrl(dataUrl) {
+  try {
+    const [meta, b64] = dataUrl.split(',');
+    const mime = meta.match(/data:([^;]+)/)?.[1] || 'audio/mpeg';
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return URL.createObjectURL(new Blob([bytes], { type: mime }));
+  } catch {
+    return dataUrl; // fallback to raw data URL
+  }
+}
+
 const VIDEO_PROVIDERS = [
   { value: 'veo', label: 'Veo (Google)' },
   { value: 'kling', label: 'Kling' },
@@ -262,17 +280,9 @@ export default function ContentStudioPage() {
 
       const rawUrl = res.data.url || res.data.audioUrl || '';
 
-      // Fix "00:00" display: data URLs don't expose MP3 metadata to the browser.
-      // Convert to a Blob URL so the audio element can read duration correctly.
-      let audioSrc = rawUrl;
-      if (rawUrl.startsWith('data:')) {
-        try {
-          const blob = await (await fetch(rawUrl)).blob();
-          audioSrc = URL.createObjectURL(blob);
-        } catch {
-          audioSrc = rawUrl; // fallback to data URL if conversion fails
-        }
-      }
+      // Convert data URL → Blob URL so browser can read MP3 duration metadata.
+      // atob() is used (not fetch) to avoid CSP restrictions on data: fetches.
+      const audioSrc = rawUrl.startsWith('data:') ? dataUrlToBlobUrl(rawUrl) : rawUrl;
 
       setAudioUrl(audioSrc);
       setAudioStatus('ready');
@@ -425,14 +435,8 @@ export default function ContentStudioPage() {
 
       // Restore previously generated assets — no need to regenerate and waste credits
       if (d.audio_url) {
-        // Convert stored data URL back to Blob URL for proper duration display
-        let audioSrc = d.audio_url;
-        if (d.audio_url.startsWith('data:')) {
-          try {
-            const blob = await (await fetch(d.audio_url)).blob();
-            audioSrc = URL.createObjectURL(blob);
-          } catch { audioSrc = d.audio_url; }
-        }
+        // Convert stored data URL → Blob URL so browser can read duration
+        const audioSrc = d.audio_url.startsWith('data:') ? dataUrlToBlobUrl(d.audio_url) : d.audio_url;
         setAudioUrl(audioSrc);
         setAudioStatus('ready');
       } else {

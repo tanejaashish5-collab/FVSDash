@@ -115,7 +115,10 @@ STRICT OUTPUT RULES:
 - 150-220 words (60-90 seconds spoken)
 - Start with a powerful opening sentence that grabs attention immediately
 - End with a strong insight or call to action woven naturally into the speech
-- Use Hinglish naturally where it fits (Hindi words in English sentences)""",
+- WRITE IN HINGLISH: this is mandatory, not optional. Mix Hindi words and phrases throughout the English script naturally (e.g., "yaar", "suno", "bhai", "seedha baat karo", "life mein", "sach mein", "kuch nahi", "bilkul sahi", "haan", "nahi", "jo log", "ek dum", "kya baat hai", "samajh lo")
+- At least 25-35% of words/phrases should be Hindi/Hinglish woven into the English flow
+- Avoid full Hindi sentences — mix naturally like: "Yaar, most entrepreneurs make this mistake…" or "Seedha baat karo — your business needs this"
+- The tone should feel like a sharp, confident Indian creator speaking to peers, not a textbook English narrator""",
 
         "title": f"""Generate 5 compelling YouTube Shorts titles for an Indian business/entrepreneur audience.
 

@@ -1,6 +1,18 @@
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+
+// React Query client — shared across the app for caching API responses
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,        // Data considered fresh for 60 seconds
+      retry: 1,                  // Retry failed requests once
+      refetchOnWindowFocus: false, // Don't refetch when switching tabs
+    },
+  },
+});
 import { Toaster } from "@/components/ui/sonner";
 import { AuraSpinner } from "@/components/animations/AuraSpinner";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -124,22 +136,24 @@ function AppRoutes() {
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <AppRoutes />
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            style: {
-              background: '#18181b',
-              border: '1px solid #27272a',
-              color: '#fafafa',
-              fontSize: '13px',
-            },
-          }}
-        />
-      </BrowserRouter>
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppRoutes />
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              style: {
+                background: '#18181b',
+                border: '1px solid #27272a',
+                color: '#fafafa',
+                fontSize: '13px',
+              },
+            }}
+          />
+        </BrowserRouter>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 

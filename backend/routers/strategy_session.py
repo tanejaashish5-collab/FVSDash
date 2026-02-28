@@ -132,6 +132,14 @@ async def update_session(
         update_fields["script_output"] = data.script_output
     if data.metadata_output is not None:
         update_fields["metadata_output"] = data.metadata_output
+    if data.audio_url is not None:
+        update_fields["audio_url"] = data.audio_url
+    if data.thumbnail_url is not None:
+        update_fields["thumbnail_url"] = data.thumbnail_url
+    if data.video_task_id is not None:
+        update_fields["video_task_id"] = data.video_task_id
+    if data.video_url is not None:
+        update_fields["video_url"] = data.video_url
     
     if update_fields:
         update_fields["updated_at"] = datetime.now(timezone.utc).isoformat()

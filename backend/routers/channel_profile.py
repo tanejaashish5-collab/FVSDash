@@ -22,6 +22,7 @@ class ChannelProfileUpdate(BaseModel):
     thumbnailPromptTemplate: Optional[str] = None
     scriptsPerIdea: Optional[int] = None
     thumbnailsPerShort: Optional[int] = None
+    voiceId: Optional[str] = None
 
 
 @router.get("/channel-profile")

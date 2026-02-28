@@ -573,6 +573,22 @@ export default function SettingsPage() {
                 </div>
               </div>
 
+              {/* ElevenLabs Voice ID */}
+              <div className="space-y-2">
+                <Label className="text-zinc-300">ElevenLabs Voice ID</Label>
+                <input
+                  type="text"
+                  value={channelProfile?.voiceId || ''}
+                  onChange={(e) => setChannelProfile({ ...channelProfile, voiceId: e.target.value })}
+                  placeholder="e.g. 21m00Tcm4TlvDq8ikWAM"
+                  className="w-full h-9 px-3 rounded-md bg-zinc-900/50 border border-zinc-700 text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500"
+                  data-testid="voice-id-input"
+                />
+                <p className="text-xs text-zinc-500">
+                  Your ElevenLabs voice ID — used for all audio generated in Content Studio. Find it in your ElevenLabs dashboard under Voices.
+                </p>
+              </div>
+
               {/* Save Button */}
               <div className="flex justify-end pt-4">
                 <Button

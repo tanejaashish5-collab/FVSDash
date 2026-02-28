@@ -129,3 +129,4 @@ pytz
 aiofiles==25.1.0
 boto3==1.42.42
 httpx==0.28.1
+sentry-sdk[fastapi]>=2.0.0

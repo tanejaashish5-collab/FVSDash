@@ -8,7 +8,7 @@ from fastapi import HTTPException
 logger = logging.getLogger(__name__)
 
 LLM_PROVIDERS = {
-    "gemini": {"model": "gemini-2.0-flash-001", "enabled": True},
+    "gemini": {"model": "gemini-2.5-flash", "enabled": True},
     "openai": {"model": "gpt-4o", "enabled": True},
     "anthropic": {"model": "claude-sonnet-4-5-20250929", "enabled": True}
 }
@@ -52,7 +52,7 @@ async def call_gemini(prompt: str, max_tokens: int = 4096, system_message: str =
         if system_message:
             config_kwargs["system_instruction"] = system_message
         response = client.models.generate_content(
-            model="gemini-2.0-flash-001",
+            model="gemini-2.5-flash",
             contents=prompt,
             config=types.GenerateContentConfig(**config_kwargs)
         )

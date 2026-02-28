@@ -32,6 +32,23 @@ from services.publishing_scheduler import start_scheduler, stop_scheduler
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# Sentry error tracking — only active when SENTRY_DSN is set in Railway env vars
+_sentry_dsn = os.environ.get("SENTRY_DSN")
+if _sentry_dsn:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.fastapi import FastApiIntegration
+        from sentry_sdk.integrations.starlette import StarletteIntegration
+        sentry_sdk.init(
+            dsn=_sentry_dsn,
+            integrations=[StarletteIntegration(), FastApiIntegration()],
+            traces_sample_rate=0.1,
+            environment=os.environ.get("RAILWAY_ENVIRONMENT", "production"),
+        )
+        logger.info("Sentry error tracking initialized")
+    except ImportError:
+        logger.warning("sentry-sdk not installed — skipping Sentry init (run: pip install sentry-sdk[fastapi])")
+
 # Create FastAPI app
 app = FastAPI(title="ForgeVoice Studio API")
 

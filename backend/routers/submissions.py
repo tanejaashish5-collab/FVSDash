@@ -13,8 +13,8 @@ router = APIRouter(tags=["submissions"])
 
 @router.get("/submissions")
 async def get_submissions(
-    user: dict = Depends(get_current_user), 
-    status: Optional[str] = None, 
+    user: dict = Depends(get_current_user),
+    status: Optional[str] = None,
     content_type: Optional[str] = None,
     impersonateClientId: Optional[str] = Query(None)
 ):
@@ -23,6 +23,8 @@ async def get_submissions(
     query = {"clientId": client_id} if client_id else {}
     if status:
         query["status"] = status
+    else:
+        query["status"] = {"$ne": "DELETED"}  # Exclude soft-deleted unless a specific status is requested
     if content_type:
         query["contentType"] = content_type
     return await db.find(query, {"_id": 0}).sort("createdAt", -1).to_list(1000)
@@ -284,6 +286,25 @@ async def set_primary_thumbnail(
         "submission": updated_submission,
         "primaryThumbnail": updated_asset
     }
+
+
+@router.delete("/submissions/{submission_id}")
+async def delete_submission(
+    submission_id: str,
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    """Soft-delete a submission (sets status=DELETED, hidden from all lists)."""
+    client_id = get_client_id_from_user(user, impersonateClientId)
+    db = submissions_collection()
+    query = {"id": submission_id}
+    if client_id:
+        query["clientId"] = client_id
+    now = datetime.now(timezone.utc).isoformat()
+    result = await db.update_one(query, {"$set": {"status": "DELETED", "updatedAt": now}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    return {"ok": True}
 
 
 @router.get("/submissions/list")

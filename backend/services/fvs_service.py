@@ -377,6 +377,36 @@ TAGS: [tag1, tag2, tag3, ...]"""
     return {"title": title, "description": description, "tags": tags}
 
 
+async def _rollback_pipeline_steps(client_id: str, completed_steps: list) -> None:
+    """
+    Saga rollback: delete any MongoDB documents created by produce_episode steps
+    so a failed Full Auto run leaves no orphaned data.
+
+    completed_steps is a list of (step_name, document_id) tuples in order.
+    We delete in reverse order.
+    """
+    submissions_db = submissions_collection()
+    scripts_db = fvs_scripts_collection()
+    assets_db = assets_collection()
+    video_tasks_db = video_tasks_collection()
+
+    for step_name, doc_id in reversed(completed_steps):
+        try:
+            if step_name == "submission":
+                await submissions_db.delete_one({"id": doc_id, "clientId": client_id})
+            elif step_name == "script":
+                await scripts_db.delete_one({"id": doc_id, "clientId": client_id})
+            elif step_name == "audio_asset":
+                await assets_db.delete_one({"id": doc_id, "clientId": client_id})
+            elif step_name == "video_task":
+                await video_tasks_db.delete_one({"id": doc_id, "clientId": client_id})
+            elif step_name in ("video_asset", "thumbnail_asset"):
+                await assets_db.delete_one({"id": doc_id, "clientId": client_id})
+            logger.info(f"FVS rollback: deleted {step_name} {doc_id}")
+        except Exception as rollback_err:
+            logger.error(f"FVS rollback failed for {step_name} {doc_id}: {rollback_err}")
+
+
 async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
     """
     FVS Orchestrator: Produce a full episode from an approved idea.
@@ -411,6 +441,8 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
     video_tasks_db = video_tasks_collection()
     activity_db = fvs_activity_collection()
     
+    completed_steps: list = []  # Saga: tracks created documents for rollback on failure
+
     try:
         # =================================================================
         # STEP 0: Load Channel Profile (Brand Brain)
@@ -529,6 +561,7 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
         }
         await submissions_db.insert_one(submission)
         submission_id = submission["id"]
+        completed_steps.append(("submission", submission_id))
         if "_id" in submission:
             del submission["_id"]
         
@@ -546,6 +579,7 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
             "createdAt": script_data["createdAt"]
         }
         await scripts_db.insert_one(script)
+        completed_steps.append(("script", script["id"]))
         if "_id" in script:
             del script["_id"]
         
@@ -568,6 +602,7 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
             "updatedAt": now
         }
         await assets_db.insert_one(audio_asset)
+        completed_steps.append(("audio_asset", audio_asset["id"]))
         if "_id" in audio_asset:
             del audio_asset["_id"]
         
@@ -598,6 +633,7 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
             "updatedAt": now
         }
         await video_tasks_db.insert_one(video_task)
+        completed_steps.append(("video_task", video_task["id"]))
         if "_id" in video_task:
             del video_task["_id"]
         
@@ -620,6 +656,7 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
             "updatedAt": now
         }
         await assets_db.insert_one(video_asset)
+        completed_steps.append(("video_asset", video_asset["id"]))
         if "_id" in video_asset:
             del video_asset["_id"]
         
@@ -650,6 +687,7 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
                 "updatedAt": now
             }
             await assets_db.insert_one(thumbnail_asset)
+            completed_steps.append(("thumbnail_asset", thumbnail_asset["id"]))
             if "_id" in thumbnail_asset:
                 del thumbnail_asset["_id"]
             thumbnail_assets.append(thumbnail_asset)
@@ -732,12 +770,17 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"FVS produce-episode error: {e}")
+        logger.error(f"FVS produce-episode error at step {len(completed_steps) + 1}: {e}", exc_info=True)
+        # Saga rollback: clean up any documents created before the failure
+        if completed_steps:
+            logger.info(f"FVS rollback: removing {len(completed_steps)} created document(s)")
+            await _rollback_pipeline_steps(client_id, completed_steps)
+        # Reset idea status so user can retry
         await ideas_db.update_one(
             {"id": idea_id},
             {"$set": {"status": "proposed", "updatedAt": now}}
         )
-        raise HTTPException(status_code=500, detail=f"Failed to produce episode: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to produce episode at step {len(completed_steps) + 1}: {str(e)}")
 
 
 async def get_ideas(client_id: str, status: Optional[str] = None) -> list:

@@ -8,7 +8,7 @@ import axios from 'axios';
 import {
   LayoutDashboard, FileText, Calendar,
   BookOpen, Wand2, BarChart3, TrendingUp,
-  CreditCard, Settings, HelpCircle, ShieldCheck, Mic, Brain, Youtube
+  CreditCard, Settings, HelpCircle, ShieldCheck, Mic, Brain, Youtube, Scissors
 } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -18,6 +18,7 @@ const mainNav = [
   { label: 'Overview', path: '/dashboard/overview', icon: LayoutDashboard },
   { label: 'Pipeline', path: '/dashboard/submissions', icon: FileText, showBadge: true },
   { label: 'Content Studio', path: '/dashboard/studio', icon: Wand2 },
+  { label: 'Video Editor', path: '/dashboard/video-editor', icon: Scissors },
   { label: 'Calendar', path: '/dashboard/calendar', icon: Calendar },
 ];
 

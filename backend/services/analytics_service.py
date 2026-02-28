@@ -264,15 +264,38 @@ async def get_analytics_overview(db, client_id: str, days: int = 30) -> Dict[str
     ).to_list(500)
     
     if not analytics:
+        # Fallback 1: channel_snapshots (populated by /api/analytics/sync)
+        channel = await db.channel_snapshots.find_one(
+            {"clientId": client_id},
+            {"_id": 0},
+            sort=[("syncedAt", -1)]
+        )
+        if channel:
+            return {
+                "totalViews": channel.get("totalViews", 0),
+                "totalWatchTimeMinutes": 0,
+                "avgCtr": 0,
+                "avgAvd": 0,
+                "bestPerformer": None,
+                "subscriberCount": channel.get("subscriberCount", 0),
+                "videoCount": channel.get("videoCount", 0),
+                "lastSyncedAt": None
+            }
+        # Fallback 2: analytics_snapshots (populated by "Sync Channel" button)
+        snapshot = await db.analytics_snapshots.find_one(
+            {"clientId": client_id, "source": "youtube_sync"},
+            {"_id": 0},
+            sort=[("date", -1)]
+        )
         return {
-            "totalViews": 0,
+            "totalViews": snapshot.get("totalViews", 0) if snapshot else 0,
             "totalWatchTimeMinutes": 0,
             "avgCtr": 0,
             "avgAvd": 0,
             "bestPerformer": None,
-            "subscriberCount": 0,
-            "videoCount": 0,
-            "lastSyncedAt": None
+            "subscriberCount": snapshot.get("subscriberCount", 0) if snapshot else 0,
+            "videoCount": snapshot.get("videoCount", 0) if snapshot else 0,
+            "lastSyncedAt": snapshot.get("createdAt") if snapshot else None
         }
     
     total_views = sum(a.get("views", 0) for a in analytics)

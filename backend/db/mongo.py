@@ -125,3 +125,6 @@ def fvs_recommendations_collection():
 
 def video_tasks_collection_v2():
     return get_db().video_tasks
+
+def video_editor_projects_collection():
+    return get_db().video_editor_projects

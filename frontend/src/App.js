@@ -25,6 +25,8 @@ import VideoLabPage from "@/pages/VideoLabPage";
 import FvsSystemPage from "@/pages/FvsSystemPage";
 import StrategyIdeaDetailPage from "@/pages/StrategyIdeaDetailPage";
 import PublishingDashboardPage from "@/pages/PublishingDashboardPage";
+import ContentStudioPage from "@/pages/ContentStudioPage";
+import PublishedPage from "@/pages/PublishedPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 
 function LoadingScreen() {
@@ -86,7 +88,11 @@ function AppRoutes() {
           <Route path="/dashboard/assets" element={<AssetsPage />} />
           <Route path="/dashboard/publishing" element={<PublishingDashboardPage />} />
           <Route path="/dashboard/blog" element={<BlogPage />} />
-          {/* Labs pages - accessible to all authenticated users */}
+          {/* Content Studio — new unified creation page */}
+          <Route path="/dashboard/studio" element={<ContentStudioPage />} />
+          {/* Published library */}
+          <Route path="/dashboard/published" element={<PublishedPage />} />
+          {/* Legacy lab pages — still accessible via direct URL */}
           <Route path="/dashboard/strategy" element={<StrategyPage />} />
           <Route path="/dashboard/video-lab" element={<VideoLabPage />} />
           <Route path="/dashboard/system" element={<FvsSystemPage />} />

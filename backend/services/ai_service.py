@@ -99,19 +99,23 @@ Provide structured outline:
 - Powerful closing line / CTA
 - On-screen text suggestions for Shorts""",
 
-        "script": f"""Write a complete script optimised for YouTube Shorts and podcast.
+        "script": f"""Write a YouTube Shorts script as pure spoken narration.
 
 Topic: {topic}
-{f'Outline: {existing_content[:3000]}' if existing_content else ''}
+Brand voice: {tone or 'Bold, strategic, authoritative'}
+Target audience: {audience or 'Indian urban professionals 25-44'}
+{f'Outline context: {existing_content[:2000]}' if existing_content else ''}
 
-Script requirements:
-- Total length: 60-90 seconds spoken (for Shorts)
-- Open with a POWERFUL hook in the first 5 words
-- Use Hinglish naturally (Hindi words in English sentences where natural)
-- Short punchy sentences, no filler words
-- End with a strong insight or call-to-action
-- Mark [PAUSE] for dramatic effect
-- Conversational tone - as if talking directly to the viewer""",
+STRICT OUTPUT RULES:
+- Return ONLY the spoken words, exactly as a voice actor will read them aloud
+- NO section headers (no "Hook:", "Main:", "CTA:", "Outro:", "Introduction:" etc.)
+- NO labels, bullet points, numbers, or structural markers of any kind
+- NO stage directions ([PAUSE], [EMPHASIS], [CUT], etc.)
+- Just continuous natural speech, first word to last
+- 150-220 words (60-90 seconds spoken)
+- Start with a powerful opening sentence that grabs attention immediately
+- End with a strong insight or call to action woven naturally into the speech
+- Use Hinglish naturally where it fits (Hindi words in English sentences)""",
 
         "title": f"""Generate 5 compelling YouTube Shorts titles for an Indian business/entrepreneur audience.
 

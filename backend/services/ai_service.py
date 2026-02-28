@@ -168,7 +168,20 @@ Provide all 4 sections clearly labelled:
 ## TITLE IDEAS (5 options)
 ## DESCRIPTION
 ## TAGS
-## CHAPTERS"""
+## CHAPTERS""",
+
+        "propose_ideas": f"""Generate 5 specific YouTube Shorts / podcast episode ideas for this creator.
+
+Channel context: {topic or 'Indian business strategy, entrepreneurship, financial wisdom (Chanakya Sutra style)'}
+Brand voice: {tone or 'Bold, strategic, stoic wisdom meets modern hustle'}
+Audience: {audience or 'Indian urban professionals 25-44'}
+
+For each idea provide exactly this format:
+IDEA: [punchy episode title under 60 chars]
+HOOK: [first 5 words that stop the scroll]
+ANGLE: [one sentence describing the unique content angle]
+
+Generate 5 ideas. Be specific, not generic. Each should feel like a distinct viral concept."""
     }
 
     prompt = prompts.get(task)
@@ -242,6 +255,22 @@ def parse_llm_response(task: str, response: str) -> dict:
                 if len(parts) == 2:
                     chapters.append({"timestamp": parts[0].strip(), "title": parts[1].strip()})
         return {"chapters": chapters[:12]}
+    elif task == "propose_ideas":
+        ideas = []
+        current: dict = {}
+        for line in response.split('\n'):
+            line = line.strip()
+            if line.startswith('IDEA:'):
+                if current.get('title'):
+                    ideas.append(current)
+                current = {'title': line[5:].strip(), 'hook': '', 'angle': ''}
+            elif line.startswith('HOOK:'):
+                current['hook'] = line[5:].strip()
+            elif line.startswith('ANGLE:'):
+                current['angle'] = line[6:].strip()
+        if current.get('title'):
+            ideas.append(current)
+        return {"ideas": ideas}
     elif task == "youtube_package":
         result = {"titleIdeas": [], "descriptionText": "", "tags": [], "chapters": []}
         current_section = None

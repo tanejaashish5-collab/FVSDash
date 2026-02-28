@@ -87,6 +87,10 @@ export default function StrategyPage() {
   const [submissionData, setSubmissionData] = useState({ title: '', contentType: 'Podcast', releaseDate: '' });
   const [creatingSubmission, setCreatingSubmission] = useState(false);
   
+  // Propose Ideas state
+  const [proposedIdeas, setProposedIdeas] = useState([]);
+  const [proposingIdeas, setProposingIdeas] = useState(false);
+
   // Pipeline state
   const [sendingToProduction, setSendingToProduction] = useState(false);
   const [showPipelineSuccess, setShowPipelineSuccess] = useState(false);
@@ -268,6 +272,24 @@ export default function StrategyPage() {
       toast.error(err.response?.data?.detail || `Failed to generate ${task}`);
     } finally {
       setLoading(prev => ({ ...prev, [task]: false }));
+    }
+  };
+
+  const handleProposeIdeas = async () => {
+    setProposingIdeas(true);
+    setProposedIdeas([]);
+    try {
+      const res = await axios.post(`${API}/ai/generate`, {
+        provider,
+        task: 'propose_ideas',
+        input: { topic, audience, tone, goal }
+      }, { headers: authHeaders });
+      setProposedIdeas(res.data.ideas || []);
+      if (!res.data.ideas?.length) toast.info('No ideas returned — try adding a topic hint.');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to generate ideas');
+    } finally {
+      setProposingIdeas(false);
     }
   };
 
@@ -615,6 +637,56 @@ export default function StrategyPage() {
                     )}
                   </SelectContent>
                 </Select>
+              </CardContent>
+            </Card>
+
+            {/* Propose Ideas */}
+            <Card className="bg-[#0B1120] border-[#1F2933]" data-testid="propose-ideas-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold text-white flex items-center gap-2">
+                  <Lightbulb className="h-4 w-4 text-amber-400" />
+                  Propose Ideas
+                </CardTitle>
+                <CardDescription className="text-xs text-zinc-500">
+                  No topic yet? Let AI suggest 5 ideas based on your channel voice.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button
+                  onClick={handleProposeIdeas}
+                  disabled={proposingIdeas || isAnyLoading}
+                  className="w-full h-9 bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 text-amber-400 justify-start"
+                  data-testid="btn-propose-ideas"
+                >
+                  {proposingIdeas ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 mr-2" />
+                  )}
+                  Propose Ideas
+                  <ChevronRight className="h-4 w-4 ml-auto opacity-50" />
+                </Button>
+                {proposedIdeas.length > 0 && (
+                  <div className="space-y-2 pt-1">
+                    {proposedIdeas.map((idea, idx) => (
+                      <div
+                        key={idx}
+                        className="p-2.5 rounded-md bg-zinc-950/70 border border-zinc-800 hover:border-amber-500/30 transition-colors group"
+                      >
+                        <p className="text-xs font-medium text-white leading-snug">{idea.title}</p>
+                        {idea.hook && <p className="text-[10px] text-amber-400/80 mt-0.5 italic">"{idea.hook}…"</p>}
+                        {idea.angle && <p className="text-[10px] text-zinc-500 mt-1 leading-relaxed">{idea.angle}</p>}
+                        <button
+                          onClick={() => { setTopic(idea.title); setProposedIdeas([]); toast.success('Topic set — now generate content!'); }}
+                          className="mt-2 text-[10px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          data-testid={`use-idea-${idx}`}
+                        >
+                          Use this idea <ArrowRight className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 

@@ -3,6 +3,7 @@ Trend Intelligence Service - Sprint 9B
 Scans competitors, trending topics, and generates AI recommendations.
 """
 import os
+import re
 import logging
 import json
 from datetime import datetime, timezone, timedelta
@@ -359,23 +360,21 @@ Generate 3 recommendations as JSON array:"""
 
             response_text = await call_gemini(user_prompt, max_tokens=2048, system_message=system_prompt)
 
-            # Parse JSON response
-            response_text = response_text.strip()
-            # Clean up response if needed
-            if response_text.startswith("```json"):
-                response_text = response_text[7:]
-            if response_text.startswith("```"):
-                response_text = response_text[3:]
-            if response_text.endswith("```"):
-                response_text = response_text[:-3]
-            
-            recommendations = json.loads(response_text.strip())
-            
+            # Robustly extract JSON array from anywhere in the response
+            # (Gemini 2.5-flash sometimes adds trailing text after the closing ```)
+            json_match = re.search(r'\[[\s\S]*\]', response_text)
+            if not json_match:
+                logger.error(f"No JSON array found in LLM response: {response_text[:200]}")
+                result["error"] = "No JSON array found in LLM response"
+                return result
+
+            recommendations = json.loads(json_match.group(0))
+
             if not isinstance(recommendations, list):
                 recommendations = [recommendations]
-            
+
             result["recommendations"] = recommendations[:3]
-            
+
         except asyncio.TimeoutError:
             result["error"] = "Brain is thinking... check back in a moment"
             return result
@@ -384,7 +383,7 @@ Generate 3 recommendations as JSON array:"""
             result["error"] = "Failed to parse recommendations"
             return result
         except Exception as e:
-            logger.exception("LLM error")
+            logger.exception("LLM error in generate_recommendations")
             result["error"] = str(e)
             return result
         

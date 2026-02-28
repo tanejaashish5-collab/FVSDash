@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
   Briefcase, Radio, FolderOpen, DollarSign, MoreHorizontal, Calendar,
-  ArrowRight, FlaskConical, Video, Zap, Activity, Users, TrendingUp, Eye, Youtube, Brain, Swords
+  ArrowRight, Video, Zap, Activity, Users, TrendingUp, Eye, Youtube, Brain, Swords, Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -591,23 +591,13 @@ export default function OverviewPage() {
                     <ArrowRight className="h-3 w-3 ml-auto opacity-50" />
                   </Button>
                   <Button
-                    data-testid="action-strategy-lab"
-                    onClick={() => navigate('/dashboard/strategy')}
+                    data-testid="action-content-studio"
+                    onClick={() => navigate('/dashboard/studio')}
                     className="w-full justify-start gap-2 bg-white/[0.03] hover:bg-white/[0.06] text-zinc-300 border border-[#1F2933] h-9 text-xs"
                     variant="ghost"
                   >
-                    <FlaskConical className="h-3.5 w-3.5" />
-                    Open Strategy Lab
-                    <ArrowRight className="h-3 w-3 ml-auto opacity-50" />
-                  </Button>
-                  <Button
-                    data-testid="action-video-lab"
-                    onClick={() => navigate('/dashboard/video-lab')}
-                    className="w-full justify-start gap-2 bg-white/[0.03] hover:bg-white/[0.06] text-zinc-300 border border-[#1F2933] h-9 text-xs"
-                    variant="ghost"
-                  >
-                    <Video className="h-3.5 w-3.5" />
-                    Launch AI Video Lab
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Open Content Studio
                     <ArrowRight className="h-3 w-3 ml-auto opacity-50" />
                   </Button>
                 </>

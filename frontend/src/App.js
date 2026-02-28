@@ -92,9 +92,9 @@ function AppRoutes() {
           <Route path="/dashboard/studio" element={<ContentStudioPage />} />
           {/* Published library */}
           <Route path="/dashboard/published" element={<PublishedPage />} />
-          {/* Legacy lab pages — still accessible via direct URL */}
-          <Route path="/dashboard/strategy" element={<StrategyPage />} />
-          <Route path="/dashboard/video-lab" element={<VideoLabPage />} />
+          {/* Redirect legacy lab pages to Content Studio */}
+          <Route path="/dashboard/strategy" element={<Navigate to="/dashboard/studio" replace />} />
+          <Route path="/dashboard/video-lab" element={<Navigate to="/dashboard/studio" replace />} />
           <Route path="/dashboard/system" element={<FvsSystemPage />} />
           {/* Strategy Idea Detail */}
           <Route path="/dashboard/strategy/idea/:ideaId" element={<StrategyIdeaDetailPage />} />

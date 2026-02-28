@@ -198,7 +198,8 @@ export default function FvsSystemPage() {
         metadata: res.data,
         createdAt: new Date().toISOString()
       }, ...prev]);
-      toast.success(`Episode created!`, { description: 'Script, audio, video, and thumbnail generated.' });
+      toast.success(`Episode created!`, { description: 'Script, audio, and thumbnail generated. Opening submission…' });
+      navigate('/dashboard/submissions', { state: { openSubmissionId: res.data.submission.id } });
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to produce episode');
     } finally {
@@ -554,9 +555,10 @@ export default function FvsSystemPage() {
                                     disabled={isProducing}
                                     size="sm"
                                     className="h-7 text-[10px] px-2 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 gap-1"
-                                    title="Full auto-produce"
+                                    title="Full Auto — generates script, audio, thumbnail, and adds to pipeline"
                                   >
                                     {isProducing ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Zap className="h-2.5 w-2.5" />}
+                                    <span>Auto</span>
                                   </Button>
                                   <Button
                                     onClick={() => handleRejectIdea(idea.id)}

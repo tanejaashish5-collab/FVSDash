@@ -22,7 +22,7 @@ async def get_ai_capabilities():
 async def ai_generate(data: AIGenerateRequest, user: dict = Depends(get_current_user)):
     """Universal AI generation endpoint supporting multiple LLM providers."""
     valid_providers = ["gemini", "openai", "anthropic"]
-    valid_tasks = ["research", "outline", "script", "title", "description", "tags", "chapters", "youtube_package"]
+    valid_tasks = ["research", "outline", "script", "title", "description", "tags", "chapters", "youtube_package", "propose_ideas"]
 
     if data.provider not in valid_providers:
         raise HTTPException(status_code=400, detail=f"Invalid provider. Must be one of: {valid_providers}")

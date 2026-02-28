@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime, timezone
 import uuid
 
-from models.auth import UserCreate, UserLogin, UserResponse, TokenResponse, OnboardingUpdate
+from models.auth import UserCreate, UserLogin, UserResponse, TokenResponse, OnboardingUpdate, PasswordChange
 from services.auth_service import (
     hash_password, verify_password, create_token, get_current_user
 )
@@ -84,6 +84,21 @@ async def get_me(user: dict = Depends(get_current_user)):
         clientId=user.get("clientId"),
         onboardingComplete=onboarding_complete
     )
+
+
+@router.patch("/me/password")
+async def change_password(data: PasswordChange, user: dict = Depends(get_current_user)):
+    """Change the current user's password after verifying the current one."""
+    if not verify_password(data.current_password, user["passwordHash"]):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    if len(data.new_password) < 8:
+        raise HTTPException(status_code=400, detail="New password must be at least 8 characters")
+    db = users_collection()
+    await db.update_one(
+        {"id": user["id"]},
+        {"$set": {"passwordHash": hash_password(data.new_password), "updatedAt": datetime.now(timezone.utc).isoformat()}}
+    )
+    return {"message": "Password updated successfully"}
 
 
 @router.patch("/me/onboarding", response_model=UserResponse)

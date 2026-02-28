@@ -507,7 +507,7 @@ export default function OverviewPage() {
                   {data.upcoming.map(item => {
                     const sc = statusCfg[item.status] || statusCfg.SCHEDULED;
                     return (
-                      <div key={item.id} className="flex items-start gap-3 p-2.5 rounded-md hover:bg-white/[0.02] transition-colors border border-transparent hover:border-[#1F2933]">
+                      <div key={item.id} className="flex items-start gap-3 p-2.5 rounded-md hover:bg-white/[0.02] transition-colors border border-transparent hover:border-[#1F2933] cursor-pointer" onClick={() => navigate('/dashboard/submissions', { state: { openSubmissionId: item.id } })}>
                         <div className="shrink-0 mt-0.5">
                           <Calendar className="h-3.5 w-3.5 text-zinc-500" />
                         </div>

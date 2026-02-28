@@ -409,7 +409,7 @@ export default function SubmissionsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
-            Submissions
+            Pipeline
           </h1>
           <p className="text-sm text-zinc-500 mt-0.5">Submit new episodes and track their progress.</p>
         </div>
@@ -860,8 +860,7 @@ export default function SubmissionsPage() {
                         if (res.data?.length > 0 && res.data[0].text) prefill.script = res.data[0].text;
                       } catch { /* fall back to description */ }
                     }
-                    sessionStorage.setItem('studio_prefill_idea', JSON.stringify(prefill));
-                    navigate('/dashboard/studio');
+                    navigate('/dashboard/studio', { state: { prefill } });
                   }}
                   className="w-full h-9 text-xs border-zinc-800 text-zinc-300 hover:text-white hover:bg-white/5 justify-start"
                   data-testid="open-studio-btn"

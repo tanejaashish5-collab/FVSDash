@@ -304,6 +304,19 @@ export default function SubmissionsPage() {
     }
   };
 
+  // Delete submission (soft-delete)
+  const handleDeleteSubmission = async (submissionId) => {
+    if (!window.confirm('Delete this submission? This cannot be undone.')) return;
+    try {
+      await axios.delete(`${API}/submissions/${submissionId}`, { headers: authHeaders });
+      toast.success('Submission deleted');
+      setSelected(null);
+      fetchSubmissions();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Failed to delete submission');
+    }
+  };
+
   // Post Now
   const handlePostNow = async (platform) => {
     if (!selected) return;
@@ -1142,6 +1155,19 @@ export default function SubmissionsPage() {
                     );
                   })}
                 </div>
+              </div>
+
+              <Separator className="bg-[#1F2933] my-5" />
+
+              {/* Delete Submission */}
+              <div>
+                <button
+                  onClick={() => handleDeleteSubmission(selected.id)}
+                  className="w-full h-9 flex items-center justify-center gap-2 text-xs text-red-500/70 hover:text-red-400 border border-red-500/20 hover:border-red-500/40 rounded-md transition-colors"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete Submission
+                </button>
               </div>
             </>
           )}

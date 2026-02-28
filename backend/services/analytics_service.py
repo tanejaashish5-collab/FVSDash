@@ -264,14 +264,20 @@ async def get_analytics_overview(db, client_id: str, days: int = 30) -> Dict[str
     ).to_list(500)
     
     if not analytics:
+        # Still return channel snapshot data even before analytics sync runs
+        channel = await db.channel_snapshots.find_one(
+            {"clientId": client_id},
+            {"_id": 0},
+            sort=[("syncedAt", -1)]
+        )
         return {
-            "totalViews": 0,
+            "totalViews": channel.get("totalViews", 0) if channel else 0,
             "totalWatchTimeMinutes": 0,
             "avgCtr": 0,
             "avgAvd": 0,
             "bestPerformer": None,
-            "subscriberCount": 0,
-            "videoCount": 0,
+            "subscriberCount": channel.get("subscriberCount", 0) if channel else 0,
+            "videoCount": channel.get("videoCount", 0) if channel else 0,
             "lastSyncedAt": None
         }
     

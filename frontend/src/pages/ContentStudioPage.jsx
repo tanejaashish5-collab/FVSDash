@@ -109,6 +109,15 @@ export default function ContentStudioPage() {
   // Init: load capabilities + channel tone
   useEffect(() => {
     if (!authHeaders) return;
+    // Pre-fill from FVS System "Send to Studio"
+    const prefill = sessionStorage.getItem('studio_prefill_idea');
+    if (prefill) {
+      try {
+        const idea = JSON.parse(prefill);
+        if (idea.topic) setTopic(idea.topic);
+        sessionStorage.removeItem('studio_prefill_idea');
+      } catch {}
+    }
     Promise.all([
       axios.get(`${API}/ai/capabilities`, { headers: authHeaders }).catch(() => ({ data: { llmProviders: [], videoProviders: [] } })),
       axios.get(`${API}/channel-profile`, { headers: authHeaders }).catch(() => ({ data: null })),

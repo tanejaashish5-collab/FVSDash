@@ -372,6 +372,8 @@ async def oauth_callback(
             
             if token_response.status_code != 200:
                 error_detail = token_response.text
+                import logging
+                logging.error(f"[OAuth] Token exchange FAILED for {platform}. Status: {token_response.status_code}. Google response: {error_detail}")
                 return HTMLResponse(content=f"""
                     <html><body>
                     <script>

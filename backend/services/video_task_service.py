@@ -48,34 +48,37 @@ class VideoStatusResult:
 async def create_veo_job(task_data: dict) -> VideoJobResult:
     """
     Create a video generation job with Google Veo.
-    
-    Uses google-genai SDK with VEO_API_KEY from environment.
-    Falls back to mock if API key not configured or on error.
-    
-    Args:
-        task_data: Dict with prompt, aspectRatio, etc.
-        
-    Returns:
-        VideoJobResult with job ID and provider info
+
+    Supports two credential paths (tried in order):
+      1. VEO_API_KEY  — Google AI Studio API key (ai.google.dev)
+      2. GOOGLE_CLOUD_PROJECT + GOOGLE_APPLICATION_CREDENTIALS — Vertex AI
+
+    Falls back to mock if neither is configured or on error.
     """
     api_key = os.environ.get("VEO_API_KEY")
-    
-    if not api_key:
-        logger.warning("VEO_API_KEY not configured. Using mocked video generation.")
+    gcp_project = os.environ.get("GOOGLE_CLOUD_PROJECT")
+
+    if not api_key and not gcp_project:
+        logger.warning("No Veo credentials (VEO_API_KEY or GOOGLE_CLOUD_PROJECT). Using mocked video generation.")
         mock_job_id = f"veo-mock-{uuid.uuid4()}"
         return VideoJobResult(
             job_id=mock_job_id,
             provider="mock_veo",
             is_mocked=True,
-            warning="VEO_API_KEY not configured. Using mock video generation."
+            warning="Veo not configured. Set VEO_API_KEY (Google AI Studio) or GOOGLE_CLOUD_PROJECT (Vertex AI)."
         )
-    
+
     try:
         from google import genai
         from google.genai import types
-        
-        # Initialize client with API key
-        client = genai.Client(api_key=api_key)
+
+        # Initialize client — prefer API key, fall back to Vertex AI
+        if api_key:
+            client = genai.Client(api_key=api_key)
+        else:
+            gcp_location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
+            client = genai.Client(vertexai=True, project=gcp_project, location=gcp_location)
+            logger.info(f"Using Vertex AI for Veo: project={gcp_project}, location={gcp_location}")
         
         # Build prompt from task data
         prompt = task_data.get("prompt", "")
@@ -142,9 +145,10 @@ async def check_veo_job(job_id: str) -> VideoStatusResult:
         VideoStatusResult with status and video URL if ready
     """
     api_key = os.environ.get("VEO_API_KEY")
-    
-    # If it's a mock job, simulate completion
-    if job_id.startswith("veo-mock-") or not api_key:
+    gcp_project = os.environ.get("GOOGLE_CLOUD_PROJECT")
+
+    # If it's a mock job or no credentials, simulate completion
+    if job_id.startswith("veo-mock-") or (not api_key and not gcp_project):
         hash_val = int(hashlib.md5(job_id.encode()).hexdigest()[:8], 16)
         # Simulate 33% completion rate on each poll
         if hash_val % 3 == 0:
@@ -153,18 +157,22 @@ async def check_veo_job(job_id: str) -> VideoStatusResult:
                 status="READY",
                 video_url=mock_url,
                 is_mocked=True,
-                warning="Using mock video (VEO_API_KEY not configured)"
+                warning="Using mock video (Veo not configured)"
             )
         else:
             return VideoStatusResult(
                 status="PROCESSING",
                 is_mocked=True
             )
-    
+
     try:
         from google import genai
-        
-        client = genai.Client(api_key=api_key)
+
+        if api_key:
+            client = genai.Client(api_key=api_key)
+        else:
+            gcp_location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
+            client = genai.Client(vertexai=True, project=gcp_project, location=gcp_location)
         
         # Get operation status
         operation = client.operations.get(job_id)

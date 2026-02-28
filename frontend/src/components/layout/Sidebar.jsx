@@ -6,21 +6,19 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import axios from 'axios';
 import {
-  LayoutDashboard, FileText, Calendar, Package, FolderOpen,
-  BookOpen, FlaskConical, Video, BarChart3, TrendingUp,
-  CreditCard, Settings, HelpCircle, ShieldCheck, Mic, Brain, Send
+  LayoutDashboard, FileText, Calendar,
+  BookOpen, Wand2, BarChart3, TrendingUp,
+  CreditCard, Settings, HelpCircle, ShieldCheck, Mic, Brain, Youtube
 } from 'lucide-react';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-// Main nav items - Blog is client-only (requires channel for content)
+// Core workflow nav
 const mainNav = [
   { label: 'Overview', path: '/dashboard/overview', icon: LayoutDashboard },
-  { label: 'Submissions', path: '/dashboard/submissions', icon: FileText, showBadge: true },
+  { label: 'Pipeline', path: '/dashboard/submissions', icon: FileText, showBadge: true },
+  { label: 'Content Studio', path: '/dashboard/studio', icon: Wand2 },
   { label: 'Calendar', path: '/dashboard/calendar', icon: Calendar },
-  { label: 'Production Files', path: '/dashboard/deliverables', icon: Package },
-  { label: 'Assets', path: '/dashboard/assets', icon: FolderOpen },
-  { label: 'Publishing', path: '/dashboard/publishing', icon: Send },
 ];
 
 // Client-only nav items (require YouTube channel)
@@ -28,15 +26,14 @@ const clientOnlyNav = [
   { label: 'Blog', path: '/dashboard/blog', icon: BookOpen },
 ];
 
-const labNav = [
-  { label: 'Strategy Lab', path: '/dashboard/strategy', icon: FlaskConical },
-  { label: 'AI Video Lab', path: '/dashboard/video-lab', icon: Video },
-  { label: 'FVS System', path: '/dashboard/system', icon: Brain },
-];
-
 const insightsNav = [
+  { label: 'Published', path: '/dashboard/published', icon: Youtube },
   { label: 'Analytics', path: '/dashboard/analytics', icon: BarChart3 },
   { label: 'ROI Center', path: '/dashboard/roi', icon: TrendingUp },
+];
+
+const labNav = [
+  { label: 'FVS System', path: '/dashboard/system', icon: Brain },
 ];
 
 const mgmtNav = [
@@ -133,9 +130,11 @@ export default function Sidebar() {
   useEffect(() => {
     if (!authHeaders?.Authorization) return;
     
+    // Count only active pipeline items (exclude PUBLISHED)
     axios.get(`${API}/submissions`, { headers: authHeaders })
       .then(res => {
-        setSubmissionCount(res.data?.length || 0);
+        const active = (res.data || []).filter(s => s.status !== 'PUBLISHED');
+        setSubmissionCount(active.length);
       })
       .catch(() => {});
   }, [authHeaders]);
@@ -161,17 +160,18 @@ export default function Sidebar() {
       {/* Navigation */}
       <ScrollArea className="flex-1 py-3">
         <NavSection items={mainNav} currentPath={currentPath} submissionCount={submissionCount} />
-        
-        {/* Client-only nav items (Blog) - hidden for admin */}
+
+        {/* Blog - client-only, hidden for admin */}
         {!isAdmin && (
           <NavSection items={clientOnlyNav} currentPath={currentPath} submissionCount={submissionCount} />
         )}
-        
-        <Separator className="my-2 mx-4 bg-white/[0.06]" />
-        <NavSection title="Labs" items={labNav} currentPath={currentPath} submissionCount={submissionCount} />
-        
+
         <Separator className="my-2 mx-4 bg-white/[0.06]" />
         <NavSection title="Insights" items={insightsNav} currentPath={currentPath} submissionCount={submissionCount} />
+
+        <Separator className="my-2 mx-4 bg-white/[0.06]" />
+        <NavSection title="Tools" items={labNav} currentPath={currentPath} submissionCount={submissionCount} />
+
         <Separator className="my-2 mx-4 bg-white/[0.06]" />
         <NavSection title="Management" items={mgmtNav} currentPath={currentPath} submissionCount={submissionCount} />
 

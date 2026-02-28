@@ -6,6 +6,7 @@ import os
 import uuid
 import hashlib
 import logging
+import time as _time
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
@@ -60,7 +61,8 @@ async def create_veo_job(task_data: dict) -> VideoJobResult:
 
     if not api_key and not gcp_project:
         logger.warning("No Veo credentials (VEO_API_KEY or GOOGLE_CLOUD_PROJECT). Using mocked video generation.")
-        mock_job_id = f"veo-mock-{uuid.uuid4()}"
+        # Embed creation timestamp so check_veo_job can complete mock after 30 seconds
+        mock_job_id = f"veo-mock-{int(_time.time())}-{uuid.uuid4().hex[:8]}"
         return VideoJobResult(
             job_id=mock_job_id,
             provider="mock_veo",
@@ -116,7 +118,7 @@ async def create_veo_job(task_data: dict) -> VideoJobResult:
         
     except ImportError as e:
         logger.error(f"google-genai SDK not installed: {e}")
-        mock_job_id = f"veo-mock-{uuid.uuid4()}"
+        mock_job_id = f"veo-mock-{int(_time.time())}-{uuid.uuid4().hex[:8]}"
         return VideoJobResult(
             job_id=mock_job_id,
             provider="mock_veo",
@@ -125,7 +127,7 @@ async def create_veo_job(task_data: dict) -> VideoJobResult:
         )
     except Exception as e:
         logger.error(f"Veo video generation failed: {e}")
-        mock_job_id = f"veo-mock-{uuid.uuid4()}"
+        mock_job_id = f"veo-mock-{int(_time.time())}-{uuid.uuid4().hex[:8]}"
         return VideoJobResult(
             job_id=mock_job_id,
             provider="mock_veo",
@@ -147,23 +149,33 @@ async def check_veo_job(job_id: str) -> VideoStatusResult:
     api_key = os.environ.get("VEO_API_KEY")
     gcp_project = os.environ.get("GOOGLE_CLOUD_PROJECT")
 
-    # If it's a mock job or no credentials, simulate completion
-    if job_id.startswith("veo-mock-") or (not api_key and not gcp_project):
+    # If it's a mock job or no credentials, simulate completion via time-based approach.
+    # Job IDs created by this service embed creation timestamp: veo-mock-{ts}-{hex}
+    # After 30 seconds have elapsed, the mock completes deterministically.
+    if job_id.startswith("veo-mock-"):
         hash_val = int(hashlib.md5(job_id.encode()).hexdigest()[:8], 16)
-        # Simulate 33% completion rate on each poll
-        if hash_val % 3 == 0:
-            mock_url = MOCK_VIDEO_URLS[hash_val % len(MOCK_VIDEO_URLS)]
+        mock_url = MOCK_VIDEO_URLS[hash_val % len(MOCK_VIDEO_URLS)]
+        parts = job_id.split("-")
+        try:
+            # Format: veo-mock-{timestamp}-{hex}  → parts[2] is the timestamp
+            created_ts = int(parts[2])
+            elapsed = _time.time() - created_ts
+            if elapsed >= 30:
+                return VideoStatusResult(
+                    status="READY",
+                    video_url=mock_url,
+                    is_mocked=True,
+                    warning="Using mock video (configure VEO_API_KEY for real Veo)"
+                )
+        except (ValueError, IndexError):
+            # Old format job ID without timestamp — complete immediately
             return VideoStatusResult(
                 status="READY",
                 video_url=mock_url,
                 is_mocked=True,
-                warning="Using mock video (Veo not configured)"
+                warning="Using mock video (configure VEO_API_KEY for real Veo)"
             )
-        else:
-            return VideoStatusResult(
-                status="PROCESSING",
-                is_mocked=True
-            )
+        return VideoStatusResult(status="PROCESSING", is_mocked=True)
 
     try:
         from google import genai
@@ -218,21 +230,20 @@ async def check_veo_job(job_id: str) -> VideoStatusResult:
             
     except Exception as e:
         logger.error(f"Failed to check Veo job status: {e}")
-        # On error, fall back to mock behavior
+        # On error, fall back to time-based mock using same logic as above
         hash_val = int(hashlib.md5(job_id.encode()).hexdigest()[:8], 16)
-        if hash_val % 3 == 0:
-            mock_url = MOCK_VIDEO_URLS[hash_val % len(MOCK_VIDEO_URLS)]
-            return VideoStatusResult(
-                status="READY",
-                video_url=mock_url,
-                is_mocked=True,
-                warning=f"Failed to check Veo status: {str(e)}. Using mock video."
-            )
-        return VideoStatusResult(
-            status="PROCESSING",
-            is_mocked=True,
-            warning=f"Veo status check failed: {str(e)}"
-        )
+        mock_url = MOCK_VIDEO_URLS[hash_val % len(MOCK_VIDEO_URLS)]
+        parts = job_id.split("-")
+        try:
+            created_ts = int(parts[2])
+            if _time.time() - created_ts >= 30:
+                return VideoStatusResult(status="READY", video_url=mock_url, is_mocked=True,
+                                         warning=f"Veo error, using mock: {str(e)}")
+        except (ValueError, IndexError):
+            return VideoStatusResult(status="READY", video_url=mock_url, is_mocked=True,
+                                     warning=f"Veo error, using mock: {str(e)}")
+        return VideoStatusResult(status="PROCESSING", is_mocked=True,
+                                 warning=f"Veo status check failed: {str(e)}")
 
 
 # =============================================================================
@@ -260,7 +271,7 @@ async def create_video_job(provider: str, task_data: dict) -> VideoJobResult:
     elif provider == "kling":
         # Kling remains mocked - TODO: P2 integrate real API
         return VideoJobResult(
-            job_id=f"kling-mock-{uuid.uuid4()}",
+            job_id=f"kling-mock-{int(_time.time())}-{uuid.uuid4().hex[:8]}",
             provider="mock_kling",
             is_mocked=True,
             warning="Kling integration is mocked (P2)"
@@ -268,7 +279,7 @@ async def create_video_job(provider: str, task_data: dict) -> VideoJobResult:
     elif provider == "runway":
         # Runway remains mocked - TODO: P2 integrate real API
         return VideoJobResult(
-            job_id=f"runway-mock-{uuid.uuid4()}",
+            job_id=f"runway-mock-{int(_time.time())}-{uuid.uuid4().hex[:8]}",
             provider="mock_runway",
             is_mocked=True,
             warning="Runway integration is mocked (P2)"
@@ -300,18 +311,17 @@ async def check_video_job(provider: str, job_id: str) -> VideoStatusResult:
             is_mocked=True
         )
     elif provider == "runway":
-        # Runway mock - simulated processing
+        # Runway mock - time-based: complete 30s after creation timestamp in job_id
         hash_val = int(hashlib.md5(job_id.encode()).hexdigest()[:8], 16)
-        if hash_val % 3 == 0:
-            return VideoStatusResult(
-                status="READY",
-                video_url=MOCK_VIDEO_URLS[1],
-                is_mocked=True
-            )
-        return VideoStatusResult(
-            status="PROCESSING",
-            is_mocked=True
-        )
+        mock_url = MOCK_VIDEO_URLS[hash_val % len(MOCK_VIDEO_URLS)]
+        parts = job_id.split("-")
+        try:
+            created_ts = int(parts[2])
+            if _time.time() - created_ts >= 30:
+                return VideoStatusResult(status="READY", video_url=mock_url, is_mocked=True)
+        except (ValueError, IndexError):
+            return VideoStatusResult(status="READY", video_url=mock_url, is_mocked=True)
+        return VideoStatusResult(status="PROCESSING", is_mocked=True)
     
     return VideoStatusResult(
         status="FAILED",

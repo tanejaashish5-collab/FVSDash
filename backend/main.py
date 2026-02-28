@@ -16,7 +16,7 @@ from routers import (
     deliverables, analytics, roi, billing, settings,
     help, blog, ai, video_tasks, fvs, admin, channel_profile,
     publishing, strategy_session, notifications, oauth, youtube_publish,
-    trends, brain, dev, search, pipeline
+    trends, brain, dev, search, pipeline, video_editor
 )
 
 # Import database utilities
@@ -83,6 +83,7 @@ api_router.include_router(brain.router)
 api_router.include_router(dev.router)
 api_router.include_router(search.router)
 api_router.include_router(pipeline.router)
+api_router.include_router(video_editor.router)
 
 # Include API router in app
 app.include_router(api_router)

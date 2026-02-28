@@ -17,7 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   Lightbulb, FileText, Video, Send, Sparkles, Loader2,
   ChevronRight, CheckCircle, AlertCircle, Mic, History,
-  Plus, X, ImageIcon, RefreshCw, ExternalLink, Youtube, Trash2
+  Plus, X, ImageIcon, RefreshCw, ExternalLink, Youtube, Trash2, Upload
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -110,6 +110,9 @@ export default function ContentStudioPage() {
   const [pipelineUrl, setPipelineUrl] = useState('');
 
   const pollRef = useRef(null);
+  const audioUploadRef = useRef(null);
+  const thumbnailUploadRef = useRef(null);
+  const videoUploadRef = useRef(null);
 
   // Init: load capabilities + channel tone + voice ID
   useEffect(() => {
@@ -291,6 +294,17 @@ export default function ContentStudioPage() {
     if (sessionId) saveToSession(sessionId, { audio_url: '' });
   };
 
+  const handleAudioUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setAudioUrl(url);
+    setAudioStatus('ready');
+    setAudioWarning('Uploaded locally — not saved to cloud. Generate audio for persistent storage.');
+    toast.success(`Audio uploaded: ${file.name}`);
+    e.target.value = '';
+  };
+
   // ── Step 3: Thumbnail ─────────────────────────────────────────────────────
   const handleGenerateThumbnail = async () => {
     if (!topic.trim()) { toast.error('Enter a topic first'); return; }
@@ -322,6 +336,17 @@ export default function ContentStudioPage() {
     if (sessionId) saveToSession(sessionId, { thumbnail_url: '' });
   };
 
+  const handleThumbnailUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setThumbnailUrl(url);
+    setThumbnailStatus('ready');
+    setThumbnailWarning('Uploaded locally — not saved to cloud. Generate thumbnail for persistent storage.');
+    toast.success(`Thumbnail uploaded: ${file.name}`);
+    e.target.value = '';
+  };
+
   // ── Step 3: Video ─────────────────────────────────────────────────────────
   const handleGenerateVideo = async () => {
     if (!topic.trim() && !script.trim()) { toast.error('Add a topic or script first'); return; }
@@ -351,6 +376,18 @@ export default function ContentStudioPage() {
     setVideoUrl('');
     setVideoStatus('idle');
     if (sessionId) saveToSession(sessionId, { video_task_id: '', video_url: '' });
+  };
+
+  const handleVideoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    clearInterval(pollRef.current);
+    setVideoTaskId(null);
+    setVideoUrl(url);
+    setVideoStatus('ready');
+    toast.success(`Video uploaded: ${file.name}`);
+    e.target.value = '';
   };
 
   // ── Step 4: Publish ───────────────────────────────────────────────────────
@@ -440,6 +477,7 @@ export default function ContentStudioPage() {
 
   const hasIdea = topic.trim().length > 0;
   const hasScript = script.trim().length > 0;
+  const allAssetsReady = audioStatus === 'ready' && thumbnailStatus === 'ready' && videoStatus === 'ready';
   const llmProviders = capabilities.llmProviders?.length ? capabilities.llmProviders : ['gemini'];
 
   return (
@@ -632,23 +670,29 @@ export default function ContentStudioPage() {
                         )}
                       </div>
                     </div>
-                    <Button onClick={handleGenerateAudio} disabled={audioStatus === 'generating' || !hasScript} size="sm"
-                      className="w-full h-9 bg-zinc-900 border border-zinc-800 hover:border-emerald-500/30 text-white text-xs justify-start">
-                      {audioStatus === 'generating'
-                        ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
-                        : <Mic className="h-3.5 w-3.5 mr-2 text-emerald-400" />}
-                      {audioStatus === 'ready' ? 'Regenerate Audio' : 'Generate Audio from Script'}
-                      <ChevronRight className="h-3.5 w-3.5 ml-auto opacity-50" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button onClick={handleGenerateAudio} disabled={audioStatus === 'generating' || !hasScript} size="sm"
+                        className="flex-1 h-9 bg-zinc-900 border border-zinc-800 hover:border-emerald-500/30 text-white text-xs justify-start">
+                        {audioStatus === 'generating'
+                          ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                          : <Mic className="h-3.5 w-3.5 mr-2 text-emerald-400" />}
+                        {audioStatus === 'ready' ? 'Regenerate Audio' : 'Generate Audio from Script'}
+                        <ChevronRight className="h-3.5 w-3.5 ml-auto opacity-50" />
+                      </Button>
+                      <Button onClick={() => audioUploadRef.current?.click()} size="sm" title="Upload your own audio"
+                        className="h-9 px-3 bg-zinc-900 border border-zinc-800 hover:border-emerald-500/30 text-zinc-400 hover:text-white">
+                        <Upload className="h-3.5 w-3.5" />
+                      </Button>
+                      <input ref={audioUploadRef} type="file" accept="audio/*" hidden onChange={handleAudioUpload} />
+                    </div>
                     {audioWarning && (
                       <p className="text-[10px] text-amber-400/70 flex items-center gap-1">
                         <AlertCircle className="h-3 w-3 shrink-0" /> {audioWarning}
                       </p>
                     )}
                     {audioStatus === 'ready' && audioUrl && (
-                      <audio controls className="w-full mt-1" style={{ height: 36, colorScheme: 'dark' }}>
-                        <source src={audioUrl} />
-                      </audio>
+                      <audio key={audioUrl} controls src={audioUrl}
+                        className="w-full mt-1" style={{ height: 36, colorScheme: 'dark' }} />
                     )}
                   </div>
                 </CardContent>
@@ -677,15 +721,22 @@ export default function ContentStudioPage() {
                         )}
                       </div>
                     </div>
-                    <Button onClick={handleGenerateThumbnail}
-                      disabled={!hasIdea || thumbnailStatus === 'generating'} size="sm"
-                      className="w-full h-9 bg-zinc-900 border border-zinc-800 hover:border-violet-500/30 text-white text-xs justify-start">
-                      {thumbnailStatus === 'generating'
-                        ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
-                        : <ImageIcon className="h-3.5 w-3.5 mr-2 text-violet-400" />}
-                      {thumbnailStatus === 'ready' ? 'Regenerate Thumbnail' : 'Generate Thumbnail'}
-                      <ChevronRight className="h-3.5 w-3.5 ml-auto opacity-50" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button onClick={handleGenerateThumbnail}
+                        disabled={!hasIdea || thumbnailStatus === 'generating'} size="sm"
+                        className="flex-1 h-9 bg-zinc-900 border border-zinc-800 hover:border-violet-500/30 text-white text-xs justify-start">
+                        {thumbnailStatus === 'generating'
+                          ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                          : <ImageIcon className="h-3.5 w-3.5 mr-2 text-violet-400" />}
+                        {thumbnailStatus === 'ready' ? 'Regenerate Thumbnail' : 'Generate Thumbnail'}
+                        <ChevronRight className="h-3.5 w-3.5 ml-auto opacity-50" />
+                      </Button>
+                      <Button onClick={() => thumbnailUploadRef.current?.click()} size="sm" title="Upload your own thumbnail"
+                        className="h-9 px-3 bg-zinc-900 border border-zinc-800 hover:border-violet-500/30 text-zinc-400 hover:text-white">
+                        <Upload className="h-3.5 w-3.5" />
+                      </Button>
+                      <input ref={thumbnailUploadRef} type="file" accept="image/*" hidden onChange={handleThumbnailUpload} />
+                    </div>
                     {thumbnailWarning && (
                       <p className="text-[10px] text-amber-400/70 flex items-center gap-1">
                         <AlertCircle className="h-3 w-3 shrink-0" /> {thumbnailWarning}
@@ -733,6 +784,12 @@ export default function ContentStudioPage() {
                           ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
                           : <Sparkles className="h-3.5 w-3.5" />}
                       </Button>
+                      <Button onClick={() => videoUploadRef.current?.click()} size="sm" title="Upload your own video"
+                        disabled={videoStatus === 'processing'}
+                        className="h-9 px-3 bg-zinc-900 border border-zinc-800 hover:border-violet-500/30 text-zinc-400 hover:text-white">
+                        <Upload className="h-3.5 w-3.5" />
+                      </Button>
+                      <input ref={videoUploadRef} type="file" accept="video/*" hidden onChange={handleVideoUpload} />
                     </div>
                     {videoStatus === 'processing' && (
                       <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/20">
@@ -778,13 +835,33 @@ export default function ContentStudioPage() {
                       className="min-h-[60px] bg-zinc-950 border-zinc-800 text-white text-xs resize-none"
                     />
                   </div>
-                  <Button onClick={handleAddToPipeline} disabled={publishing || !hasIdea} size="sm"
-                    className="w-full h-9 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-400 text-xs">
+                  <Button onClick={handleAddToPipeline} disabled={publishing || !allAssetsReady} size="sm"
+                    className="w-full h-9 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-400 text-xs disabled:opacity-40">
                     {publishing
                       ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
                       : <Send className="h-3.5 w-3.5 mr-2" />}
                     Add to Pipeline
                   </Button>
+                  {!allAssetsReady && hasIdea && (
+                    <div className="p-2.5 rounded bg-zinc-950 border border-zinc-800 space-y-0.5">
+                      <p className="text-[10px] text-zinc-500 font-medium">Complete before adding to pipeline:</p>
+                      {audioStatus !== 'ready' && (
+                        <p className="text-[10px] text-amber-400/80 flex items-center gap-1">
+                          <AlertCircle className="h-2.5 w-2.5 shrink-0" /> Audio not ready — generate or upload
+                        </p>
+                      )}
+                      {thumbnailStatus !== 'ready' && (
+                        <p className="text-[10px] text-amber-400/80 flex items-center gap-1">
+                          <AlertCircle className="h-2.5 w-2.5 shrink-0" /> Thumbnail not ready — generate or upload
+                        </p>
+                      )}
+                      {videoStatus !== 'ready' && (
+                        <p className="text-[10px] text-amber-400/80 flex items-center gap-1">
+                          <AlertCircle className="h-2.5 w-2.5 shrink-0" /> Video not ready — generate or upload
+                        </p>
+                      )}
+                    </div>
+                  )}
                   {pipelineUrl && (
                     <p className="text-[10px] text-emerald-400 flex items-center gap-1.5">
                       <CheckCircle className="h-3 w-3" />
@@ -831,9 +908,8 @@ export default function ContentStudioPage() {
                           <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
                             <CheckCircle className="h-3 w-3 text-emerald-400" /> Audio
                           </p>
-                          <audio controls className="w-full" style={{ height: 36, colorScheme: 'dark' }}>
-                            <source src={audioUrl} />
-                          </audio>
+                          <audio key={audioUrl} controls src={audioUrl}
+                            className="w-full" style={{ height: 36, colorScheme: 'dark' }} />
                         </div>
                       )}
 

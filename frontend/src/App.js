@@ -38,6 +38,7 @@ import FvsSystemPage from "@/pages/FvsSystemPage";
 import StrategyIdeaDetailPage from "@/pages/StrategyIdeaDetailPage";
 import PublishingDashboardPage from "@/pages/PublishingDashboardPage";
 import ContentStudioPage from "@/pages/ContentStudioPage";
+import VideoEditorPage from "@/pages/VideoEditorPage";
 import PublishedPage from "@/pages/PublishedPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 
@@ -102,6 +103,8 @@ function AppRoutes() {
           <Route path="/dashboard/blog" element={<BlogPage />} />
           {/* Content Studio — new unified creation page */}
           <Route path="/dashboard/studio" element={<ContentStudioPage />} />
+          {/* Video Editor — upload, arrange clips, FFmpeg stitch */}
+          <Route path="/dashboard/video-editor" element={<VideoEditorPage />} />
           {/* Published library */}
           <Route path="/dashboard/published" element={<PublishedPage />} />
           {/* Redirect legacy lab pages to Content Studio */}

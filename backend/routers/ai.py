@@ -111,3 +111,198 @@ async def preview_voices(request: Request, data: dict, user: dict = Depends(get_
     voice_ids = data.get("voiceIds")  # Optional: override default set
     result = await preview_multiple_voices(preview_text, voice_ids)
     return result
+
+
+@router.post("/ai/suggest-schedule")
+async def suggest_schedule(request: Request, data: dict, user: dict = Depends(get_current_user)):
+    """
+    AI-powered publish schedule recommendations.
+
+    Analyses the client's existing submission release dates and historical
+    publishing patterns, then calls Gemini to recommend optimal publish slots
+    for the next 7 days with day-of-week and time-of-day reasoning.
+
+    Returns: { suggestions: [{date, dayOfWeek, reason, contentType, priority}], insight: str }
+    """
+    from db.mongo import get_db
+    from services.auth_service import get_client_id_from_user
+    from services.ai_service import call_llm
+    import json as _json
+    from datetime import datetime, timezone, timedelta
+
+    client_id = get_client_id_from_user(user, data.get("impersonateClientId"))
+    db = get_db()
+
+    # Gather last 60 submissions to analyse patterns
+    subs = await db.submissions.find(
+        {"clientId": client_id, "status": {"$ne": "DELETED"}},
+        {"_id": 0, "status": 1, "contentType": 1, "releaseDate": 1, "priority": 1, "title": 1}
+    ).sort("createdAt", -1).to_list(60)
+
+    pipeline_summary = {}
+    published_days: list[str] = []
+    content_mix: dict[str, int] = {}
+    for s in subs:
+        st = s.get("status", "INTAKE")
+        pipeline_summary[st] = pipeline_summary.get(st, 0) + 1
+        ct = s.get("contentType", "Unknown")
+        content_mix[ct] = content_mix.get(ct, 0) + 1
+        if st == "PUBLISHED" and s.get("releaseDate"):
+            try:
+                d = datetime.fromisoformat(s["releaseDate"])
+                published_days.append(d.strftime("%A"))
+            except Exception:
+                pass
+
+    # Build context for Gemini
+    today = datetime.now(timezone.utc)
+    next_7 = [(today + timedelta(days=i)).strftime("%Y-%m-%d (%A)") for i in range(1, 8)]
+    pending_content = [s for s in subs if s.get("status") in ("INTAKE", "EDITING", "DESIGN")]
+
+    prompt = f"""You are a YouTube/short-form content calendar expert.
+
+Client pipeline summary: {_json.dumps(pipeline_summary)}
+Historical publish day distribution: {published_days[-20:] if published_days else 'no data yet'}
+Content type mix: {_json.dumps(content_mix)}
+Pending content (ready to schedule): {len(pending_content)} items
+Content types pending: {list(set(s.get('contentType','') for s in pending_content[:5]))}
+
+Available dates next 7 days: {next_7}
+
+Recommend 3-5 optimal publish dates from the list above. For each:
+- Choose the best day/time for maximum reach
+- Prefer Tue/Wed/Thu for most content types; Mon for motivational; Fri for entertaining
+- Space releases at least 2 days apart
+- Match content type to audience availability patterns
+
+Return ONLY valid JSON (no markdown):
+{{
+  "suggestions": [
+    {{
+      "date": "YYYY-MM-DD",
+      "dayOfWeek": "Tuesday",
+      "timeOfDay": "18:00 UTC",
+      "reason": "one sentence why",
+      "priority": "High|Medium|Low"
+    }}
+  ],
+  "insight": "2-3 sentence overall scheduling strategy insight for this client"
+}}"""
+
+    raw = await call_llm(prompt, provider="gemini", task="schedule")
+    try:
+        result = _json.loads(raw.strip().lstrip("```json").rstrip("```").strip())
+    except Exception:
+        result = {"suggestions": [], "insight": raw[:300] if raw else "Unable to generate suggestions"}
+
+    return result
+
+
+@router.post("/ai/analyze-comments")
+async def analyze_comments(request: Request, data: dict, user: dict = Depends(get_current_user)):
+    """
+    YouTube Comment Intelligence — mine comments for content ideas.
+
+    Fetches the top 100 comments from a YouTube video URL, passes them to
+    Gemini for thematic analysis, and returns structured insights:
+    - Recurring themes and questions
+    - Audience pain points
+    - Content idea suggestions
+    - Sentiment summary
+
+    Requires YOUTUBE_API_KEY env var for live data; returns mock data otherwise.
+    """
+    import os
+    import re
+    import json as _json
+    from services.ai_service import call_llm
+
+    video_url = data.get("videoUrl") or data.get("url", "")
+    if not video_url:
+        raise HTTPException(status_code=400, detail="videoUrl is required")
+
+    # Extract video ID
+    vid_match = re.search(r"(?:v=|youtu\.be/|shorts/)([A-Za-z0-9_-]{11})", video_url)
+    if not vid_match:
+        raise HTTPException(status_code=400, detail="Could not extract YouTube video ID from URL")
+    video_id = vid_match.group(1)
+
+    # Fetch comments via YouTube Data API v3
+    yt_key = os.getenv("YOUTUBE_API_KEY")
+    comments_text = ""
+    is_mocked = False
+
+    if yt_key:
+        try:
+            import httpx
+            async with httpx.AsyncClient() as client:
+                res = await client.get(
+                    "https://www.googleapis.com/youtube/v3/commentThreads",
+                    params={
+                        "part": "snippet",
+                        "videoId": video_id,
+                        "maxResults": 100,
+                        "order": "relevance",
+                        "key": yt_key,
+                    },
+                    timeout=15,
+                )
+                res.raise_for_status()
+                items = res.json().get("items", [])
+                comments_text = "\n".join(
+                    item["snippet"]["topLevelComment"]["snippet"]["textDisplay"]
+                    for item in items
+                )
+        except Exception as e:
+            comments_text = ""
+            is_mocked = True
+
+    if not comments_text:
+        is_mocked = True
+        comments_text = """Great video! Can you do one on pricing strategies?
+I've been struggling with this exact problem for months.
+What tools do you use for this?
+This changed how I think about content. More please!
+The part about {{topic}} was gold — do a deep dive on that?
+Can you cover the beginner version of this?
+I tried this and it worked! Thanks so much.
+What about for B2B companies — does this apply?
+Would love to see a follow-up on the advanced techniques.
+This is exactly what I needed to hear today."""
+
+    prompt = f"""You are a content strategist analysing YouTube comments to extract content intelligence.
+
+Video URL: {video_url}
+Comments ({len(comments_text.split(chr(10)))} comments):
+{comments_text[:4000]}
+
+Analyse these comments and return ONLY valid JSON (no markdown):
+{{
+  "themes": [
+    {{"theme": "string", "frequency": "high|medium|low", "example": "direct quote from comments"}}
+  ],
+  "audienceQuestions": ["question 1", "question 2", "question 3"],
+  "painPoints": ["pain point 1", "pain point 2"],
+  "contentIdeas": [
+    {{"title": "video title idea", "type": "Short|Tutorial|Deep-dive", "rationale": "why this would perform"}}
+  ],
+  "sentiment": {{"positive": 70, "neutral": 20, "negative": 10}},
+  "topRequest": "the single most requested follow-up topic"
+}}"""
+
+    raw = await call_llm(prompt, provider="gemini", task="analysis")
+    try:
+        result = _json.loads(raw.strip().lstrip("```json").rstrip("```").strip())
+    except Exception:
+        result = {
+            "themes": [],
+            "audienceQuestions": [],
+            "painPoints": [],
+            "contentIdeas": [],
+            "sentiment": {"positive": 60, "neutral": 30, "negative": 10},
+            "topRequest": "Unable to parse",
+        }
+
+    result["videoId"] = video_id
+    result["isMocked"] = is_mocked
+    return result

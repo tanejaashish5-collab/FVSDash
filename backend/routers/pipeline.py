@@ -4,7 +4,10 @@ Pipeline API for ForgeVoice Studio.
 Orchestrates the Script-to-Short pipeline:
 Strategy Lab → AI Video Lab → Submissions → Publishing
 """
-from fastapi import APIRouter, Depends, HTTPException, Query
+import asyncio
+import json
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional
 
@@ -312,5 +315,67 @@ async def link_video_asset_to_submission(
             status_code=400,
             detail=result.get("error", "Failed to link video")
         )
-    
+
     return result
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Server-Sent Events — real-time pipeline status push
+# ──────────────────────────────────────────────────────────────────────────────
+
+@router.get("/events", include_in_schema=False)
+async def pipeline_sse(
+    request: Request,
+    token: Optional[str] = Query(None),  # EventSource can't set headers — accept via query param
+    impersonateClientId: Optional[str] = Query(None),
+):
+    """
+    SSE stream that pushes pipeline events to the browser in real time.
+
+    Events:
+      {"type": "connected"}
+      {"type": "ping"}
+      {"type": "submission_status", "data": {"id": "...", "status": "EDITING", "title": "..."}}
+    """
+    from services.event_bus import subscribe, unsubscribe
+    from services.auth_service import get_client_id_from_user
+
+    # Validate the bearer token passed as query param (EventSource can't set headers)
+    if not token:
+        from fastapi.responses import Response
+        return Response(status_code=401, content="token required")
+    try:
+        import jwt as _jwt
+        from services.auth_service import JWT_SECRET, JWT_ALGORITHM
+        from db.mongo import users_collection
+        payload = _jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        user_db = users_collection()
+        user = await user_db.find_one({"id": payload["sub"]}, {"_id": 0})
+        if not user:
+            raise ValueError("user not found")
+    except Exception:
+        from fastapi.responses import Response
+        return Response(status_code=401, content="invalid token")
+
+    client_id = get_client_id_from_user(user, impersonateClientId)
+    q = subscribe(client_id)
+
+    async def event_stream():
+        try:
+            yield 'data: {"type":"connected"}\n\n'
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    event = await asyncio.wait_for(q.get(), timeout=20.0)
+                    yield f"data: {json.dumps(event)}\n\n"
+                except asyncio.TimeoutError:
+                    yield 'data: {"type":"ping"}\n\n'
+        finally:
+            unsubscribe(client_id, q)
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )

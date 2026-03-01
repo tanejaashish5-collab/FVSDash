@@ -158,6 +158,18 @@ async def update_submission_status(
     result = await db.update_one(query, {"$set": {"status": data.status, "updatedAt": now}})
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Submission not found")
+
+    # Broadcast real-time status change via SSE
+    try:
+        from services.event_bus import emit as sse_emit
+        await sse_emit(client_id, "submission_status", {
+            "id": submission_id,
+            "status": data.status,
+            "title": submission.get("title", ""),
+            "updatedAt": now,
+        })
+    except Exception:
+        pass  # SSE broadcast is best-effort
     
     # Create notification for status change
     try:

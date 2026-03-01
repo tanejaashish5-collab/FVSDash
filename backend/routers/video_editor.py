@@ -277,8 +277,9 @@ async def _run_ffmpeg_stitch(project_id: str, client_id: str):
                 if not url:
                     continue
                 try:
-                    if url.startswith("local://"):
-                        # Read from local storage
+                    if url.startswith("/api/files/") or url.startswith("local://"):
+                        # Read from local storage — handles both new /api/files/ format
+                        # and legacy local:// format
                         storage = get_storage_service()
                         data = await storage.read_file(url)
                         if data:
@@ -286,6 +287,8 @@ async def _run_ffmpeg_stitch(project_id: str, client_id: str):
                             with open(path, "wb") as f:
                                 f.write(data)
                             clip_paths.append(path)
+                        else:
+                            logger.warning(f"Could not read local clip: {url}")
                     else:
                         resp = await http_client.get(url)
                         if resp.status_code == 200:

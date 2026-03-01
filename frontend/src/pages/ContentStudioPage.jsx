@@ -133,6 +133,7 @@ export default function ContentStudioPage() {
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [thumbnailStatus, setThumbnailStatus] = useState('idle');
   const [thumbnailWarning, setThumbnailWarning] = useState('');
+  const [thumbnailCustomPrompt, setThumbnailCustomPrompt] = useState('');
   const [videoTaskId, setVideoTaskId] = useState(null);
   const [videoStatus, setVideoStatus] = useState('idle');
   const [videoUrl, setVideoUrl] = useState('');
@@ -342,6 +343,7 @@ export default function ContentStudioPage() {
       const sid = await ensureSession();
       const res = await axios.post(`${API}/ai/generate-thumbnail`, {
         topic, tone, title: publishTitle || topic,
+        ...(thumbnailCustomPrompt.trim() ? { customPrompt: thumbnailCustomPrompt.trim() } : {}),
       }, { headers: authHeaders });
       const url = res.data.url || '';
       setThumbnailUrl(url);
@@ -388,7 +390,14 @@ export default function ContentStudioPage() {
       }, { headers: authHeaders });
       const taskId = res.data.id || res.data.task_id;
       setVideoTaskId(taskId);
-      toast.info('Video generating — takes 1–3 mins. You can keep editing here.');
+      // Surface any provider warnings (e.g. Veo access denied, API key missing)
+      if (res.data.warnings?.length) {
+        toast.warning(`Video: ${res.data.warnings[0]}`, { duration: 8000 });
+      } else if (res.data.isMocked) {
+        toast.info('Video generating (mock mode — set VEO_API_KEY / GEMINI_API_KEY for real Veo).');
+      } else {
+        toast.info('Video generating — takes 1–3 mins. You can keep editing here.');
+      }
 
       // Persist task ID to session
       if (sid && taskId) await saveToSession(sid, { video_task_id: taskId });
@@ -745,6 +754,13 @@ export default function ContentStudioPage() {
                         )}
                       </div>
                     </div>
+                    <Textarea
+                      placeholder="Custom DALL-E prompt (optional) — leave blank to auto-generate from topic. Example: 'A dark cinematic thumbnail with bold text, dramatic lighting, futuristic city backdrop'"
+                      value={thumbnailCustomPrompt}
+                      onChange={e => setThumbnailCustomPrompt(e.target.value)}
+                      rows={2}
+                      className="text-xs min-h-[52px] bg-zinc-950 border-zinc-800 text-zinc-300 placeholder:text-zinc-600 resize-none"
+                    />
                     <div className="flex gap-2">
                       <Button onClick={handleGenerateThumbnail}
                         disabled={!hasIdea || thumbnailStatus === 'generating'} size="sm"

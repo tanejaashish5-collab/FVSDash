@@ -1,28 +1,26 @@
 /**
- * Video Editor — upload, arrange, and stitch clips into a finished video.
+ * Video Editor — CapCut-like editing interface.
  *
- * Architecture:
- *  - All uploads go to the backend → S3 (or local fallback) for persistent storage
- *  - Projects (clip sequences + audio + thumbnail) are saved in MongoDB
- *  - Stitch runs server-side via FFmpeg (BackgroundTask), polled until ready
- *  - DnD reordering via @dnd-kit/sortable (already installed)
+ * Features:
+ *  - Project management (create / load / list in left sidebar)
+ *  - Main clip timeline (drag-to-reorder via @dnd-kit/sortable)
+ *  - B-roll track (picture-in-picture overlays with position + scale controls)
+ *  - Per-clip preview with interactive scrubber + "Set In / Set Out" trim
+ *  - Per-clip mute toggle (strips audio at stitch time)
+ *  - Audio track with waveform visualization (wavesurfer.js)
+ *  - Server-side FFmpeg stitch (Phase 1 trim/mute, Phase 2 concat, Phase 2B broll, Phase 3 audio)
+ *  - AI metadata generation (title, description, hashtags, tags)
+ *  - Export to Pipeline with optional schedule date
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
+  DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors,
 } from '@dnd-kit/core';
 import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  horizontalListSortingStrategy,
-  useSortable,
-  arrayMove,
+  SortableContext, sortableKeyboardCoordinates, horizontalListSortingStrategy,
+  useSortable, arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,11 +28,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import {
-  Scissors, Upload, Play, Trash2, GripVertical, Loader2,
-  Music, ImageIcon, Film, CheckCircle, AlertCircle, Plus,
-  Download, RefreshCw, FolderOpen, X
+  Scissors, Upload, Play, Pause, Trash2, GripVertical, Loader2,
+  Music, ImageIcon, Film, CheckCircle, AlertCircle, Plus, Download,
+  RefreshCw, FolderOpen, X, Send, Copy, ChevronDown, ChevronUp,
+  Volume2, VolumeX, SkipBack, Settings2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -42,725 +41,973 @@ import axios from 'axios';
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
 
-/** Resolve a storage URL — relative /api/files/ paths need the backend origin prepended. */
 function resolveUrl(url) {
   if (!url) return '';
   if (url.startsWith('/api/files/')) return `${BACKEND}${url}`;
   return url;
 }
 
+function fmtTime(s) {
+  if (!s && s !== 0) return '--';
+  const m = Math.floor(s / 60);
+  const sec = (s % 60).toFixed(2).padStart(5, '0');
+  return `${m}:${sec}`;
+}
+
 // ---------------------------------------------------------------------------
-// Sortable clip card (used inside DnD context)
+// Sortable clip card (main timeline)
 // ---------------------------------------------------------------------------
 function SortableClip({ clip, isSelected, onSelect, onRemove }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: clip.id,
-  });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 50 : 'auto',
-  };
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: clip.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
+  const trimmed = clip.trimEnd != null;
+  const dur = trimmed ? (clip.trimEnd - (clip.trimStart || 0)) : (clip.duration || null);
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
+    <div ref={setNodeRef} style={style}
       className={`relative flex-shrink-0 w-36 rounded-lg border cursor-pointer select-none transition-colors ${
-        isSelected
-          ? 'border-violet-500/60 bg-violet-500/10'
-          : 'border-zinc-800 bg-zinc-950 hover:border-zinc-700'
+        isSelected ? 'border-violet-500/60 bg-violet-500/10' : 'border-zinc-800 bg-zinc-950 hover:border-zinc-700'
       }`}
-      onClick={() => onSelect(clip.id)}
-    >
-      {/* Drag handle */}
-      <div
-        {...attributes}
-        {...listeners}
-        className="absolute top-1.5 left-1.5 text-zinc-600 hover:text-zinc-400 cursor-grab active:cursor-grabbing"
-        onClick={e => e.stopPropagation()}
-      >
+      onClick={() => onSelect(clip.id)}>
+      <div {...attributes} {...listeners}
+        className="flex items-center justify-center h-6 text-zinc-700 hover:text-zinc-400 cursor-grab active:cursor-grabbing">
         <GripVertical className="h-3.5 w-3.5" />
       </div>
-
-      {/* Remove button */}
-      <button
-        onClick={e => { e.stopPropagation(); onRemove(clip.id); }}
-        className="absolute top-1.5 right-1.5 text-zinc-700 hover:text-red-400 transition-colors"
-      >
+      <div className="px-2 pb-2">
+        <Film className="h-5 w-5 text-violet-400/60 mx-auto mb-1" />
+        <p className="text-[10px] text-zinc-400 truncate text-center">{clip.name}</p>
+        <div className="flex items-center justify-center gap-1 mt-1">
+          {clip.muted && <VolumeX className="h-2.5 w-2.5 text-red-400" title="Muted" />}
+          {dur != null && (
+            <span className={`text-[9px] ${trimmed ? 'text-emerald-400' : 'text-zinc-600'}`}>
+              {dur.toFixed(1)}s{trimmed ? ' (trimmed)' : ''}
+            </span>
+          )}
+        </div>
+      </div>
+      <button onClick={e => { e.stopPropagation(); onRemove(clip.id); }}
+        className="absolute top-1 right-1 text-zinc-700 hover:text-red-400 transition-colors">
         <X className="h-3 w-3" />
       </button>
+    </div>
+  );
+}
 
-      {/* Clip icon + name */}
-      <div className="pt-7 pb-2 px-2 flex flex-col items-center gap-1.5">
-        <div className="h-16 w-full rounded bg-zinc-900 flex items-center justify-center">
-          <Film className="h-6 w-6 text-zinc-700" />
-        </div>
-        <p className="text-[10px] text-zinc-400 text-center truncate w-full px-1">{clip.name}</p>
+// ---------------------------------------------------------------------------
+// B-roll clip card
+// ---------------------------------------------------------------------------
+function BrollCard({ clip, onUpdate, onRemove }) {
+  return (
+    <div className="flex-shrink-0 w-40 rounded-lg border border-pink-500/20 bg-pink-500/5 p-2 space-y-1.5">
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] text-pink-300 truncate flex-1">{clip.name}</p>
+        <button onClick={() => onRemove(clip.id)} className="text-zinc-700 hover:text-red-400 ml-1">
+          <X className="h-3 w-3" />
+        </button>
+      </div>
+      <div className="flex items-center gap-1">
+        <span className="text-[9px] text-zinc-600 w-9">Offset</span>
+        <Input type="number" min={0} step={0.5} value={clip.offsetSeconds ?? 0}
+          onChange={e => onUpdate(clip.id, { offsetSeconds: parseFloat(e.target.value) || 0 })}
+          className="h-5 flex-1 text-[9px] px-1 bg-zinc-950 border-zinc-800" />
+        <span className="text-[9px] text-zinc-600">s</span>
+      </div>
+      <select value={clip.position || 'top-right'}
+        onChange={e => onUpdate(clip.id, { position: e.target.value })}
+        className="w-full text-[9px] bg-zinc-950 border border-zinc-800 rounded p-0.5 text-zinc-400">
+        <option value="top-right">Top Right</option>
+        <option value="top-left">Top Left</option>
+        <option value="bottom-right">Bottom Right</option>
+        <option value="bottom-left">Bottom Left</option>
+        <option value="center">Center</option>
+      </select>
+      <div className="flex items-center gap-1">
+        <span className="text-[9px] text-zinc-600 w-9">Scale</span>
+        <input type="range" min={0.15} max={0.6} step={0.05} value={clip.scale ?? 0.35}
+          onChange={e => onUpdate(clip.id, { scale: parseFloat(e.target.value) })}
+          className="flex-1 accent-pink-500" />
+        <span className="text-[9px] text-zinc-600">{Math.round((clip.scale ?? 0.35) * 100)}%</span>
       </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Main page
+// Main component
 // ---------------------------------------------------------------------------
 export default function VideoEditorPage() {
   const { authHeaders } = useAuth();
+  const navigate = useNavigate();
 
   // Projects
   const [projects, setProjects] = useState([]);
   const [activeProjectId, setActiveProjectId] = useState(null);
-  const [project, setProject] = useState(null);
-  const [projectTitle, setProjectTitle] = useState('Untitled Project');
-  const [loadingProjects, setLoadingProjects] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [projectTitle, setProjectTitle] = useState('');
+  const [projectSidebarOpen, setProjectSidebarOpen] = useState(true);
+  const [creatingProject, setCreatingProject] = useState(false);
+  const [newProjectTitle, setNewProjectTitle] = useState('');
 
   // Clips
-  const [clips, setClips] = useState([]);           // local ordered state (mirrors project.clips)
+  const [clips, setClips] = useState([]);
+  const [brollClips, setBrollClips] = useState([]);
   const [selectedClipId, setSelectedClipId] = useState(null);
 
-  // Audio + Thumbnail
+  // Asset URLs
   const [audioUrl, setAudioUrl] = useState('');
   const [audioName, setAudioName] = useState('');
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [thumbnailName, setThumbnailName] = useState('');
 
-  // Upload states
-  const [uploadingClip, setUploadingClip] = useState(false);
-  const [uploadingAudio, setUploadingAudio] = useState(false);
-  const [uploadingThumb, setUploadingThumb] = useState(false);
+  // Video preview + scrubber
+  const previewVideoRef = useRef(null);
+  const [previewTime, setPreviewTime] = useState(0);
+  const [previewDuration, setPreviewDuration] = useState(0);
+  const [previewPlaying, setPreviewPlaying] = useState(false);
+
+  // Waveform (wavesurfer.js)
+  const waveformRef = useRef(null);
+  const wsRef = useRef(null);
+  const [wsReady, setWsReady] = useState(false);
+  const [wsPlaying, setWsPlaying] = useState(false);
 
   // Stitch
   const [stitching, setStitching] = useState(false);
   const [stitchedUrl, setStitchedUrl] = useState('');
   const [stitchError, setStitchError] = useState('');
-  const pollRef = useRef(null);
+  const stitchPollRef = useRef(null);
 
-  // File input refs
+  // Metadata
+  const [metadata, setMetadata] = useState(null);
+  const [generatingMeta, setGeneratingMeta] = useState(false);
+  const [metaOpen, setMetaOpen] = useState(false);
+
+  // Export
+  const [exportTitle, setExportTitle] = useState('');
+  const [exportDate, setExportDate] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const [exportedId, setExportedId] = useState('');
+
+  // Upload refs
   const clipInputRef = useRef(null);
+  const brollInputRef = useRef(null);
   const audioInputRef = useRef(null);
-  const thumbInputRef = useRef(null);
+  const thumbnailInputRef = useRef(null);
+
+  const [uploading, setUploading] = useState({ clip: false, broll: false, audio: false, thumb: false });
+
+  const selectedClip = clips.find(c => c.id === selectedClipId) || null;
 
   // DnD sensors
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  const selectedClip = clips.find(c => c.id === selectedClipId) || null;
-
   // ---------------------------------------------------------------------------
-  // Load project list
+  // Load projects
   // ---------------------------------------------------------------------------
-  const fetchProjects = useCallback(async () => {
+  const loadProjects = useCallback(async () => {
     if (!authHeaders) return;
-    setLoadingProjects(true);
     try {
       const res = await axios.get(`${API}/video-editor/projects`, { headers: authHeaders });
       setProjects(res.data || []);
-    } catch { /* silent */ } finally { setLoadingProjects(false); }
+    } catch { /* silent */ }
   }, [authHeaders]);
 
-  useEffect(() => { fetchProjects(); }, [fetchProjects]);
+  useEffect(() => { loadProjects(); }, [loadProjects]);
 
   // ---------------------------------------------------------------------------
-  // Sync stitch status via polling
-  // ---------------------------------------------------------------------------
-  useEffect(() => {
-    if (!activeProjectId || !stitching) return;
-
-    pollRef.current = setInterval(async () => {
-      try {
-        const res = await axios.get(`${API}/video-editor/projects/${activeProjectId}`, { headers: authHeaders });
-        const p = res.data;
-        if (p.stitchStatus === 'ready') {
-          setStitchedUrl(p.stitchedVideoUrl || '');
-          setStitching(false);
-          clearInterval(pollRef.current);
-          toast.success('Video stitched successfully!');
-        } else if (p.stitchStatus === 'failed') {
-          setStitchError(p.stitchError || 'Stitch failed');
-          setStitching(false);
-          clearInterval(pollRef.current);
-          toast.error('Stitch failed: ' + (p.stitchError || 'unknown error'));
-        }
-      } catch { /* keep polling */ }
-    }, 4000);
-
-    return () => clearInterval(pollRef.current);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeProjectId, stitching]);
-
-  // ---------------------------------------------------------------------------
-  // Open / create a project
-  // ---------------------------------------------------------------------------
-  const openProject = (p) => {
-    clearInterval(pollRef.current);
-    setProject(p);
-    setActiveProjectId(p.id);
-    setProjectTitle(p.title || 'Untitled Project');
-    const sorted = [...(p.clips || [])].sort((a, b) => a.order - b.order);
-    setClips(sorted);
-    setAudioUrl(p.audioUrl || '');
-    setAudioName(p.audioUrl ? 'Saved audio track' : '');
-    setThumbnailUrl(p.thumbnailUrl || '');
-    setThumbnailName(p.thumbnailUrl ? 'Saved thumbnail' : '');
-    setStitchedUrl(p.stitchedVideoUrl || '');
-    setStitchError(p.stitchError || '');
-    setStitching(p.stitchStatus === 'stitching');
-    setSelectedClipId(null);
-  };
-
-  const createNewProject = async () => {
-    try {
-      const res = await axios.post(`${API}/video-editor/projects`, { title: 'New Project' }, { headers: authHeaders });
-      const p = res.data;
-      setProjects(prev => [p, ...prev]);
-      openProject(p);
-      toast.success('New project created');
-    } catch {
-      toast.error('Failed to create project');
-    }
-  };
-
-  // ---------------------------------------------------------------------------
-  // Auto-save project to backend whenever clips/audio/thumbnail changes
+  // Persist project to MongoDB
   // ---------------------------------------------------------------------------
   const persistProject = useCallback(async (updates) => {
-    if (!activeProjectId) return;
-    setSaving(true);
+    if (!activeProjectId || !authHeaders) return;
     try {
-      const res = await axios.patch(
-        `${API}/video-editor/projects/${activeProjectId}`,
-        updates,
-        { headers: authHeaders }
-      );
-      setProject(res.data);
-    } catch { /* silent */ } finally { setSaving(false); }
+      await axios.patch(`${API}/video-editor/projects/${activeProjectId}`, updates, { headers: authHeaders });
+    } catch (e) {
+      console.warn('Project persist failed:', e);
+    }
   }, [activeProjectId, authHeaders]);
 
-  // Save title on blur
-  const handleTitleBlur = () => {
-    if (activeProjectId && projectTitle !== project?.title) {
-      persistProject({ title: projectTitle });
+  // ---------------------------------------------------------------------------
+  // Load a specific project into editor state
+  // ---------------------------------------------------------------------------
+  const openProject = useCallback(async (project) => {
+    clearInterval(stitchPollRef.current);
+    setActiveProjectId(project.id);
+    setProjectTitle(project.title || '');
+    setClips(project.clips || []);
+    setBrollClips(project.brollClips || []);
+    setAudioUrl(project.audioUrl || '');
+    setAudioName(project.audioUrl ? 'audio track' : '');
+    setThumbnailUrl(project.thumbnailUrl || '');
+    setThumbnailName(project.thumbnailUrl ? 'thumbnail' : '');
+    setSelectedClipId(null);
+    setStitchedUrl(project.stitchedVideoUrl || '');
+    setStitchError(project.stitchError || '');
+    setStitching(project.stitchStatus === 'stitching');
+    setMetadata(null);
+    setMetaOpen(false);
+    setExportedId('');
+    setExportTitle(project.title || '');
+
+    if (project.stitchStatus === 'stitching') {
+      startStitchPoll(project.id);
     }
+  }, []);
+
+  // ---------------------------------------------------------------------------
+  // Create new project
+  // ---------------------------------------------------------------------------
+  const handleCreateProject = async () => {
+    const title = newProjectTitle.trim() || 'Untitled Project';
+    setCreatingProject(true);
+    try {
+      const res = await axios.post(`${API}/video-editor/projects`, { title }, { headers: authHeaders });
+      await loadProjects();
+      openProject(res.data);
+      setNewProjectTitle('');
+    } catch { toast.error('Failed to create project'); }
+    finally { setCreatingProject(false); }
   };
 
   // ---------------------------------------------------------------------------
-  // Upload handlers — files go to backend → S3
+  // Waveform — init / destroy when audioUrl changes
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    if (!waveformRef.current) return;
+    wsRef.current?.destroy();
+    wsRef.current = null;
+    setWsReady(false);
+    setWsPlaying(false);
+    if (!audioUrl) return;
+
+    let ws;
+    import('wavesurfer.js').then(mod => {
+      const WaveSurfer = mod.default;
+      ws = WaveSurfer.create({
+        container: waveformRef.current,
+        waveColor: '#6366f1',
+        progressColor: '#8b5cf6',
+        cursorColor: '#a78bfa',
+        barWidth: 2,
+        barRadius: 2,
+        height: 48,
+        normalize: true,
+      });
+      ws.load(resolveUrl(audioUrl));
+      ws.on('ready', () => setWsReady(true));
+      ws.on('play', () => setWsPlaying(true));
+      ws.on('pause', () => setWsPlaying(false));
+      ws.on('finish', () => setWsPlaying(false));
+      wsRef.current = ws;
+    }).catch(e => console.warn('WaveSurfer load failed:', e));
+
+    return () => { ws?.destroy(); };
+  }, [audioUrl]);
+
+  // ---------------------------------------------------------------------------
+  // Preview scrubber — sync to selected clip
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    setPreviewTime(0);
+    setPreviewDuration(0);
+    setPreviewPlaying(false);
+  }, [selectedClipId]);
+
+  const handleVideoLoaded = (e) => {
+    setPreviewDuration(e.target.duration);
+    const start = selectedClip?.trimStart || 0;
+    if (start > 0) e.target.currentTime = start;
+  };
+
+  const handleTimeUpdate = (e) => {
+    const t = e.target.currentTime;
+    setPreviewTime(t);
+    const trimEnd = selectedClip?.trimEnd;
+    if (trimEnd != null && t >= trimEnd) {
+      e.target.pause();
+      e.target.currentTime = selectedClip?.trimStart || 0;
+      setPreviewPlaying(false);
+    }
+  };
+
+  const togglePreviewPlay = () => {
+    const v = previewVideoRef.current;
+    if (!v) return;
+    if (v.paused) { v.play(); setPreviewPlaying(true); }
+    else { v.pause(); setPreviewPlaying(false); }
+  };
+
+  const seekTo = (seconds) => {
+    if (previewVideoRef.current) previewVideoRef.current.currentTime = seconds;
+  };
+
+  // ---------------------------------------------------------------------------
+  // Clip CRUD + DnD
+  // ---------------------------------------------------------------------------
+  const updateClip = async (clipId, updates) => {
+    const updated = clips.map(c => c.id === clipId ? { ...c, ...updates } : c);
+    setClips(updated);
+    await persistProject({ clips: updated });
+  };
+
+  const removeClip = async (clipId) => {
+    const updated = clips.filter(c => c.id !== clipId);
+    setClips(updated);
+    if (selectedClipId === clipId) setSelectedClipId(null);
+    await persistProject({ clips: updated });
+  };
+
+  const handleDragEnd = async ({ active, over }) => {
+    if (!over || active.id === over.id) return;
+    const oldIdx = clips.findIndex(c => c.id === active.id);
+    const newIdx = clips.findIndex(c => c.id === over.id);
+    const reordered = arrayMove(clips, oldIdx, newIdx).map((c, i) => ({ ...c, order: i }));
+    setClips(reordered);
+    await persistProject({ clips: reordered });
+  };
+
+  // B-roll CRUD
+  const updateBroll = async (brId, updates) => {
+    const updated = brollClips.map(c => c.id === brId ? { ...c, ...updates } : c);
+    setBrollClips(updated);
+    await persistProject({ brollClips: updated });
+  };
+
+  const removeBroll = async (brId) => {
+    const updated = brollClips.filter(c => c.id !== brId);
+    setBrollClips(updated);
+    await persistProject({ brollClips: updated });
+  };
+
+  // ---------------------------------------------------------------------------
+  // Upload handlers
   // ---------------------------------------------------------------------------
   const handleClipUpload = async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-    if (!activeProjectId) {
-      toast.error('Create or open a project first');
-      return;
-    }
-    setUploadingClip(true);
-    const newClips = [...clips];
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setUploading(u => ({ ...u, clip: true }));
     try {
-      for (const file of files) {
-        const form = new FormData();
-        form.append('file', file);
-        const res = await axios.post(`${API}/video-editor/upload/clip`, form, {
-          headers: { ...authHeaders, 'Content-Type': 'multipart/form-data' },
-        });
-        newClips.push({
-          id: res.data.id,
-          name: res.data.name,
-          url: res.data.url,
-          order: newClips.length,
-        });
-        toast.success(`Uploaded: ${file.name}`);
-      }
-      setClips(newClips);
-      await persistProject({ clips: newClips });
+      const form = new FormData();
+      form.append('file', file);
+      const res = await axios.post(`${API}/video-editor/upload/clip`, form,
+        { headers: { ...authHeaders, 'Content-Type': 'multipart/form-data' } });
+      const newClip = {
+        id: res.data.id,
+        name: res.data.name,
+        url: res.data.url,
+        order: clips.length,
+        duration: res.data.duration || null,
+        trimStart: null,
+        trimEnd: null,
+        muted: false,
+      };
+      const updated = [...clips, newClip];
+      setClips(updated);
+      setSelectedClipId(newClip.id);
+      await persistProject({ clips: updated });
+      toast.success(`Clip uploaded: ${file.name}`);
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Clip upload failed');
-    } finally {
-      setUploadingClip(false);
-      e.target.value = '';
-    }
+    } finally { setUploading(u => ({ ...u, clip: false })); }
+  };
+
+  const handleBrollUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setUploading(u => ({ ...u, broll: true }));
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await axios.post(`${API}/video-editor/upload/broll`, form,
+        { headers: { ...authHeaders, 'Content-Type': 'multipart/form-data' } });
+      const newBroll = {
+        id: res.data.id,
+        name: res.data.name,
+        url: res.data.url,
+        order: brollClips.length,
+        duration: res.data.duration || null,
+        offsetSeconds: 0,
+        position: 'top-right',
+        scale: 0.35,
+      };
+      const updated = [...brollClips, newBroll];
+      setBrollClips(updated);
+      await persistProject({ brollClips: updated });
+      toast.success(`B-roll uploaded: ${file.name}`);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'B-roll upload failed');
+    } finally { setUploading(u => ({ ...u, broll: false })); }
   };
 
   const handleAudioUpload = async (e) => {
     const file = e.target.files?.[0];
-    if (!file || !activeProjectId) return;
-    setUploadingAudio(true);
+    if (!file) return;
+    e.target.value = '';
+    setUploading(u => ({ ...u, audio: true }));
     try {
       const form = new FormData();
       form.append('file', file);
-      const res = await axios.post(`${API}/video-editor/upload/audio`, form, {
-        headers: { ...authHeaders, 'Content-Type': 'multipart/form-data' },
-      });
+      const res = await axios.post(`${API}/video-editor/upload/audio`, form,
+        { headers: { ...authHeaders, 'Content-Type': 'multipart/form-data' } });
       setAudioUrl(res.data.url);
       setAudioName(file.name);
       await persistProject({ audioUrl: res.data.url });
       toast.success(`Audio uploaded: ${file.name}`);
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Audio upload failed');
-    } finally {
-      setUploadingAudio(false);
-      e.target.value = '';
-    }
+    } finally { setUploading(u => ({ ...u, audio: false })); }
   };
 
-  const handleThumbUpload = async (e) => {
+  const handleThumbnailUpload = async (e) => {
     const file = e.target.files?.[0];
-    if (!file || !activeProjectId) return;
-    setUploadingThumb(true);
+    if (!file) return;
+    e.target.value = '';
+    setUploading(u => ({ ...u, thumb: true }));
     try {
       const form = new FormData();
       form.append('file', file);
-      const res = await axios.post(`${API}/video-editor/upload/thumbnail`, form, {
-        headers: { ...authHeaders, 'Content-Type': 'multipart/form-data' },
-      });
+      const res = await axios.post(`${API}/video-editor/upload/thumbnail`, form,
+        { headers: { ...authHeaders, 'Content-Type': 'multipart/form-data' } });
       setThumbnailUrl(res.data.url);
       setThumbnailName(file.name);
       await persistProject({ thumbnailUrl: res.data.url });
       toast.success(`Thumbnail uploaded: ${file.name}`);
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Thumbnail upload failed');
-    } finally {
-      setUploadingThumb(false);
-      e.target.value = '';
-    }
-  };
-
-  // ---------------------------------------------------------------------------
-  // DnD reorder
-  // ---------------------------------------------------------------------------
-  const handleDragEnd = async (event) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = clips.findIndex(c => c.id === active.id);
-    const newIndex = clips.findIndex(c => c.id === over.id);
-    const reordered = arrayMove(clips, oldIndex, newIndex).map((c, i) => ({ ...c, order: i }));
-    setClips(reordered);
-    await persistProject({ clips: reordered });
-  };
-
-  // ---------------------------------------------------------------------------
-  // Remove clip
-  // ---------------------------------------------------------------------------
-  const removeClip = async (clipId) => {
-    const updated = clips
-      .filter(c => c.id !== clipId)
-      .map((c, i) => ({ ...c, order: i }));
-    setClips(updated);
-    if (selectedClipId === clipId) setSelectedClipId(null);
-    await persistProject({ clips: updated });
+    } finally { setUploading(u => ({ ...u, thumb: false })); }
   };
 
   // ---------------------------------------------------------------------------
   // Stitch
   // ---------------------------------------------------------------------------
+  const startStitchPoll = (projectId) => {
+    clearInterval(stitchPollRef.current);
+    stitchPollRef.current = setInterval(async () => {
+      try {
+        const res = await axios.get(`${API}/video-editor/projects/${projectId}`, { headers: authHeaders });
+        const p = res.data;
+        if (p.stitchStatus === 'ready') {
+          clearInterval(stitchPollRef.current);
+          setStitching(false);
+          setStitchedUrl(p.stitchedVideoUrl || '');
+          setStitchError('');
+          toast.success('Stitch complete! Your video is ready.');
+        } else if (p.stitchStatus === 'failed') {
+          clearInterval(stitchPollRef.current);
+          setStitching(false);
+          setStitchError(p.stitchError || 'Stitch failed');
+          toast.error(`Stitch failed: ${p.stitchError || 'Unknown error'}`);
+        }
+      } catch { /* silent poll */ }
+    }, 4000);
+  };
+
   const handleStitch = async () => {
-    if (!activeProjectId) return;
-    if (clips.length === 0) { toast.error('Add at least one clip'); return; }
+    if (!activeProjectId || clips.length === 0) return;
     setStitching(true);
     setStitchedUrl('');
     setStitchError('');
+    setMetadata(null);
+    setExportedId('');
     try {
-      await axios.post(
-        `${API}/video-editor/projects/${activeProjectId}/stitch`,
-        {},
-        { headers: authHeaders }
-      );
-      toast.info('Stitching started — this takes 30 seconds to a few minutes depending on clip sizes.');
+      await axios.post(`${API}/video-editor/projects/${activeProjectId}/stitch`, {}, { headers: authHeaders });
+      startStitchPoll(activeProjectId);
+      toast.info('Stitching started — FFmpeg processing your clips…');
     } catch (err) {
       setStitching(false);
-      toast.error(err.response?.data?.detail || 'Failed to start stitch');
+      toast.error(err.response?.data?.detail || 'Stitch failed to start');
     }
   };
 
   // ---------------------------------------------------------------------------
-  // Delete project
+  // Metadata generation
   // ---------------------------------------------------------------------------
-  const handleDeleteProject = async () => {
+  const handleGenerateMetadata = async () => {
     if (!activeProjectId) return;
-    if (!window.confirm('Delete this project? This cannot be undone.')) return;
+    setGeneratingMeta(true);
     try {
-      await axios.delete(`${API}/video-editor/projects/${activeProjectId}`, { headers: authHeaders });
-      setProjects(prev => prev.filter(p => p.id !== activeProjectId));
-      setProject(null);
-      setActiveProjectId(null);
-      setClips([]);
-      clearInterval(pollRef.current);
-      toast.success('Project deleted');
-    } catch {
-      toast.error('Failed to delete project');
-    }
+      const res = await axios.post(
+        `${API}/video-editor/projects/${activeProjectId}/generate-metadata`,
+        {}, { headers: authHeaders }
+      );
+      setMetadata(res.data);
+      setMetaOpen(true);
+      if (res.data.title && !exportTitle) setExportTitle(res.data.title);
+      toast.success('Metadata generated!');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Metadata generation failed');
+    } finally { setGeneratingMeta(false); }
   };
+
+  // ---------------------------------------------------------------------------
+  // Pipeline export
+  // ---------------------------------------------------------------------------
+  const handleExport = async () => {
+    if (!activeProjectId || !stitchedUrl) return;
+    setExporting(true);
+    try {
+      const res = await axios.post(
+        `${API}/video-editor/projects/${activeProjectId}/export-to-pipeline`,
+        {
+          title: exportTitle || projectTitle,
+          description: metadata?.description || '',
+          releaseDate: exportDate || undefined,
+        },
+        { headers: authHeaders }
+      );
+      setExportedId(res.data.id);
+      toast.success('Sent to Pipeline!');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Export failed');
+    } finally { setExporting(false); }
+  };
+
+  const copyToClipboard = (text, label) => {
+    navigator.clipboard.writeText(text).then(() => toast.success(`${label} copied!`));
+  };
+
+  // Cleanup on unmount
+  useEffect(() => () => { clearInterval(stitchPollRef.current); wsRef.current?.destroy(); }, []);
 
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
   return (
-    <div className="flex h-full" data-testid="video-editor-page">
+    <div className="flex h-full bg-[#070D15] text-white overflow-hidden" data-testid="video-editor-page">
 
-      {/* ── Left: Project list ──────────────────────────────────────────── */}
-      <div className="w-56 shrink-0 border-r border-[#1F2933] bg-[#070D15] flex flex-col">
-        <div className="p-3 border-b border-[#1F2933] flex items-center justify-between">
-          <span className="text-sm font-semibold text-white flex items-center gap-1.5">
-            <Scissors className="h-3.5 w-3.5 text-violet-400" /> Projects
-          </span>
-          {saving && <Loader2 className="h-3 w-3 animate-spin text-zinc-600" />}
-        </div>
-        <div className="p-2">
-          <Button onClick={createNewProject} size="sm"
-            className="w-full h-7 text-xs bg-violet-600 hover:bg-violet-700 text-white">
-            <Plus className="h-3 w-3 mr-1" /> New Project
-          </Button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          {loadingProjects && <Loader2 className="h-4 w-4 animate-spin text-zinc-600 mx-auto mt-4" />}
-          {!loadingProjects && projects.length === 0 && (
-            <p className="text-xs text-zinc-600 text-center mt-4">No projects yet</p>
-          )}
-          {projects.map(p => (
-            <div key={p.id} onClick={() => openProject(p)}
-              className={`p-2 rounded cursor-pointer text-xs transition-colors ${
-                activeProjectId === p.id
-                  ? 'bg-violet-500/10 border border-violet-500/20 text-violet-400'
-                  : 'text-zinc-400 hover:bg-zinc-800/60 hover:text-white border border-transparent'
-              }`}>
-              <p className="font-medium truncate">{p.title || 'Untitled'}</p>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <p className="text-zinc-600 text-[10px]">
-                  {(p.clips?.length || 0)} clip{(p.clips?.length || 0) !== 1 ? 's' : ''}
-                </p>
-                {p.stitchStatus === 'ready' && <CheckCircle className="h-2.5 w-2.5 text-emerald-500" />}
-                {p.stitchStatus === 'stitching' && <Loader2 className="h-2.5 w-2.5 text-amber-400 animate-spin" />}
-                {p.stitchStatus === 'failed' && <AlertCircle className="h-2.5 w-2.5 text-red-400" />}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* ── Projects Sidebar ──────────────────────────────────────────────── */}
+      {projectSidebarOpen && (
+        <div className="w-56 shrink-0 border-r border-zinc-800 flex flex-col">
+          <div className="p-3 border-b border-zinc-800 flex items-center justify-between">
+            <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+              <Scissors className="h-3.5 w-3.5 text-violet-400" /> Projects
+            </span>
+            <button onClick={() => setProjectSidebarOpen(false)} className="text-zinc-600 hover:text-zinc-400">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
 
-      {/* ── Main editor ─────────────────────────────────────────────────── */}
-      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-
-        {!activeProjectId ? (
-          /* Empty state */
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-            <Scissors className="h-12 w-12 text-zinc-800 mb-4" />
-            <h2 className="text-white font-semibold text-lg mb-1">Video Editor</h2>
-            <p className="text-zinc-500 text-sm mb-4 max-w-xs">
-              Upload video clips, arrange them in order, add an audio track and thumbnail,
-              then stitch everything into a finished video — all server-side with FFmpeg.
-            </p>
-            <Button onClick={createNewProject}
-              className="bg-violet-600 hover:bg-violet-700 text-white text-sm">
-              <Plus className="h-4 w-4 mr-2" /> Create First Project
+          {/* New project */}
+          <div className="p-2 border-b border-zinc-800/50 space-y-1.5">
+            <Input
+              placeholder="Project name…"
+              value={newProjectTitle}
+              onChange={e => setNewProjectTitle(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleCreateProject()}
+              className="h-7 text-xs bg-zinc-950 border-zinc-800"
+            />
+            <Button onClick={handleCreateProject} disabled={creatingProject} size="sm"
+              className="w-full h-7 text-xs bg-violet-600 hover:bg-violet-700 text-white">
+              {creatingProject ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3 mr-1" />}
+              New Project
             </Button>
           </div>
-        ) : (
-          <>
-            {/* Header */}
-            <div className="flex items-center gap-3 px-5 py-3 border-b border-[#1F2933] bg-[#0B1120] shrink-0">
-              <Input
-                value={projectTitle}
-                onChange={e => setProjectTitle(e.target.value)}
-                onBlur={handleTitleBlur}
-                className="h-8 w-56 bg-transparent border-zinc-800 text-white text-sm font-semibold focus:border-violet-500/50"
-              />
-              <div className="ml-auto flex items-center gap-2">
-                {saving && (
-                  <span className="text-[10px] text-zinc-600 flex items-center gap-1">
-                    <Loader2 className="h-3 w-3 animate-spin" /> Saving…
-                  </span>
-                )}
-                <Button onClick={handleStitch}
-                  disabled={stitching || clips.length === 0}
-                  className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-4">
-                  {stitching
-                    ? <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Stitching…</>
-                    : <><Film className="h-3.5 w-3.5 mr-1.5" /> Stitch Video</>}
+
+          {/* Project list */}
+          <div className="flex-1 overflow-y-auto py-1">
+            {projects.map(p => (
+              <button key={p.id} onClick={() => openProject(p)}
+                className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                  p.id === activeProjectId ? 'bg-violet-500/10 text-violet-300' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
+                }`}>
+                <p className="truncate font-medium">{p.title || 'Untitled'}</p>
+                <p className="text-[10px] text-zinc-600 mt-0.5">
+                  {(p.clips?.length || 0)} clip{(p.clips?.length || 0) !== 1 ? 's' : ''}
+                  {p.stitchStatus === 'ready' ? ' · Ready' : p.stitchStatus === 'stitching' ? ' · Stitching…' : ''}
+                </p>
+              </button>
+            ))}
+            {projects.length === 0 && (
+              <p className="text-[10px] text-zinc-700 px-3 py-4">No projects yet. Create one above.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Main Editor Area ──────────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col min-w-0">
+
+        {/* Header */}
+        <div className="h-12 border-b border-zinc-800 flex items-center gap-3 px-4 shrink-0">
+          {!projectSidebarOpen && (
+            <button onClick={() => setProjectSidebarOpen(true)} className="text-zinc-600 hover:text-zinc-300 mr-1">
+              <FolderOpen className="h-4 w-4" />
+            </button>
+          )}
+          {activeProjectId ? (
+            <Input
+              value={projectTitle}
+              onChange={async e => {
+                setProjectTitle(e.target.value);
+                await persistProject({ title: e.target.value });
+              }}
+              className="h-7 max-w-[180px] text-sm font-medium bg-transparent border-transparent hover:border-zinc-700 focus:border-violet-500"
+            />
+          ) : (
+            <span className="text-sm text-zinc-500">Select or create a project</span>
+          )}
+          <div className="ml-auto flex items-center gap-2">
+            {activeProjectId && (
+              <>
+                <Button onClick={handleStitch} disabled={stitching || clips.length === 0}
+                  className="h-8 px-4 text-xs bg-violet-600 hover:bg-violet-700 text-white">
+                  {stitching ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Stitching…</> : <><Scissors className="h-3 w-3 mr-1.5" /> Stitch Video</>}
                 </Button>
-                <Button onClick={handleDeleteProject} variant="ghost" size="sm"
-                  className="h-8 px-2 text-zinc-600 hover:text-red-400">
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Body */}
+        {!activeProjectId ? (
+          <div className="flex-1 flex items-center justify-center text-center">
+            <div className="space-y-3">
+              <Scissors className="h-12 w-12 text-zinc-800 mx-auto" />
+              <p className="text-zinc-500 text-sm">Select a project from the sidebar, or create a new one to start editing.</p>
             </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex min-h-0">
 
-            {/* Body: left=preview, right=assets */}
-            <div className="flex-1 overflow-hidden flex gap-0">
+            {/* ── Preview + Controls (center) ───────────────────────────── */}
+            <div className="flex-1 flex flex-col min-w-0 border-r border-zinc-800">
 
-              {/* Left: Preview + timeline */}
-              <div className="flex-1 flex flex-col overflow-hidden p-4 gap-4">
+              {/* Video preview */}
+              <div className="flex-1 bg-black relative flex items-center justify-center min-h-0 overflow-hidden">
+                {selectedClip ? (
+                  <video
+                    ref={previewVideoRef}
+                    key={selectedClip.url}
+                    src={resolveUrl(selectedClip.url)}
+                    onLoadedMetadata={handleVideoLoaded}
+                    onTimeUpdate={handleTimeUpdate}
+                    onPlay={() => setPreviewPlaying(true)}
+                    onPause={() => setPreviewPlaying(false)}
+                    className="max-h-full max-w-full rounded"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-2 text-zinc-700">
+                    <Film className="h-14 w-14" />
+                    <p className="text-xs">Select a clip to preview</p>
+                  </div>
+                )}
+              </div>
 
-                {/* Preview */}
-                <Card className="bg-[#0B1120] border-[#1F2933] flex-shrink-0">
-                  <CardContent className="p-3">
-                    <div className="aspect-video bg-zinc-950 rounded-lg flex items-center justify-center overflow-hidden border border-zinc-800">
-                      {selectedClip ? (
-                        <video key={selectedClip.url} controls src={resolveUrl(selectedClip.url)}
-                          className="w-full h-full rounded-lg" />
-                      ) : (
-                        <div className="text-center">
-                          <Film className="h-10 w-10 text-zinc-800 mx-auto mb-2" />
-                          <p className="text-xs text-zinc-600">Select a clip to preview</p>
-                        </div>
-                      )}
+              {/* Scrubber + trim controls */}
+              {selectedClip && (
+                <div className="shrink-0 bg-zinc-950 border-t border-zinc-800 p-3 space-y-2">
+                  {/* Playback controls */}
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => seekTo(selectedClip.trimStart || 0)}
+                      className="text-zinc-500 hover:text-zinc-300" title="Go to trim start">
+                      <SkipBack className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={togglePreviewPlay}
+                      className="h-7 w-7 rounded-full bg-violet-600 hover:bg-violet-700 flex items-center justify-center">
+                      {previewPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+                    </button>
+                    <span className="text-[10px] text-zinc-500 font-mono">
+                      {fmtTime(previewTime)} / {fmtTime(previewDuration)}
+                    </span>
+                    <div className="ml-auto flex items-center gap-1">
+                      <span className="text-[9px] text-zinc-600">Trim:</span>
+                      <span className="text-[9px] text-emerald-400">
+                        {fmtTime(selectedClip.trimStart || 0)} → {fmtTime(selectedClip.trimEnd ?? previewDuration)}
+                      </span>
                     </div>
-                    {selectedClip && (
-                      <p className="text-[10px] text-zinc-500 mt-1.5 truncate text-center">{selectedClip.name}</p>
+                  </div>
+
+                  {/* Timeline scrubber */}
+                  <div className="relative">
+                    <input
+                      type="range" min={0} max={previewDuration || 100} step={0.05}
+                      value={previewTime}
+                      onChange={e => seekTo(parseFloat(e.target.value))}
+                      className="w-full accent-violet-500 h-1.5"
+                    />
+                    {/* Trim region highlight */}
+                    {previewDuration > 0 && (
+                      <div className="absolute top-0 h-1.5 bg-emerald-500/30 rounded pointer-events-none"
+                        style={{
+                          left: `${((selectedClip.trimStart || 0) / previewDuration) * 100}%`,
+                          right: `${(1 - ((selectedClip.trimEnd ?? previewDuration) / previewDuration)) * 100}%`,
+                        }} />
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
 
-                {/* Stitch result */}
-                {stitchedUrl && (
-                  <Card className="bg-[#0B1120] border-emerald-500/20 flex-shrink-0">
-                    <CardHeader className="pb-1 pt-3 px-3">
-                      <CardTitle className="text-xs text-emerald-400 flex items-center gap-1.5">
-                        <CheckCircle className="h-3.5 w-3.5" /> Stitched Video Ready
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="px-3 pb-3 space-y-2">
-                      <video key={stitchedUrl} controls src={resolveUrl(stitchedUrl)}
-                        className="w-full rounded-lg border border-emerald-500/20" style={{ maxHeight: 200 }} />
-                      <a href={resolveUrl(stitchedUrl)} download target="_blank" rel="noreferrer"
-                        className="flex items-center gap-1.5 text-[10px] text-emerald-400 hover:underline">
-                        <Download className="h-3 w-3" /> Download stitched video
-                      </a>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {stitchError && !stitching && (
-                  <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/5 border border-red-500/20 text-xs text-red-400 flex-shrink-0">
-                    <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-medium">Stitch failed</p>
-                      <p className="text-red-400/70 text-[10px] mt-0.5">{stitchError}</p>
-                    </div>
-                    <Button onClick={handleStitch} disabled={clips.length === 0} size="sm"
-                      className="ml-auto h-6 text-[10px] px-2 bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20">
-                      <RefreshCw className="h-2.5 w-2.5 mr-1" /> Retry
+                  {/* Set In / Set Out */}
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" onClick={() => updateClip(selectedClip.id, { trimStart: parseFloat(previewTime.toFixed(2)) })}
+                      className="h-6 text-[10px] px-2.5 bg-zinc-900 border border-zinc-800 text-emerald-400 hover:border-emerald-500/40">
+                      Set In [{fmtTime(selectedClip.trimStart || 0)}]
                     </Button>
-                  </div>
-                )}
-
-                {stitching && (
-                  <div className="flex items-center gap-2.5 p-3 rounded-lg bg-amber-500/5 border border-amber-500/20 flex-shrink-0">
-                    <Loader2 className="h-4 w-4 text-amber-400 animate-spin shrink-0" />
-                    <div>
-                      <p className="text-xs text-amber-400 font-medium">FFmpeg stitching…</p>
-                      <p className="text-[10px] text-zinc-500 mt-0.5">
-                        Running on server. Auto-checks every 4 seconds. Keep this page open.
-                      </p>
+                    <Button size="sm" onClick={() => updateClip(selectedClip.id, { trimEnd: parseFloat(previewTime.toFixed(2)) })}
+                      className="h-6 text-[10px] px-2.5 bg-zinc-900 border border-zinc-800 text-red-400 hover:border-red-500/40">
+                      Set Out [{fmtTime(selectedClip.trimEnd ?? previewDuration)}]
+                    </Button>
+                    <Button size="sm" onClick={() => updateClip(selectedClip.id, { trimStart: 0, trimEnd: null })}
+                      className="h-6 text-[10px] px-2 bg-zinc-900 border border-zinc-800 text-zinc-500">
+                      Reset
+                    </Button>
+                    <div className="ml-auto flex items-center gap-2">
+                      <Label className="text-[10px] text-zinc-500">Mute clip audio</Label>
+                      <button
+                        onClick={() => updateClip(selectedClip.id, { muted: !selectedClip.muted })}
+                        className={`relative h-5 w-9 rounded-full transition-colors ${selectedClip.muted ? 'bg-red-500' : 'bg-zinc-700'}`}
+                        title={selectedClip.muted ? 'Unmute' : 'Mute this clip\'s audio'}>
+                        <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${selectedClip.muted ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                      </button>
+                      {selectedClip.muted && <VolumeX className="h-3.5 w-3.5 text-red-400" />}
                     </div>
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* Clip timeline — DnD sortable */}
-                <div className="flex-1 min-h-0">
-                  <div className="flex items-center justify-between mb-2">
-                    <Label className="text-xs text-zinc-400 flex items-center gap-1.5">
-                      <Film className="h-3.5 w-3.5" /> Clip Sequence
-                      <span className="text-zinc-600">({clips.length} clip{clips.length !== 1 ? 's' : ''})</span>
+              {/* ── Timeline tracks ──────────────────────────────────────── */}
+              <div className="shrink-0 border-t border-zinc-800 p-3 space-y-3 bg-[#0A1219]">
+
+                {/* Main clips track */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-[10px] text-zinc-500 uppercase tracking-wider flex items-center gap-1">
+                      <Film className="h-3 w-3 text-violet-400" /> Main Clips
                     </Label>
-                    <Button onClick={() => clipInputRef.current?.click()}
-                      disabled={uploadingClip} size="sm"
-                      className="h-7 text-[10px] px-2.5 bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-violet-500/30">
-                      {uploadingClip
-                        ? <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                        : <Upload className="h-3 w-3 mr-1" />}
-                      Add Clips
+                    <Button size="sm" onClick={() => clipInputRef.current?.click()} disabled={uploading.clip}
+                      className="h-5 text-[10px] px-2 bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white">
+                      {uploading.clip ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Upload className="h-2.5 w-2.5 mr-1" />}
+                      Add Clip
                     </Button>
-                    <input ref={clipInputRef} type="file" accept="video/*" multiple hidden onChange={handleClipUpload} />
+                    <input ref={clipInputRef} type="file" accept="video/*" hidden onChange={handleClipUpload} />
                   </div>
 
                   {clips.length === 0 ? (
-                    <div
-                      className="h-32 rounded-lg border-2 border-dashed border-zinc-800 flex flex-col items-center justify-center cursor-pointer hover:border-violet-500/30 transition-colors"
-                      onClick={() => clipInputRef.current?.click()}
-                    >
-                      <Upload className="h-5 w-5 text-zinc-700 mb-1.5" />
-                      <p className="text-xs text-zinc-600">Click to upload video clips</p>
-                      <p className="text-[10px] text-zinc-700 mt-0.5">MP4, WebM, MOV — up to 500 MB each</p>
-                    </div>
+                    <p className="text-[10px] text-zinc-700 py-2">Upload clips to start editing</p>
                   ) : (
-                    <div className="flex gap-2 overflow-x-auto pb-2">
-                      <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={handleDragEnd}
-                      >
-                        <SortableContext
-                          items={clips.map(c => c.id)}
-                          strategy={horizontalListSortingStrategy}
-                        >
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                      <SortableContext items={clips.map(c => c.id)} strategy={horizontalListSortingStrategy}>
+                        <div className="flex gap-2 overflow-x-auto pb-1">
                           {clips.map(clip => (
-                            <SortableClip
-                              key={clip.id}
-                              clip={clip}
-                              isSelected={selectedClipId === clip.id}
+                            <SortableClip key={clip.id} clip={clip}
+                              isSelected={clip.id === selectedClipId}
                               onSelect={setSelectedClipId}
-                              onRemove={removeClip}
-                            />
+                              onRemove={removeClip} />
                           ))}
-                        </SortableContext>
-                      </DndContext>
-
-                      {/* Add more clips */}
-                      <div
-                        className="flex-shrink-0 w-36 rounded-lg border-2 border-dashed border-zinc-800 flex flex-col items-center justify-center cursor-pointer hover:border-violet-500/30 transition-colors"
-                        onClick={() => clipInputRef.current?.click()}
-                      >
-                        {uploadingClip
-                          ? <Loader2 className="h-4 w-4 text-zinc-600 animate-spin" />
-                          : <Plus className="h-4 w-4 text-zinc-700" />}
-                        <p className="text-[10px] text-zinc-600 mt-1">Add more</p>
-                      </div>
-                    </div>
+                        </div>
+                      </SortableContext>
+                    </DndContext>
                   )}
                 </div>
-              </div>
 
-              {/* Right: Audio + Thumbnail panel */}
-              <div className="w-64 shrink-0 border-l border-[#1F2933] flex flex-col overflow-y-auto">
-                <div className="p-4 space-y-5">
-
-                  {/* Audio track */}
-                  <div className="space-y-2">
-                    <Label className="text-xs text-zinc-400 flex items-center gap-1.5">
-                      <Music className="h-3.5 w-3.5 text-emerald-400" /> Audio Track
+                {/* B-roll track */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-[10px] text-zinc-500 uppercase tracking-wider flex items-center gap-1">
+                      <Film className="h-3 w-3 text-pink-400" /> B-Roll (PiP Overlay)
                     </Label>
-                    {audioUrl ? (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 p-2 rounded bg-zinc-950 border border-zinc-800">
-                          <CheckCircle className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                          <p className="text-[10px] text-zinc-400 flex-1 truncate">{audioName || 'Audio track'}</p>
-                          <button onClick={() => { setAudioUrl(''); setAudioName(''); persistProject({ audioUrl: '' }); }}
-                            className="text-zinc-600 hover:text-red-400 transition-colors">
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                        <audio key={audioUrl} controls src={resolveUrl(audioUrl)}
-                          className="w-full" style={{ height: 32, colorScheme: 'dark' }} />
-                      </div>
-                    ) : (
-                      <div
-                        className="h-20 rounded-lg border-2 border-dashed border-zinc-800 flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500/20 transition-colors"
-                        onClick={() => audioInputRef.current?.click()}
-                      >
-                        {uploadingAudio
-                          ? <Loader2 className="h-4 w-4 text-zinc-600 animate-spin" />
-                          : <Music className="h-4 w-4 text-zinc-700 mb-1" />}
-                        <p className="text-[10px] text-zinc-600">Upload audio track</p>
-                        <p className="text-[10px] text-zinc-700">MP3, WAV, AAC</p>
-                      </div>
-                    )}
-                    <input ref={audioInputRef} type="file" accept="audio/*" hidden onChange={handleAudioUpload} />
-                    {!audioUrl && (
-                      <Button onClick={() => audioInputRef.current?.click()} disabled={uploadingAudio} size="sm"
-                        className="w-full h-7 text-[10px] bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white">
-                        {uploadingAudio ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}
-                        Upload Audio
-                      </Button>
-                    )}
-                  </div>
-
-                  <Separator className="bg-zinc-800/60" />
-
-                  {/* Thumbnail */}
-                  <div className="space-y-2">
-                    <Label className="text-xs text-zinc-400 flex items-center gap-1.5">
-                      <ImageIcon className="h-3.5 w-3.5 text-violet-400" /> Thumbnail
-                    </Label>
-                    {thumbnailUrl ? (
-                      <div className="space-y-2">
-                        <div className="relative rounded-lg overflow-hidden border border-zinc-800">
-                          <img src={resolveUrl(thumbnailUrl)} alt="Thumbnail"
-                            className="w-full object-cover aspect-video" />
-                          <button
-                            onClick={() => { setThumbnailUrl(''); setThumbnailName(''); persistProject({ thumbnailUrl: '' }); }}
-                            className="absolute top-1.5 right-1.5 bg-black/60 hover:bg-red-500/80 text-white rounded-full p-0.5 transition-colors">
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                        <p className="text-[10px] text-zinc-600 truncate">{thumbnailName || 'Thumbnail'}</p>
-                      </div>
-                    ) : (
-                      <div
-                        className="h-20 rounded-lg border-2 border-dashed border-zinc-800 flex flex-col items-center justify-center cursor-pointer hover:border-violet-500/20 transition-colors"
-                        onClick={() => thumbInputRef.current?.click()}
-                      >
-                        {uploadingThumb
-                          ? <Loader2 className="h-4 w-4 text-zinc-600 animate-spin" />
-                          : <ImageIcon className="h-4 w-4 text-zinc-700 mb-1" />}
-                        <p className="text-[10px] text-zinc-600">Upload thumbnail</p>
-                        <p className="text-[10px] text-zinc-700">JPG, PNG, WebP</p>
-                      </div>
-                    )}
-                    <input ref={thumbInputRef} type="file" accept="image/*" hidden onChange={handleThumbUpload} />
-                    {!thumbnailUrl && (
-                      <Button onClick={() => thumbInputRef.current?.click()} disabled={uploadingThumb} size="sm"
-                        className="w-full h-7 text-[10px] bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white">
-                        {uploadingThumb ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}
-                        Upload Thumbnail
-                      </Button>
-                    )}
-                  </div>
-
-                  <Separator className="bg-zinc-800/60" />
-
-                  {/* Project summary */}
-                  <div className="space-y-1.5">
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Project Summary</p>
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-[10px]">
-                        <span className="text-zinc-500">Clips</span>
-                        <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 bg-zinc-800 text-zinc-400 border-zinc-700">
-                          {clips.length}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center justify-between text-[10px]">
-                        <span className="text-zinc-500">Audio</span>
-                        <span className={audioUrl ? 'text-emerald-400' : 'text-zinc-600'}>
-                          {audioUrl ? '✓ Added' : 'None'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-[10px]">
-                        <span className="text-zinc-500">Thumbnail</span>
-                        <span className={thumbnailUrl ? 'text-emerald-400' : 'text-zinc-600'}>
-                          {thumbnailUrl ? '✓ Added' : 'None'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-[10px]">
-                        <span className="text-zinc-500">Stitch status</span>
-                        <span className={
-                          stitchedUrl ? 'text-emerald-400' :
-                          stitching ? 'text-amber-400' :
-                          stitchError ? 'text-red-400' : 'text-zinc-600'
-                        }>
-                          {stitchedUrl ? 'Ready' : stitching ? 'Running…' : stitchError ? 'Failed' : 'Not started'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {clips.length > 0 && (
-                    <Button onClick={handleStitch} disabled={stitching} size="sm"
-                      className="w-full h-9 bg-emerald-600 hover:bg-emerald-700 text-white text-xs">
-                      {stitching
-                        ? <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Stitching…</>
-                        : <><Film className="h-3.5 w-3.5 mr-1.5" /> Stitch All Clips</>}
+                    <Button size="sm" onClick={() => brollInputRef.current?.click()} disabled={uploading.broll}
+                      className="h-5 text-[10px] px-2 bg-zinc-900 border border-pink-800/30 text-pink-400/70 hover:text-pink-300">
+                      {uploading.broll ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Upload className="h-2.5 w-2.5 mr-1" />}
+                      Add B-Roll
                     </Button>
+                    <input ref={brollInputRef} type="file" accept="video/*" hidden onChange={handleBrollUpload} />
+                  </div>
+
+                  {brollClips.length === 0 ? (
+                    <p className="text-[10px] text-zinc-700">Upload a b-roll clip to overlay on the main video (picture-in-picture)</p>
+                  ) : (
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {brollClips.map(br => (
+                        <BrollCard key={br.id} clip={br} onUpdate={updateBroll} onRemove={removeBroll} />
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>
             </div>
-          </>
+
+            {/* ── Right Panel ──────────────────────────────────────────────── */}
+            <div className="w-64 shrink-0 flex flex-col overflow-y-auto">
+
+              {/* Audio track */}
+              <div className="p-3 border-b border-zinc-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10px] text-zinc-500 uppercase tracking-wider flex items-center gap-1">
+                    <Music className="h-3 w-3 text-violet-400" /> Audio Track
+                  </Label>
+                  <Button size="sm" onClick={() => audioInputRef.current?.click()} disabled={uploading.audio}
+                    className="h-5 text-[10px] px-2 bg-zinc-950 border border-zinc-800 text-zinc-500 hover:text-white">
+                    {uploading.audio ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Upload className="h-2.5 w-2.5" />}
+                  </Button>
+                  <input ref={audioInputRef} type="file" accept="audio/*" hidden onChange={handleAudioUpload} />
+                </div>
+
+                {audioUrl ? (
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] text-zinc-400 truncate">{audioName}</p>
+                    {/* Waveform container */}
+                    <div ref={waveformRef} className="rounded overflow-hidden bg-zinc-950 border border-zinc-800" />
+                    <div className="flex gap-1.5">
+                      <Button size="sm" onClick={() => wsRef.current?.playPause()} disabled={!wsReady}
+                        className="flex-1 h-6 text-[10px] bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white">
+                        {wsPlaying ? '⏸ Pause' : '▶ Play'}
+                      </Button>
+                      <Button size="sm" onClick={async () => { setAudioUrl(''); setAudioName(''); wsRef.current?.destroy(); await persistProject({ audioUrl: '' }); }}
+                        className="h-6 px-2 bg-zinc-900 border border-zinc-800 text-zinc-600 hover:text-red-400">
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <p className="text-[9px] text-zinc-700">Audio track replaces all clip audio in the stitched output.</p>
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-zinc-700">Upload an audio track (MP3/WAV). It will replace clip audio in the final video.</p>
+                )}
+              </div>
+
+              {/* Thumbnail */}
+              <div className="p-3 border-b border-zinc-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10px] text-zinc-500 uppercase tracking-wider flex items-center gap-1">
+                    <ImageIcon className="h-3 w-3 text-violet-400" /> Thumbnail
+                  </Label>
+                  <Button size="sm" onClick={() => thumbnailInputRef.current?.click()} disabled={uploading.thumb}
+                    className="h-5 text-[10px] px-2 bg-zinc-950 border border-zinc-800 text-zinc-500 hover:text-white">
+                    {uploading.thumb ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Upload className="h-2.5 w-2.5" />}
+                  </Button>
+                  <input ref={thumbnailInputRef} type="file" accept="image/*" hidden onChange={handleThumbnailUpload} />
+                </div>
+                {thumbnailUrl ? (
+                  <div className="space-y-1.5">
+                    <img src={resolveUrl(thumbnailUrl)} alt="Thumbnail"
+                      className="w-full rounded border border-zinc-800 object-cover aspect-video" />
+                    <Button size="sm" onClick={async () => { setThumbnailUrl(''); setThumbnailName(''); await persistProject({ thumbnailUrl: '' }); }}
+                      className="w-full h-6 text-[10px] bg-zinc-900 border border-zinc-800 text-zinc-600 hover:text-red-400">
+                      Remove
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-zinc-700">Upload a thumbnail image for your video.</p>
+                )}
+              </div>
+
+              {/* Stitch result */}
+              {stitchedUrl && (
+                <div className="p-3 border-b border-zinc-800 space-y-2">
+                  <Label className="text-[10px] text-zinc-500 uppercase tracking-wider flex items-center gap-1">
+                    <CheckCircle className="h-3 w-3 text-emerald-400" /> Stitched Video
+                  </Label>
+                  <video src={resolveUrl(stitchedUrl)} controls className="w-full rounded border border-zinc-800" />
+                  <a href={resolveUrl(stitchedUrl)} download
+                    className="flex items-center justify-center gap-1.5 text-[10px] text-violet-400 hover:text-violet-300 bg-zinc-950 border border-zinc-800 rounded h-7">
+                    <Download className="h-3 w-3" /> Download MP4
+                  </a>
+                </div>
+              )}
+
+              {stitchError && (
+                <div className="p-3 border-b border-zinc-800">
+                  <p className="text-[10px] text-red-400 flex items-start gap-1">
+                    <AlertCircle className="h-3 w-3 shrink-0 mt-0.5" /> Stitch failed: {stitchError}
+                  </p>
+                </div>
+              )}
+
+              {/* Metadata generation */}
+              {stitchedUrl && (
+                <div className="p-3 border-b border-zinc-800 space-y-2">
+                  <button onClick={() => setMetaOpen(v => !v)}
+                    className="flex items-center justify-between w-full text-[10px] text-zinc-500 uppercase tracking-wider hover:text-zinc-300">
+                    <span className="flex items-center gap-1"><Settings2 className="h-3 w-3" /> Metadata</span>
+                    {metaOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  </button>
+
+                  <Button onClick={handleGenerateMetadata} disabled={generatingMeta}
+                    className="w-full h-7 text-[10px] bg-zinc-900 border border-zinc-800 text-zinc-300 hover:border-violet-500/40">
+                    {generatingMeta ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Generating…</> : '✦ Generate Metadata (AI)'}
+                  </Button>
+
+                  {metaOpen && metadata && (
+                    <div className="space-y-2">
+                      <div className="space-y-0.5">
+                        <Label className="text-[9px] text-zinc-600 uppercase">Title</Label>
+                        <div className="flex gap-1">
+                          <Input value={metadata.title} onChange={e => setMetadata(m => ({ ...m, title: e.target.value }))}
+                            className="h-6 text-[10px] flex-1 bg-zinc-950 border-zinc-800" />
+                          <button onClick={() => copyToClipboard(metadata.title, 'Title')} className="text-zinc-600 hover:text-violet-400">
+                            <Copy className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="space-y-0.5">
+                        <div className="flex justify-between items-center">
+                          <Label className="text-[9px] text-zinc-600 uppercase">Description</Label>
+                          <button onClick={() => copyToClipboard(metadata.description, 'Description')} className="text-zinc-600 hover:text-violet-400">
+                            <Copy className="h-3 w-3" />
+                          </button>
+                        </div>
+                        <Textarea value={metadata.description} onChange={e => setMetadata(m => ({ ...m, description: e.target.value }))}
+                          rows={4} className="text-[10px] bg-zinc-950 border-zinc-800 resize-none" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <div className="flex justify-between items-center">
+                          <Label className="text-[9px] text-zinc-600 uppercase">Hashtags</Label>
+                          <button onClick={() => copyToClipboard(metadata.hashtags.map(h => `#${h}`).join(' '), 'Hashtags')} className="text-zinc-600 hover:text-violet-400">
+                            <Copy className="h-3 w-3" />
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {metadata.hashtags.map((h, i) => (
+                            <span key={i} className="text-[9px] bg-violet-500/10 text-violet-400 px-1.5 py-0.5 rounded">#{h}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-0.5">
+                        <div className="flex justify-between items-center">
+                          <Label className="text-[9px] text-zinc-600 uppercase">Tags</Label>
+                          <button onClick={() => copyToClipboard(metadata.tags.join(', '), 'Tags')} className="text-zinc-600 hover:text-violet-400">
+                            <Copy className="h-3 w-3" />
+                          </button>
+                        </div>
+                        <p className="text-[9px] text-zinc-500 break-words">{metadata.tags.join(', ')}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Export to Pipeline */}
+              {stitchedUrl && (
+                <div className="p-3 space-y-2">
+                  <Label className="text-[10px] text-zinc-500 uppercase tracking-wider flex items-center gap-1">
+                    <Send className="h-3 w-3 text-violet-400" /> Publish / Schedule
+                  </Label>
+                  <Input placeholder="Title"
+                    value={exportTitle}
+                    onChange={e => setExportTitle(e.target.value)}
+                    className="h-7 text-xs bg-zinc-950 border-zinc-800" />
+                  <div className="space-y-0.5">
+                    <Label className="text-[9px] text-zinc-600">Schedule Date (optional)</Label>
+                    <Input type="date" value={exportDate} onChange={e => setExportDate(e.target.value)}
+                      className="h-7 text-xs bg-zinc-950 border-zinc-800" />
+                  </div>
+                  <Button onClick={handleExport} disabled={exporting || !!exportedId}
+                    className="w-full h-8 text-xs bg-violet-600 hover:bg-violet-700 text-white">
+                    {exporting ? <><Loader2 className="h-3 w-3 mr-1.5 animate-spin" /> Exporting…</>
+                      : exportedId ? <><CheckCircle className="h-3 w-3 mr-1.5 text-emerald-400" /> Sent to Pipeline!</>
+                        : <><Send className="h-3 w-3 mr-1.5" /> Send to Pipeline</>}
+                  </Button>
+                  {exportedId && (
+                    <button onClick={() => navigate('/dashboard/submissions')}
+                      className="text-[10px] text-violet-400 hover:underline w-full text-center">
+                      View in Pipeline →
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>

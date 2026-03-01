@@ -987,3 +987,67 @@ async def generate_script_for_idea_endpoint(client_id: str, idea_id: str) -> dic
         "caption": idea.get("caption"),
         "hashtags": idea.get("hashtags")
     }
+
+
+async def refine_script(client_id: str, script_id: str, instruction: str) -> dict:
+    """
+    Refine an existing FVS script using an AI instruction.
+    E.g. "Make it funnier", "Shorten to 45 seconds", "Rewrite the hook".
+    Saves the refined version and returns the new script text.
+    """
+    if not client_id:
+        raise HTTPException(status_code=400, detail="Client ID required")
+
+    from services.ai_service import call_gemini
+    from db.mongo import fvs_scripts_collection
+
+    scripts_db = fvs_scripts_collection()
+    script_doc = await scripts_db.find_one({"id": script_id, "clientId": client_id}, {"_id": 0})
+    if not script_doc:
+        raise HTTPException(status_code=404, detail="Script not found")
+
+    original_text = script_doc.get("scriptText") or script_doc.get("text", "")
+    if not original_text:
+        raise HTTPException(status_code=400, detail="Script has no text to refine")
+
+    prompt = f"""You are an expert scriptwriter. Refine the following script according to the instruction.
+
+INSTRUCTION: {instruction}
+
+ORIGINAL SCRIPT:
+{original_text}
+
+STRICT RULES:
+- Return ONLY the refined script text, no explanations or meta-commentary
+- Keep the same language style (Hinglish if original is Hinglish, English if English)
+- Preserve the core message and topic
+- Do NOT add section headers, labels, or stage directions
+
+Refined script:"""
+
+    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="AI service not available — GEMINI_API_KEY not configured")
+
+    try:
+        refined_text = await call_gemini(prompt, max_tokens=2048)
+    except Exception as e:
+        logger.error(f"Script refinement LLM error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"AI refinement failed: {str(e)}")
+
+    now = datetime.now(timezone.utc).isoformat()
+    # Save refined version — push original to versions array and update current text
+    await scripts_db.update_one(
+        {"id": script_id},
+        {
+            "$set": {"scriptText": refined_text, "text": refined_text, "updatedAt": now, "lastInstruction": instruction},
+            "$push": {"versions": {"scriptText": original_text, "instruction": instruction, "refinedAt": now}}
+        }
+    )
+
+    return {
+        "scriptId": script_id,
+        "scriptText": refined_text,
+        "instruction": instruction,
+        "updatedAt": now,
+    }

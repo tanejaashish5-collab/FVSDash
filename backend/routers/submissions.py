@@ -307,6 +307,53 @@ async def delete_submission(
     return {"ok": True}
 
 
+@router.patch("/submissions/bulk")
+async def bulk_update_submissions(
+    data: dict,
+    user: dict = Depends(get_current_user),
+    impersonateClientId: Optional[str] = Query(None)
+):
+    """
+    Bulk update multiple submissions at once.
+    Body: { "ids": ["id1", "id2", ...], "updates": { "status": "EDITING", "priority": "High" } }
+    Supported update fields: status, priority, releaseDate.
+    """
+    client_id = get_client_id_from_user(user, impersonateClientId)
+    ids = data.get("ids", [])
+    updates = data.get("updates", {})
+
+    if not ids:
+        raise HTTPException(status_code=400, detail="ids array is required")
+    if len(ids) > 100:
+        raise HTTPException(status_code=400, detail="Cannot bulk update more than 100 submissions at once")
+    if not updates:
+        raise HTTPException(status_code=400, detail="updates object is required")
+
+    # Whitelist allowed bulk update fields
+    allowed = {"status", "priority", "releaseDate"}
+    filtered = {k: v for k, v in updates.items() if k in allowed}
+    if not filtered:
+        raise HTTPException(status_code=400, detail=f"No valid update fields. Allowed: {allowed}")
+
+    # Validate status if provided
+    if "status" in filtered:
+        valid_statuses = ["INTAKE", "EDITING", "DESIGN", "SCHEDULED", "PUBLISHED", "DELETED",
+                          "Pending", "In Review", "Approved", "Scheduled", "Revision Required", "Published"]
+        if filtered["status"] not in valid_statuses:
+            raise HTTPException(status_code=400, detail=f"Invalid status: {filtered['status']}")
+
+    now = datetime.now(timezone.utc).isoformat()
+    filtered["updatedAt"] = now
+
+    db = submissions_collection()
+    query = {"id": {"$in": ids}}
+    if client_id:
+        query["clientId"] = client_id
+
+    result = await db.update_many(query, {"$set": filtered})
+    return {"modifiedCount": result.modified_count, "matchedCount": result.matched_count}
+
+
 @router.get("/submissions/list")
 async def get_submissions_list(
     user: dict = Depends(get_current_user),

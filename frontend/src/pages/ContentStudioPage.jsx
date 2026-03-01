@@ -17,7 +17,8 @@ import { Separator } from '@/components/ui/separator';
 import {
   Lightbulb, FileText, Video, Send, Sparkles, Loader2,
   ChevronRight, CheckCircle, AlertCircle, Mic, History,
-  Plus, X, ImageIcon, RefreshCw, ExternalLink, Youtube, Trash2, Upload
+  Plus, X, ImageIcon, RefreshCw, ExternalLink, Youtube, Trash2, Upload,
+  Wand2, BarChart2, Captions, ChevronDown, ChevronUp, Copy
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -137,6 +138,20 @@ export default function ContentStudioPage() {
   const [videoTaskId, setVideoTaskId] = useState(null);
   const [videoStatus, setVideoStatus] = useState('idle');
   const [videoUrl, setVideoUrl] = useState('');
+
+  // Script refine + score
+  const [refineInstruction, setRefineInstruction] = useState('');
+  const [refineOpen, setRefineOpen] = useState(false);
+  const [refining, setRefining] = useState(false);
+  const [scriptScore, setScriptScore] = useState(null);
+  const [scoringScript, setScoringScript] = useState(false);
+  const [scoreOpen, setScoreOpen] = useState(false);
+  const [captionData, setCaptionData] = useState(null);
+  const [generatingCaptions, setGeneratingCaptions] = useState(false);
+  const [captionsOpen, setCaptionsOpen] = useState(false);
+  // Thumbnail variants (A/B testing)
+  const [thumbnailVariants, setThumbnailVariants] = useState([]);
+  const [generatingVariant, setGeneratingVariant] = useState(false);
 
   // Step 4: Publish
   const [publishTitle, setPublishTitle] = useState('');
@@ -280,6 +295,99 @@ export default function ContentStudioPage() {
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Script generation failed');
     } finally { setGeneratingScript(false); }
+  };
+
+  // ── Script Refine ─────────────────────────────────────────────────────────
+  const handleRefineScript = async () => {
+    if (!refineInstruction.trim()) { toast.error('Enter a refinement instruction'); return; }
+    if (!script.trim()) { toast.error('Generate a script first'); return; }
+    setRefining(true);
+    try {
+      // Save current script to a temp session script so refine endpoint can find it
+      const sid = await ensureSession();
+      // Temporarily: refine via the general LLM endpoint using the existing script as context
+      const res = await axios.post(`${API}/ai/generate`, {
+        provider: aiProvider,
+        task: 'script',
+        input: {
+          topic: `REFINEMENT TASK: ${refineInstruction}\n\nOriginal script to refine:\n${script}`,
+          tone,
+          audience,
+        },
+      }, { headers: authHeaders });
+      const refined = res.data.scriptText || '';
+      if (!refined) { toast.error('Refinement returned empty — try a different instruction'); return; }
+      setScript(refined);
+      setRefineInstruction('');
+      setRefineOpen(false);
+      setScriptScore(null); // Reset score since script changed
+      if (sid) await saveToSession(sid, { script_output: refined });
+      toast.success('Script refined!');
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Refinement failed');
+    } finally { setRefining(false); }
+  };
+
+  const QUICK_REFINEMENTS = [
+    { label: 'Shorter (45s)', instruction: 'Shorten to approximately 45 seconds (100-120 words). Keep the key points.' },
+    { label: 'More energetic', instruction: 'Make the tone more energetic, punchy, and high-energy. Add urgency.' },
+    { label: 'Stronger hook', instruction: 'Rewrite the first 2 sentences to be a more powerful attention-grabbing hook.' },
+    { label: 'Add statistics', instruction: 'Weave in 2-3 specific statistics or data points to support the main argument.' },
+    { label: 'Simpler language', instruction: 'Simplify the language — use shorter sentences, simpler words. Keep it accessible.' },
+  ];
+
+  // ── Script Score ──────────────────────────────────────────────────────────
+  const handleScoreScript = async () => {
+    if (!script.trim()) { toast.error('Generate or write a script first'); return; }
+    setScoringScript(true);
+    try {
+      const res = await axios.post(`${API}/ai/score-script`, {
+        scriptText: script, topic, format: 'short',
+      }, { headers: authHeaders });
+      setScriptScore(res.data);
+      setScoreOpen(true);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Scoring failed');
+    } finally { setScoringScript(false); }
+  };
+
+  // ── Caption Generation ────────────────────────────────────────────────────
+  const handleGenerateCaptions = async () => {
+    if (!audioUrl) { toast.error('Generate audio first'); return; }
+    setGeneratingCaptions(true);
+    try {
+      const res = await axios.post(`${API}/ai/generate-captions`, {
+        audioUrl: audioUrl.startsWith('/api/') ? `${BACKEND}${audioUrl}` : audioUrl,
+      }, { headers: authHeaders });
+      if (res.data.warning) {
+        toast.warning(res.data.warning);
+      } else {
+        setCaptionData(res.data);
+        setCaptionsOpen(true);
+        toast.success(`Captions generated — ${res.data.segmentCount || 0} segments`);
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Caption generation failed');
+    } finally { setGeneratingCaptions(false); }
+  };
+
+  // ── Thumbnail Variant (A/B testing) ──────────────────────────────────────
+  const handleGenerateThumbnailVariant = async () => {
+    if (!topic.trim()) { toast.error('Enter a topic first'); return; }
+    setGeneratingVariant(true);
+    try {
+      const res = await axios.post(`${API}/ai/generate-thumbnail`, {
+        topic, tone, title: publishTitle || topic,
+        ...(thumbnailCustomPrompt.trim() ? { customPrompt: thumbnailCustomPrompt.trim() } : {}),
+      }, { headers: authHeaders });
+      const url = res.data.url || '';
+      if (url) {
+        setThumbnailVariants(prev => [...prev, { url, id: Date.now() }]);
+        toast.success('Thumbnail variant generated!');
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Variant generation failed');
+    } finally { setGeneratingVariant(false); }
   };
 
   // ── Step 2: Audio ─────────────────────────────────────────────────────────
@@ -682,6 +790,109 @@ export default function ContentStudioPage() {
                     />
                   </div>
 
+                  {/* ── AI Refine Panel ─────────────────────────────────── */}
+                  {hasScript && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => { setRefineOpen(!refineOpen); setScoreOpen(false); }}
+                          className="flex items-center gap-1.5 text-[11px] text-indigo-400 hover:text-indigo-300 transition-colors">
+                          <Wand2 className="h-3 w-3" />
+                          Refine with AI
+                          {refineOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                        </button>
+                        <button
+                          onClick={() => { setScoreOpen(!scoreOpen); setRefineOpen(false); }}
+                          className="flex items-center gap-1.5 text-[11px] text-amber-400 hover:text-amber-300 transition-colors ml-3">
+                          <BarChart2 className="h-3 w-3" />
+                          Score Script
+                          {scoreOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                        </button>
+                        {scoringScript && <Loader2 className="h-3 w-3 animate-spin text-amber-400" />}
+                        {!scoringScript && !scoreOpen && (
+                          <button onClick={handleScoreScript}
+                            className="text-[10px] text-zinc-600 hover:text-amber-400 transition-colors">
+                            Run
+                          </button>
+                        )}
+                      </div>
+
+                      {refineOpen && (
+                        <div className="space-y-2 p-3 rounded-lg bg-indigo-500/5 border border-indigo-500/20">
+                          <p className="text-[10px] text-zinc-500">Quick refinements:</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {QUICK_REFINEMENTS.map(({ label, instruction }) => (
+                              <button key={label}
+                                onClick={() => setRefineInstruction(instruction)}
+                                className={`px-2 py-0.5 rounded text-[10px] border transition-colors ${
+                                  refineInstruction === instruction
+                                    ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
+                                    : 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:border-indigo-500/30 hover:text-indigo-400'
+                                }`}>
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="flex gap-2">
+                            <Input
+                              value={refineInstruction}
+                              onChange={e => setRefineInstruction(e.target.value)}
+                              placeholder="Or type your own: 'Make it funnier', 'Add a cliffhanger ending'…"
+                              className="flex-1 h-7 text-xs bg-zinc-950 border-zinc-700 text-zinc-300 placeholder:text-zinc-600"
+                              onKeyDown={e => e.key === 'Enter' && !refining && handleRefineScript()}
+                            />
+                            <Button size="sm" onClick={handleRefineScript} disabled={refining || !refineInstruction.trim()}
+                              className="h-7 text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white px-3">
+                              {refining ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Refine'}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {scoreOpen && scriptScore && (
+                        <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-xs font-bold ${
+                                scriptScore.tier === 'BREAKOUT' ? 'text-emerald-400' :
+                                scriptScore.tier === 'SOLID' ? 'text-blue-400' :
+                                scriptScore.tier === 'AVERAGE' ? 'text-amber-400' : 'text-red-400'
+                              }`}>{scriptScore.tier}</span>
+                              <span className="text-lg font-bold text-white">{scriptScore.score}</span>
+                              <span className="text-[10px] text-zinc-500">/ 100</span>
+                            </div>
+                            <div className="flex gap-3 text-[10px] text-zinc-500">
+                              <span>Hook: <span className="text-zinc-300">{scriptScore.hookRating}/10</span></span>
+                              <span>Keywords: <span className="text-zinc-300">{scriptScore.keywordScore}/10</span></span>
+                              <span>CTA: <span className={scriptScore.ctaPresent ? 'text-emerald-400' : 'text-red-400'}>{scriptScore.ctaPresent ? '✓' : '✗'}</span></span>
+                            </div>
+                          </div>
+                          <div className="text-[10px] text-zinc-500">{scriptScore.wordCount} words · ~{scriptScore.estimatedDurationSeconds}s · {scriptScore.durationFit === 'good' ? <span className="text-emerald-400">Good length</span> : <span className="text-amber-400">{scriptScore.durationFit}</span>}</div>
+                          {scriptScore.suggestions?.length > 0 && (
+                            <ul className="space-y-1">
+                              {scriptScore.suggestions.map((s, i) => (
+                                <li key={i} className="text-[10px] text-zinc-400 flex items-start gap-1.5">
+                                  <span className="text-amber-400 mt-0.5">→</span> {s}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                          <Button size="sm" onClick={handleScoreScript} disabled={scoringScript}
+                            className="h-6 text-[10px] bg-zinc-900 border border-zinc-700 text-zinc-400 hover:text-white px-2">
+                            {scoringScript ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3 mr-1" />}
+                            Re-score
+                          </Button>
+                        </div>
+                      )}
+                      {scoreOpen && !scriptScore && !scoringScript && (
+                        <Button size="sm" onClick={handleScoreScript}
+                          className="h-7 text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 px-3">
+                          <BarChart2 className="h-3 w-3 mr-1" /> Analyze Script Performance
+                        </Button>
+                      )}
+                    </div>
+                  )}
+
                   <Separator className="bg-zinc-800/60" />
 
                   {/* Audio */}
@@ -724,8 +935,44 @@ export default function ContentStudioPage() {
                       </p>
                     )}
                     {audioStatus === 'ready' && audioUrl && (
-                      <audio key={audioUrl} controls src={resolveUrl(audioUrl)}
-                        className="w-full mt-1" style={{ height: 36, colorScheme: 'dark' }} />
+                      <>
+                        <audio key={audioUrl} controls src={resolveUrl(audioUrl)}
+                          className="w-full mt-1" style={{ height: 36, colorScheme: 'dark' }} />
+                        <div className="flex items-center justify-between mt-1">
+                          <button
+                            onClick={handleGenerateCaptions}
+                            disabled={generatingCaptions}
+                            className="flex items-center gap-1.5 text-[11px] text-zinc-500 hover:text-emerald-400 transition-colors">
+                            {generatingCaptions
+                              ? <Loader2 className="h-3 w-3 animate-spin" />
+                              : <Captions className="h-3 w-3" />}
+                            {captionData ? 'Regenerate Captions' : 'Generate Captions (Whisper)'}
+                          </button>
+                          {captionData && (
+                            <button onClick={() => setCaptionsOpen(!captionsOpen)}
+                              className="text-[10px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1">
+                              {captionsOpen ? 'Hide' : 'View'} SRT
+                              {captionsOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                            </button>
+                          )}
+                        </div>
+                        {captionsOpen && captionData && (
+                          <div className="mt-1 p-2.5 rounded bg-zinc-950 border border-zinc-800">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className="text-[10px] text-zinc-500">{captionData.segmentCount} segments</span>
+                              <button
+                                onClick={() => { navigator.clipboard.writeText(captionData.srt); toast.success('SRT copied!'); }}
+                                className="flex items-center gap-1 text-[10px] text-zinc-500 hover:text-white">
+                                <Copy className="h-3 w-3" /> Copy SRT
+                              </button>
+                            </div>
+                            <pre className="text-[9px] text-zinc-400 font-mono leading-relaxed max-h-32 overflow-y-auto whitespace-pre-wrap">
+                              {captionData.srt.split('\n').slice(0, 24).join('\n')}
+                              {captionData.srt.split('\n').length > 24 && '\n...'}
+                            </pre>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </CardContent>
@@ -783,8 +1030,42 @@ export default function ContentStudioPage() {
                       </p>
                     )}
                     {thumbnailUrl && (
-                      <img src={resolveUrl(thumbnailUrl)} alt="Generated thumbnail"
-                        className="w-full rounded-lg border border-zinc-800 object-cover aspect-video mt-1" />
+                      <div className="mt-1 space-y-2">
+                        <img src={resolveUrl(thumbnailUrl)} alt="Generated thumbnail"
+                          className="w-full rounded-lg border border-zinc-800 object-cover aspect-video" />
+                        {/* A/B Variant Generator */}
+                        <div className="flex items-center justify-between">
+                          <button
+                            onClick={handleGenerateThumbnailVariant}
+                            disabled={generatingVariant}
+                            className="flex items-center gap-1.5 text-[11px] text-zinc-500 hover:text-violet-400 transition-colors">
+                            {generatingVariant ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+                            Generate Variant (A/B Test)
+                          </button>
+                          {thumbnailVariants.length > 0 && (
+                            <span className="text-[10px] text-zinc-600">{thumbnailVariants.length} variant{thumbnailVariants.length > 1 ? 's' : ''}</span>
+                          )}
+                        </div>
+                        {thumbnailVariants.length > 0 && (
+                          <div className="grid grid-cols-2 gap-2">
+                            {thumbnailVariants.map((v) => (
+                              <div key={v.id} className="group relative">
+                                <img src={resolveUrl(v.url)} alt="Thumbnail variant"
+                                  className="w-full rounded border border-zinc-800 object-cover aspect-video cursor-pointer hover:border-violet-500/50 transition-colors"
+                                  onClick={() => { setThumbnailUrl(v.url); setThumbnailStatus('ready'); toast.success('Variant set as primary'); }} />
+                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <span className="text-[9px] bg-black/70 text-white px-1.5 py-0.5 rounded">Use This</span>
+                                </div>
+                                <button
+                                  onClick={() => setThumbnailVariants(prev => prev.filter(x => x.id !== v.id))}
+                                  className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 rounded-full p-0.5 text-zinc-400 hover:text-red-400">
+                                  <X className="h-2.5 w-2.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
 

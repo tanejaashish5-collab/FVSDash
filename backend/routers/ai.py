@@ -41,9 +41,14 @@ async def generate_thumbnail_endpoint(data: dict, user: dict = Depends(get_curre
     topic = data.get("topic", "")
     tone = data.get("tone", "")
     title = data.get("title", topic)
+    # Accept custom_prompt under either key name
+    custom_prompt = data.get("customPrompt") or data.get("custom_prompt") or None
     if not topic:
         raise HTTPException(status_code=400, detail="topic is required")
-    result = await generate_thumbnail(topic=topic, brand_voice=tone, title=title, format="short")
+    result = await generate_thumbnail(
+        topic=topic, brand_voice=tone, title=title, format="short",
+        custom_prompt=custom_prompt,
+    )
     return {"url": result.url, "isMocked": result.is_mocked, "warning": getattr(result, "warning", None)}
 
 

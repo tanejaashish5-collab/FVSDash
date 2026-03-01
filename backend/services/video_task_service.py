@@ -56,11 +56,16 @@ async def create_veo_job(task_data: dict) -> VideoJobResult:
 
     Falls back to mock if neither is configured or on error.
     """
-    api_key = os.environ.get("VEO_API_KEY")
+    # Accept all common aliases — user may have set GEMINI_API_KEY or GOOGLE_API_KEY
+    api_key = (
+        os.environ.get("VEO_API_KEY")
+        or os.environ.get("GEMINI_API_KEY")
+        or os.environ.get("GOOGLE_API_KEY")
+    )
     gcp_project = os.environ.get("GOOGLE_CLOUD_PROJECT")
 
     if not api_key and not gcp_project:
-        logger.warning("No Veo credentials (VEO_API_KEY or GOOGLE_CLOUD_PROJECT). Using mocked video generation.")
+        logger.warning("No Veo credentials (VEO_API_KEY / GEMINI_API_KEY / GOOGLE_API_KEY / GOOGLE_CLOUD_PROJECT). Using mocked video generation.")
         # Embed creation timestamp so check_veo_job can complete mock after 30 seconds
         mock_job_id = f"veo-mock-{int(_time.time())}-{uuid.uuid4().hex[:8]}"
         return VideoJobResult(
@@ -146,7 +151,11 @@ async def check_veo_job(job_id: str) -> VideoStatusResult:
     Returns:
         VideoStatusResult with status and video URL if ready
     """
-    api_key = os.environ.get("VEO_API_KEY")
+    api_key = (
+        os.environ.get("VEO_API_KEY")
+        or os.environ.get("GEMINI_API_KEY")
+        or os.environ.get("GOOGLE_API_KEY")
+    )
     gcp_project = os.environ.get("GOOGLE_CLOUD_PROJECT")
 
     # If it's a mock job or no credentials, simulate completion via time-based approach.

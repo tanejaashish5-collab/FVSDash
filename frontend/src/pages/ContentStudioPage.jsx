@@ -18,10 +18,12 @@ import {
   Lightbulb, FileText, Video, Send, Sparkles, Loader2,
   ChevronRight, CheckCircle, AlertCircle, Mic, History,
   Plus, X, ImageIcon, RefreshCw, ExternalLink, Youtube, Trash2, Upload,
-  Wand2, BarChart2, Captions, ChevronDown, ChevronUp, Copy
+  Wand2, BarChart2, Captions, ChevronDown, ChevronUp, Copy, BookOpen, MessageSquare
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import TemplatesPanel from '@/components/TemplatesPanel';
+import CommentIntelligencePanel from '@/components/CommentIntelligencePanel';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
@@ -152,6 +154,9 @@ export default function ContentStudioPage() {
   // Thumbnail variants (A/B testing)
   const [thumbnailVariants, setThumbnailVariants] = useState([]);
   const [generatingVariant, setGeneratingVariant] = useState(false);
+  // Templates panel + Comment Intelligence
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
 
   // Step 4: Publish
   const [publishTitle, setPublishTitle] = useState('');
@@ -793,7 +798,7 @@ export default function ContentStudioPage() {
                   {/* ── AI Refine Panel ─────────────────────────────────── */}
                   {hasScript && (
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <button
                           onClick={() => { setRefineOpen(!refineOpen); setScoreOpen(false); }}
                           className="flex items-center gap-1.5 text-[11px] text-indigo-400 hover:text-indigo-300 transition-colors">
@@ -807,6 +812,13 @@ export default function ContentStudioPage() {
                           <BarChart2 className="h-3 w-3" />
                           Score Script
                           {scoreOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                        </button>
+                        <button
+                          onClick={() => setTemplatesOpen(o => !o)}
+                          className="flex items-center gap-1.5 text-[11px] text-teal-400 hover:text-teal-300 transition-colors ml-3">
+                          <BookOpen className="h-3 w-3" />
+                          Templates
+                          {templatesOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                         </button>
                         {scoringScript && <Loader2 className="h-3 w-3 animate-spin text-amber-400" />}
                         {!scoringScript && !scoreOpen && (
@@ -890,6 +902,19 @@ export default function ContentStudioPage() {
                           <BarChart2 className="h-3 w-3 mr-1" /> Analyze Script Performance
                         </Button>
                       )}
+                    </div>
+                  )}
+
+                  {/* ── Templates Panel ─────────────────────────────────── */}
+                  {templatesOpen && (
+                    <div className="max-h-[500px] overflow-hidden rounded-lg">
+                      <TemplatesPanel
+                        onApply={(tmpl) => {
+                          setScript(tmpl.scriptTemplate);
+                          setTemplatesOpen(false);
+                        }}
+                        onClose={() => setTemplatesOpen(false)}
+                      />
                     </div>
                   )}
 
@@ -1277,6 +1302,30 @@ export default function ContentStudioPage() {
               </Card>
             </div>
           </div>
+
+          {/* ── Comment Intelligence — full-width bottom card ──────────── */}
+          <div className="mt-6">
+            <Card className="bg-[#0B1120] border-[#1F2933]">
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-purple-400" />
+                  <CardTitle className="text-sm font-semibold text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                    Comment Intelligence
+                  </CardTitle>
+                  <span className="text-[10px] text-zinc-500">Mine YouTube comments for content ideas</span>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <CommentIntelligencePanel
+                  onAddIdea={(ideaTitle) => {
+                    setTopic(ideaTitle);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                />
+              </CardContent>
+            </Card>
+          </div>
+
         </div>
       </div>
     </div>

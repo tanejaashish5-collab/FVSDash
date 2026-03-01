@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { usePipelineEvents } from '@/hooks/usePipelineEvents';
+import SmartScheduleWidget from '@/components/SmartScheduleWidget';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -290,6 +292,17 @@ export default function SubmissionsPage() {
     
     fetchDetailData();
   }, [selected, authHeaders]);
+
+  // Real-time SSE updates — live status badge changes without page refresh
+  usePipelineEvents((event) => {
+    if (event.type === 'submission_status') {
+      const { id, status, updatedAt } = event.data;
+      setSubmissions(prev =>
+        prev.map(s => s.id === id ? { ...s, status, updatedAt } : s)
+      );
+      if (selected?.id === id) setSelected(prev => ({ ...prev, status, updatedAt }));
+    }
+  });
 
   // Pipeline keyboard shortcuts — disabled while the new-submission form is open
   useKeyboardShortcuts({
@@ -856,6 +869,11 @@ export default function SubmissionsPage() {
                 </Select>
               </div>
             </div>
+
+            {/* AI Schedule Suggestions */}
+            <SmartScheduleWidget
+              onApplyDate={(dateStr) => setReleaseDate(new Date(dateStr))}
+            />
 
             {/* Release Date */}
             <div className="space-y-1.5">

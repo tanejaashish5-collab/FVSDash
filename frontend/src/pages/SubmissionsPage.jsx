@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -122,7 +123,18 @@ export default function SubmissionsPage() {
   // Auto-open from Full Auto navigation
   const [autoOpenId, setAutoOpenId] = useState(null);
   const [clearingDemo, setClearingDemo] = useState(false);
-  
+
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkStatus, setBulkStatus] = useState('');
+  const [bulkPriority, setBulkPriority] = useState('');
+  const [bulkUpdating, setBulkUpdating] = useState(false);
+
+  // Keyboard navigation state
+  const [focusedIdx, setFocusedIdx] = useState(-1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchRef = useRef(null);
+
   // Publishing state
   const [platformConnections, setPlatformConnections] = useState([]);
   const [publishingTasks, setPublishingTasks] = useState([]);
@@ -147,6 +159,68 @@ export default function SubmissionsPage() {
   }, [authHeaders, filterStatus, filterType]);
 
   useEffect(() => { fetchSubmissions(); }, [fetchSubmissions]);
+
+  // Clear bulk selection when submissions change (filter/refetch)
+  useEffect(() => { setSelectedIds(new Set()); setFocusedIdx(-1); }, [submissions]);
+
+  // Text-search filter (used by "/" keyboard shortcut)
+  const visibleSubmissions = useMemo(() => {
+    if (!searchQuery.trim()) return submissions;
+    const q = searchQuery.toLowerCase();
+    return submissions.filter(s =>
+      s.title?.toLowerCase().includes(q) ||
+      s.guest?.toLowerCase().includes(q)
+    );
+  }, [submissions, searchQuery]);
+
+  const toggleSelect = (id, e) => {
+    e?.stopPropagation();
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const toggleSelectAll = () => {
+    if (selectedIds.size === visibleSubmissions.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(visibleSubmissions.map(s => s.id)));
+    }
+  };
+
+  const handleBulkUpdate = async (updates) => {
+    if (selectedIds.size === 0) return;
+    setBulkUpdating(true);
+    try {
+      await axios.patch(`${API}/submissions/bulk`, {
+        ids: Array.from(selectedIds), updates,
+      }, { headers: authHeaders });
+      toast.success(`Updated ${selectedIds.size} submission${selectedIds.size > 1 ? 's' : ''}`);
+      setSelectedIds(new Set());
+      fetchSubmissions();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Bulk update failed');
+    } finally { setBulkUpdating(false); }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!window.confirm(`Delete ${selectedIds.size} submission${selectedIds.size > 1 ? 's' : ''}? This cannot be undone.`)) return;
+    setBulkUpdating(true);
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map(id =>
+          axios.delete(`${API}/submissions/${id}`, { headers: authHeaders })
+        )
+      );
+      toast.success(`Deleted ${selectedIds.size} submission${selectedIds.size > 1 ? 's' : ''}`);
+      setSelectedIds(new Set());
+      fetchSubmissions();
+    } catch (e) {
+      toast.error('Some deletions failed');
+    } finally { setBulkUpdating(false); }
+  };
 
   // Read router state from Full Auto navigation → mark which submission to auto-open
   useEffect(() => {
@@ -216,6 +290,25 @@ export default function SubmissionsPage() {
     
     fetchDetailData();
   }, [selected, authHeaders]);
+
+  // Pipeline keyboard shortcuts — disabled while the new-submission form is open
+  useKeyboardShortcuts({
+    'n': () => setIsFormOpen(true),
+    '/': () => setTimeout(() => searchRef.current?.focus(), 0),
+    'j': () => setFocusedIdx(i => Math.min(i + 1, visibleSubmissions.length - 1)),
+    'k': () => setFocusedIdx(i => Math.max(i - 1, 0)),
+    'enter': () => {
+      if (focusedIdx >= 0 && visibleSubmissions[focusedIdx]) {
+        setSelected(visibleSubmissions[focusedIdx]);
+      }
+    },
+    'escape': () => { setSelected(null); setFocusedIdx(-1); setSelectedIds(new Set()); },
+    '1': () => { const s = selected || visibleSubmissions[focusedIdx]; if (s) handleStatusChange(s.id, 'INTAKE'); },
+    '2': () => { const s = selected || visibleSubmissions[focusedIdx]; if (s) handleStatusChange(s.id, 'EDITING'); },
+    '3': () => { const s = selected || visibleSubmissions[focusedIdx]; if (s) handleStatusChange(s.id, 'DESIGN'); },
+    '4': () => { const s = selected || visibleSubmissions[focusedIdx]; if (s) handleStatusChange(s.id, 'SCHEDULED'); },
+    '5': () => { const s = selected || visibleSubmissions[focusedIdx]; if (s) handleStatusChange(s.id, 'PUBLISHED'); },
+  }, !isFormOpen);
 
   const resetForm = () => {
     setTitle(''); setGuest(''); setDescription('');
@@ -447,11 +540,18 @@ export default function SubmissionsPage() {
               <CardTitle className="text-sm font-semibold text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>
                 All Submissions
               </CardTitle>
-              <span className="text-[10px] font-mono text-zinc-600 bg-zinc-800/50 px-1.5 rounded">{submissions.length}</span>
+              <span className="text-[10px] font-mono text-zinc-600 bg-zinc-800/50 px-1.5 rounded">{visibleSubmissions.length}</span>
             </div>
           </div>
-          {/* Filters */}
-          <div className="flex gap-2 mt-3">
+          {/* Filters + Search */}
+          <div className="flex gap-2 mt-3 flex-wrap">
+            <Input
+              ref={searchRef}
+              value={searchQuery}
+              onChange={e => { setSearchQuery(e.target.value); setFocusedIdx(-1); }}
+              placeholder="Search titles… (press /)"
+              className="h-8 text-xs bg-zinc-950 border-zinc-800 text-zinc-300 placeholder:text-zinc-600 w-[190px]"
+            />
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger data-testid="filter-status" className="w-[140px] h-8 text-xs bg-zinc-950 border-zinc-800 text-zinc-300">
                 <SelectValue />
@@ -500,10 +600,57 @@ export default function SubmissionsPage() {
               <p className="text-[10px] text-zinc-600 mt-1">Click "+ New Submission" to create your first piece of content.</p>
             </div>
           ) : (
+            <>
+              {/* ── Bulk Actions Toolbar ── */}
+              {selectedIds.size > 0 && (
+                <div className="flex items-center gap-3 px-4 py-2.5 bg-indigo-500/5 border-b border-indigo-500/20">
+                  <span className="text-xs text-indigo-400 font-medium">
+                    {selectedIds.size} selected
+                  </span>
+                  <div className="flex items-center gap-2 ml-2">
+                    <Select value={bulkStatus} onValueChange={v => { setBulkStatus(v); handleBulkUpdate({ status: v }); }}>
+                      <SelectTrigger className="h-6 w-[120px] text-[10px] bg-zinc-900 border-zinc-700 text-zinc-300">
+                        <SelectValue placeholder="Move to…" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#0B1120] border-[#1F2933]">
+                        {STATUSES.map(s => (
+                          <SelectItem key={s} value={s} className="text-xs text-zinc-300">{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={bulkPriority} onValueChange={v => { setBulkPriority(v); handleBulkUpdate({ priority: v }); }}>
+                      <SelectTrigger className="h-6 w-[110px] text-[10px] bg-zinc-900 border-zinc-700 text-zinc-300">
+                        <SelectValue placeholder="Priority…" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#0B1120] border-[#1F2933]">
+                        {PRIORITIES.map(p => (
+                          <SelectItem key={p} value={p} className="text-xs text-zinc-300">{p}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button size="sm" onClick={handleBulkDelete} disabled={bulkUpdating}
+                      className="h-6 text-[10px] bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 px-2">
+                      {bulkUpdating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3 mr-1" />}
+                      Delete
+                    </Button>
+                    <button onClick={() => setSelectedIds(new Set())}
+                      className="text-[10px] text-zinc-600 hover:text-zinc-400 ml-1">
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              )}
             <Table>
               <TableHeader>
                 <TableRow className="border-[#1F2933] hover:bg-transparent">
-                  <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold w-[30%]">Title</TableHead>
+                  <TableHead className="w-[36px] px-4">
+                    <Checkbox
+                      checked={visibleSubmissions.length > 0 && selectedIds.size === visibleSubmissions.length}
+                      onCheckedChange={toggleSelectAll}
+                      className="border-zinc-700 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
+                    />
+                  </TableHead>
+                  <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold w-[28%]">Title</TableHead>
                   <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">Type</TableHead>
                   <TableHead className="text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
                     <AuraTooltip content={tooltipContent.submissions.statusFilter} position="top">
@@ -517,17 +664,26 @@ export default function SubmissionsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {submissions.map(sub => {
+                {visibleSubmissions.map((sub, idx) => {
                   const sc = statusCfg[sub.status] || statusCfg.INTAKE;
                   const tc = typeCfg[sub.contentType] || 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20';
                   const pc = priorityCfg[sub.priority] || priorityCfg.Medium;
+                  const isSelected = selectedIds.has(sub.id);
+                  const isFocused = idx === focusedIdx;
                   return (
                     <TableRow
                       key={sub.id}
-                      className="aura-table-row border-[#1F2933] cursor-pointer"
+                      className={`aura-table-row border-[#1F2933] cursor-pointer ${isSelected ? 'bg-indigo-500/5' : ''} ${isFocused ? 'ring-1 ring-inset ring-indigo-500/40 bg-indigo-500/5' : ''}`}
                       onClick={() => setSelected(sub)}
                       data-testid={`sub-row-${sub.id}`}
                     >
+                      <TableCell className="px-4" onClick={e => e.stopPropagation()}>
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => toggleSelect(sub.id)}
+                          className="border-zinc-700 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
+                        />
+                      </TableCell>
                       <TableCell>
                         <div className="min-w-0">
                           <p className="text-sm text-white font-medium" title={sub.title}>
@@ -601,6 +757,7 @@ export default function SubmissionsPage() {
                 })}
               </TableBody>
             </Table>
+            </>
           )}
         </CardContent>
       </Card>

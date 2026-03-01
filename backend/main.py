@@ -4,11 +4,17 @@ ForgeVoice Studio API - Main Application Entry Point
 This is the new modular FastAPI application structure.
 All routes are organized into separate router modules in the /routers directory.
 """
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, Request
 from starlette.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import os
 import logging
 import tempfile
+
+# Rate limiter — uses in-memory storage by default (Redis can be added later via REDIS_URL)
+limiter = Limiter(key_func=get_remote_address)
 
 # Import routers
 from routers import (
@@ -51,6 +57,10 @@ if _sentry_dsn:
 
 # Create FastAPI app
 app = FastAPI(title="ForgeVoice Studio API")
+
+# Attach rate limiter to app state and add exception handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Create API router with /api prefix
 api_router = APIRouter(prefix="/api")

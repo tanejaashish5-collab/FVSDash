@@ -404,9 +404,164 @@ async def upload_to_storage(
 def get_storage_config() -> Dict[str, Any]:
     """
     Get current storage configuration.
-    
+
     Returns:
         Dict with storage provider info and status
     """
     from services.storage_service import get_storage_config as _get_config
     return _get_config()
+
+
+async def generate_captions_from_audio(audio_url: str) -> dict:
+    """
+    Generate SRT and VTT captions from an audio URL using OpenAI Whisper.
+    Downloads the audio, transcribes it, and converts to SRT/VTT format.
+    Returns: { srt, vtt, text, isMocked, warning }
+    """
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        logger.warning("OPENAI_API_KEY not configured — captions unavailable")
+        return {
+            "srt": "",
+            "vtt": "",
+            "text": "",
+            "isMocked": True,
+            "warning": "OpenAI API key not configured. Captions unavailable."
+        }
+
+    # Download audio file
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=60) as client:
+            resp = await client.get(audio_url)
+            if resp.status_code != 200:
+                raise Exception(f"Failed to download audio: HTTP {resp.status_code}")
+            audio_data = resp.content
+    except Exception as e:
+        logger.error(f"Caption generation: audio download failed: {e}")
+        return {"srt": "", "vtt": "", "text": "", "isMocked": True, "warning": f"Audio download failed: {e}"}
+
+    # Call Whisper API
+    try:
+        import io
+        from openai import AsyncOpenAI
+        client_ai = AsyncOpenAI(api_key=api_key)
+        audio_file = io.BytesIO(audio_data)
+        audio_file.name = "audio.mp3"
+        transcript = await client_ai.audio.transcriptions.create(
+            model="whisper-1",
+            file=audio_file,
+            response_format="verbose_json",
+            timestamp_granularities=["segment"]
+        )
+    except Exception as e:
+        logger.error(f"Caption generation: Whisper API failed: {e}")
+        return {"srt": "", "vtt": "", "text": "", "isMocked": False, "warning": f"Whisper transcription failed: {e}"}
+
+    # Convert to SRT and VTT
+    segments = getattr(transcript, "segments", []) or []
+    full_text = getattr(transcript, "text", "")
+
+    def _fmt_time_srt(secs: float) -> str:
+        h = int(secs // 3600)
+        m = int((secs % 3600) // 60)
+        s = int(secs % 60)
+        ms = int((secs - int(secs)) * 1000)
+        return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+
+    def _fmt_time_vtt(secs: float) -> str:
+        return _fmt_time_srt(secs).replace(",", ".")
+
+    srt_lines = []
+    vtt_lines = ["WEBVTT", ""]
+    for i, seg in enumerate(segments):
+        start = seg.get("start", 0)
+        end = seg.get("end", start + 2)
+        text = seg.get("text", "").strip()
+        # SRT
+        srt_lines.append(str(i + 1))
+        srt_lines.append(f"{_fmt_time_srt(start)} --> {_fmt_time_srt(end)}")
+        srt_lines.append(text)
+        srt_lines.append("")
+        # VTT
+        vtt_lines.append(f"{_fmt_time_vtt(start)} --> {_fmt_time_vtt(end)}")
+        vtt_lines.append(text)
+        vtt_lines.append("")
+
+    return {
+        "srt": "\n".join(srt_lines),
+        "vtt": "\n".join(vtt_lines),
+        "text": full_text,
+        "segmentCount": len(segments),
+        "isMocked": False,
+        "warning": None,
+    }
+
+
+# Popular ElevenLabs voice IDs for preview
+_PREVIEW_VOICE_IDS = [
+    {"id": "21m00Tcm4TlvDq8ikWAM", "name": "Rachel", "description": "Calm, professional female"},
+    {"id": "AZnzlk1XvdvUeBnXmlld", "name": "Domi", "description": "Strong, confident female"},
+    {"id": "EXAVITQu4vr4xnSDxMaL", "name": "Bella", "description": "Warm, soft female"},
+    {"id": "ErXwobaYiN019PkySvjV", "name": "Antoni", "description": "Well-rounded male"},
+    {"id": "VR6AewLTigWG4xSOukaG", "name": "Arnold", "description": "Crisp, authoritative male"},
+    {"id": "pNInz6obpgDQGcFmaJgB", "name": "Adam", "description": "Deep, narrative male"},
+    {"id": "yoZ06aMxZJJ28mfd3POQ", "name": "Sam", "description": "Raspy, intense male"},
+]
+
+
+async def preview_multiple_voices(preview_text: str, voice_ids: Optional[list] = None) -> dict:
+    """
+    Generate short audio previews using multiple ElevenLabs voices.
+    Returns a list of { voiceId, name, description, url, isMocked } objects.
+    """
+    api_key = os.environ.get("ELEVENLABS_API_KEY")
+    voices_to_preview = []
+
+    if voice_ids:
+        for vid in voice_ids[:5]:
+            voices_to_preview.append({"id": vid, "name": vid, "description": "Custom voice"})
+    else:
+        voices_to_preview = _PREVIEW_VOICE_IDS[:5]
+
+    results = []
+    for voice in voices_to_preview:
+        if not api_key:
+            results.append({
+                "voiceId": voice["id"],
+                "name": voice["name"],
+                "description": voice.get("description", ""),
+                "url": MOCK_AUDIO_URL,
+                "isMocked": True,
+                "warning": "ElevenLabs API key not configured"
+            })
+            continue
+
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=30) as client:
+                resp = await client.post(
+                    f"https://api.elevenlabs.io/v1/text-to-speech/{voice['id']}",
+                    headers={"xi-api-key": api_key, "Content-Type": "application/json"},
+                    json={"text": preview_text[:200], "model_id": "eleven_multilingual_v2",
+                          "voice_settings": {"stability": 0.5, "similarity_boost": 0.75}}
+                )
+                if resp.status_code == 200:
+                    audio_data = resp.content
+                    s3_url, _, _ = await _try_upload_to_s3(audio_data, "audio/mpeg", f"previews/voice_{voice['id']}.mp3")
+                    if s3_url:
+                        preview_url = s3_url
+                    else:
+                        b64 = base64.b64encode(audio_data).decode()
+                        preview_url = f"data:audio/mpeg;base64,{b64}"
+                    results.append({"voiceId": voice["id"], "name": voice["name"], "description": voice.get("description", ""),
+                                    "url": preview_url, "isMocked": False, "warning": None})
+                else:
+                    results.append({"voiceId": voice["id"], "name": voice["name"], "description": voice.get("description", ""),
+                                    "url": MOCK_AUDIO_URL, "isMocked": True, "warning": f"ElevenLabs error: {resp.status_code}"})
+        except Exception as e:
+            logger.error(f"Voice preview error for {voice['id']}: {e}")
+            results.append({"voiceId": voice["id"], "name": voice["name"], "description": voice.get("description", ""),
+                            "url": MOCK_AUDIO_URL, "isMocked": True, "warning": str(e)})
+
+    return {"voices": results, "previewText": preview_text}

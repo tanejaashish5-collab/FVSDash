@@ -323,3 +323,114 @@ def _process_section(result: dict, section: str, content: list):
                 if len(parts) == 2:
                     chapters.append({"timestamp": parts[0].strip(), "title": parts[1].strip()})
         result["chapters"] = chapters[:12]
+
+
+async def score_script_content(script_text: str, topic: str = "", target_format: str = "short") -> dict:
+    """
+    Score a script's predicted performance before production.
+    Analyzes: hook strength, topic alignment, keyword density, CTA presence, duration fit.
+    Returns: { tier, score, hookRating, keywordScore, ctaPresent, durationFit, suggestions }
+    """
+    import json as _json
+    import re as _re
+
+    word_count = len(script_text.split())
+    # For 60-90s shorts: 150-220 words is ideal
+    duration_est_seconds = word_count * 0.4  # ~0.4 sec/word for energetic delivery
+    duration_fit = "good" if 120 <= duration_est_seconds <= 100 else (
+        "too_long" if duration_est_seconds > 100 else "too_short"
+    )
+    # Simple duration fit: 150-220 words = good for Shorts
+    if target_format == "short":
+        duration_fit = "good" if 130 <= word_count <= 240 else (
+            "too_long" if word_count > 240 else "too_short"
+        )
+
+    cta_keywords = ["follow", "subscribe", "like", "comment", "share", "bata", "batao", "dekhte", "karo", "dekho"]
+    cta_present = any(kw in script_text.lower() for kw in cta_keywords)
+
+    prompt = f"""Score this YouTube Shorts script for predicted performance. Be concise and direct.
+
+SCRIPT ({word_count} words):
+{script_text[:2000]}
+
+TOPIC: {topic or 'Not specified'}
+FORMAT: {target_format}
+
+Return ONLY a JSON object with these exact fields:
+{{
+  "hookScore": 0-10,
+  "hookFeedback": "one sentence about the opening hook strength",
+  "keywordScore": 0-10,
+  "keywordFeedback": "one sentence about keyword/topic alignment",
+  "engagementScore": 0-10,
+  "engagementFeedback": "one sentence about overall engagement potential",
+  "topSuggestion": "The single most impactful improvement (one sentence)",
+  "altSuggestion": "A second improvement suggestion (one sentence)"
+}}
+
+Be honest and specific. Do not be overly positive."""
+
+    try:
+        response = await call_gemini(prompt, max_tokens=512)
+        cleaned = response.strip()
+        # Extract JSON from response
+        import re as re_mod
+        json_match = re_mod.search(r'\{[\s\S]*\}', cleaned)
+        if json_match:
+            scores = _json.loads(json_match.group(0))
+        else:
+            scores = {}
+    except Exception as e:
+        logger.warning(f"Script scoring LLM call failed: {e}")
+        scores = {}
+
+    hook_score = scores.get("hookScore", 5)
+    keyword_score = scores.get("keywordScore", 5)
+    engagement_score = scores.get("engagementScore", 5)
+
+    # Composite score 0-100
+    composite = int((hook_score * 0.4 + keyword_score * 0.3 + engagement_score * 0.3) * 10)
+    if cta_present:
+        composite = min(100, composite + 5)
+    if duration_fit == "good":
+        composite = min(100, composite + 5)
+    elif duration_fit == "too_long":
+        composite = max(0, composite - 10)
+
+    if composite >= 80:
+        tier = "BREAKOUT"
+    elif composite >= 65:
+        tier = "SOLID"
+    elif composite >= 45:
+        tier = "AVERAGE"
+    else:
+        tier = "UNDERPERFORM"
+
+    suggestions = []
+    if scores.get("topSuggestion"):
+        suggestions.append(scores["topSuggestion"])
+    if scores.get("altSuggestion"):
+        suggestions.append(scores["altSuggestion"])
+    if not cta_present:
+        suggestions.append("Add a clear call-to-action (follow, like, or comment prompt) at the end.")
+    if duration_fit == "too_long":
+        suggestions.append(f"Script is ~{word_count} words — trim to 150-220 words for a tight 60-90s Short.")
+    elif duration_fit == "too_short":
+        suggestions.append(f"Script is only ~{word_count} words — expand to deliver more value.")
+
+    return {
+        "tier": tier,
+        "score": composite,
+        "hookRating": hook_score,
+        "hookFeedback": scores.get("hookFeedback", ""),
+        "keywordScore": keyword_score,
+        "keywordFeedback": scores.get("keywordFeedback", ""),
+        "engagementScore": engagement_score,
+        "engagementFeedback": scores.get("engagementFeedback", ""),
+        "ctaPresent": cta_present,
+        "durationFit": duration_fit,
+        "wordCount": word_count,
+        "estimatedDurationSeconds": int(duration_est_seconds),
+        "suggestions": suggestions[:3],
+    }

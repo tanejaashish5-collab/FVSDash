@@ -105,3 +105,18 @@ async def get_fvs_scripts(user: dict = Depends(get_current_user), submissionId: 
     """Returns FVS-generated scripts for the current client."""
     client_id = get_client_id_from_user(user)
     return await fvs_service.get_scripts(client_id, submissionId)
+
+
+@router.post("/scripts/{script_id}/refine")
+async def refine_script(script_id: str, data: dict, user: dict = Depends(get_current_user)):
+    """
+    Refine an existing script using AI based on a plain-text instruction.
+    E.g.: {"instruction": "Make the hook more punchy and reduce to 45 seconds"}
+    Returns the refined script text and saves a new version.
+    """
+    client_id = get_client_id_from_user(user)
+    instruction = data.get("instruction", "")
+    if not instruction:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="instruction is required")
+    return await fvs_service.refine_script(client_id, script_id, instruction)

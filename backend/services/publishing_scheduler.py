@@ -124,7 +124,17 @@ def start_scheduler():
         name="Daily Competitor & Trend Scan",
         replace_existing=True
     )
-    
+
+    # Weekly digest every Monday at 08:00 UTC
+    from services.email_service import build_and_send_weekly_digests
+    _scheduler.add_job(
+        build_and_send_weekly_digests,
+        trigger=CronTrigger(day_of_week="mon", hour=8, minute=0),
+        id="weekly_digest",
+        name="Weekly Pipeline Digest Email",
+        replace_existing=True,
+    )
+
     _scheduler.start()
     logger.info("Publishing scheduler started (checking every 30 seconds)")
     logger.info("Daily analytics sync scheduled at 6 AM UTC")

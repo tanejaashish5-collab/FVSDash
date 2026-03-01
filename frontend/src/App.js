@@ -1,7 +1,9 @@
 import "@/App.css";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import ShortcutsModal, { useShortcutsModal } from "@/components/ShortcutsModal";
 
 // React Query client — shared across the app for caching API responses
 const queryClient = new QueryClient({
@@ -83,9 +85,21 @@ function PublicRoute({ children }) {
 
 function AppRoutes() {
   const { showOnboarding, dismissOnboarding, authHeaders } = useAuth();
-  
+  const { open: shortcutsOpen, setOpen: setShortcutsOpen } = useShortcutsModal();
+
+  // Global navigation shortcuts (G+O, G+P, G+S, G+V, G+A)
+  const navigate = useNavigate();
+  useKeyboardShortcuts({
+    'g o': () => navigate('/dashboard/overview'),
+    'g p': () => navigate('/dashboard/submissions'),
+    'g s': () => navigate('/dashboard/studio'),
+    'g v': () => navigate('/dashboard/video-editor'),
+    'g a': () => navigate('/dashboard/analytics'),
+  });
+
   return (
     <>
+      <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />

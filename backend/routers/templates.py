@@ -12,7 +12,7 @@ import uuid
 from services.auth_service import get_current_user, get_client_id_from_user
 from db.mongo import get_db
 
-router = APIRouter(prefix="/templates", tags=["templates"])
+router = APIRouter(tags=["templates"])
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Seed data — 15 proven script frameworks

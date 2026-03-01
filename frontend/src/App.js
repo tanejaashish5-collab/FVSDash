@@ -145,6 +145,7 @@ function App() {
           <AppRoutes />
           <Toaster
             position="top-right"
+            closeButton
             toastOptions={{
               style: {
                 background: '#18181b',

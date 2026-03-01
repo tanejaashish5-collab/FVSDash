@@ -23,6 +23,22 @@ import { toast } from 'sonner';
 import axios from 'axios';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
+
+/**
+ * Resolve a storage URL for the browser.
+ * Backend local storage returns paths like /api/files/audio/... which are
+ * relative to the backend origin. Since the frontend is hosted on Vercel
+ * (a different origin), we must prepend the backend URL so the browser
+ * fetches from the correct server.
+ *
+ * For data: URLs or full https:// URLs this is a no-op.
+ */
+function resolveUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('/api/files/')) return `${BACKEND}${url}`;
+  return url;
+}
 
 /**
  * Convert a data: URL to a Blob URL so the browser can read audio/video metadata.
@@ -281,8 +297,10 @@ export default function ContentStudioPage() {
       const rawUrl = res.data.url || res.data.audioUrl || '';
 
       // Convert data URL → Blob URL so browser can read MP3 duration metadata.
-      // atob() is used (not fetch) to avoid CSP restrictions on data: fetches.
-      const audioSrc = rawUrl.startsWith('data:') ? dataUrlToBlobUrl(rawUrl) : rawUrl;
+      // For /api/files/ paths, resolveUrl() prepends the backend origin.
+      let audioSrc = rawUrl;
+      if (rawUrl.startsWith('data:')) audioSrc = dataUrlToBlobUrl(rawUrl);
+      else if (rawUrl.startsWith('/api/files/')) audioSrc = resolveUrl(rawUrl);
 
       setAudioUrl(audioSrc);
       setAudioStatus('ready');
@@ -435,8 +453,10 @@ export default function ContentStudioPage() {
 
       // Restore previously generated assets — no need to regenerate and waste credits
       if (d.audio_url) {
-        // Convert stored data URL → Blob URL so browser can read duration
-        const audioSrc = d.audio_url.startsWith('data:') ? dataUrlToBlobUrl(d.audio_url) : d.audio_url;
+        // Convert stored data URL → Blob URL, or resolve /api/files/ paths
+        let audioSrc = d.audio_url;
+        if (d.audio_url.startsWith('data:')) audioSrc = dataUrlToBlobUrl(d.audio_url);
+        else if (d.audio_url.startsWith('/api/files/')) audioSrc = resolveUrl(d.audio_url);
         setAudioUrl(audioSrc);
         setAudioStatus('ready');
       } else {
@@ -695,7 +715,7 @@ export default function ContentStudioPage() {
                       </p>
                     )}
                     {audioStatus === 'ready' && audioUrl && (
-                      <audio key={audioUrl} controls src={audioUrl}
+                      <audio key={audioUrl} controls src={resolveUrl(audioUrl)}
                         className="w-full mt-1" style={{ height: 36, colorScheme: 'dark' }} />
                     )}
                   </div>
@@ -747,7 +767,7 @@ export default function ContentStudioPage() {
                       </p>
                     )}
                     {thumbnailUrl && (
-                      <img src={thumbnailUrl} alt="Generated thumbnail"
+                      <img src={resolveUrl(thumbnailUrl)} alt="Generated thumbnail"
                         className="w-full rounded-lg border border-zinc-800 object-cover aspect-video mt-1" />
                     )}
                   </div>
@@ -808,7 +828,7 @@ export default function ContentStudioPage() {
                     )}
                     {videoStatus === 'ready' && videoUrl && (
                       <video controls className="w-full rounded-lg border border-zinc-800 mt-1" style={{ maxHeight: 300 }}>
-                        <source src={videoUrl} />
+                        <source src={resolveUrl(videoUrl)} />
                       </video>
                     )}
                   </div>
@@ -912,7 +932,7 @@ export default function ContentStudioPage() {
                           <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
                             <CheckCircle className="h-3 w-3 text-emerald-400" /> Audio
                           </p>
-                          <audio key={audioUrl} controls src={audioUrl}
+                          <audio key={audioUrl} controls src={resolveUrl(audioUrl)}
                             className="w-full" style={{ height: 36, colorScheme: 'dark' }} />
                         </div>
                       )}
@@ -922,7 +942,7 @@ export default function ContentStudioPage() {
                           <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
                             <CheckCircle className="h-3 w-3 text-emerald-400" /> Thumbnail
                           </p>
-                          <img src={thumbnailUrl} alt="Thumbnail"
+                          <img src={resolveUrl(thumbnailUrl)} alt="Thumbnail"
                             className="w-full rounded-lg border border-zinc-800 object-cover aspect-video" />
                         </div>
                       )}
@@ -943,7 +963,7 @@ export default function ContentStudioPage() {
                             <CheckCircle className="h-3 w-3 text-emerald-400" /> Video
                           </p>
                           <video controls className="w-full rounded-lg border border-zinc-800" style={{ maxHeight: 240 }}>
-                            <source src={videoUrl} />
+                            <source src={resolveUrl(videoUrl)} />
                           </video>
                         </div>
                       )}

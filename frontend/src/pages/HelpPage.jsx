@@ -11,6 +11,8 @@ import { Separator } from '@/components/ui/separator';
 import { Search, HelpCircle, MessageSquare, Send, Loader2, BookOpen, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -173,8 +175,10 @@ export default function HelpPage() {
                             <AccordionTrigger className="px-4 py-3 text-sm text-white hover:no-underline hover:text-indigo-400 [&[data-state=open]]:text-indigo-400">
                               {article.title}
                             </AccordionTrigger>
-                            <AccordionContent className="px-4 pb-4 text-sm text-zinc-400 leading-relaxed whitespace-pre-line">
-                              {article.content}
+                            <AccordionContent className="px-4 pb-4 text-sm text-zinc-400 leading-relaxed prose prose-sm prose-invert max-w-none prose-headings:text-white prose-strong:text-white prose-p:text-zinc-400 prose-li:text-zinc-400 prose-a:text-indigo-400">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {article.content || ''}
+                              </ReactMarkdown>
                             </AccordionContent>
                           </AccordionItem>
                         ))}

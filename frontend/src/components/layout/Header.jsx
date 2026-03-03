@@ -17,7 +17,7 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
-import { Search, Bell, LogOut, Settings, User, HelpCircle, FileText, Image, Lightbulb, Loader2 } from 'lucide-react';
+import { Search, Bell, LogOut, Settings, User, HelpCircle, FileText, Image, Lightbulb, Loader2, Menu } from 'lucide-react';
 import NotificationPanel from '@/components/NotificationPanel';
 import SpotlightTour from '@/components/SpotlightTour';
 import axios from 'axios';
@@ -44,7 +44,7 @@ const pathLabels = {
   '/dashboard/admin': 'Admin Panel',
 };
 
-export default function Header() {
+export default function Header({ onMenuClick }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout, authHeaders } = useAuth();
@@ -173,7 +173,17 @@ export default function Header() {
       data-testid="header"
       className="sticky top-0 z-20 h-16 bg-[#09090b]/85 backdrop-blur-xl border-b border-white/[0.06] flex items-center justify-between px-6"
     >
-      {/* Left: Title + Breadcrumb */}
+      {/* Left: Hamburger + Title + Breadcrumb */}
+      <div className="flex items-center gap-3">
+        {onMenuClick && (
+          <button
+            onClick={onMenuClick}
+            className="lg:hidden p-1.5 rounded-md text-zinc-400 hover:text-white hover:bg-white/5"
+            data-testid="mobile-menu-btn"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+        )}
       <div className="flex flex-col justify-center">
         <Breadcrumb>
           <BreadcrumbList>
@@ -197,6 +207,7 @@ export default function Header() {
         >
           {pageTitle}
         </h2>
+      </div>
       </div>
 
       {/* Right: Search, Notifications, User */}

@@ -423,7 +423,7 @@ export default function ROIPage() {
       )}
       
       {/* ROI Settings Sheet */}
-      <Sheet open={showSettings} onOpenChange={setShowSettings}>
+      <Sheet open={showSettings} onOpenChange={(open) => setShowSettings(open)}>
         <SheetContent className="bg-[#0B1120] border-l border-[#1F2933] w-full sm:max-w-md">
           <SheetHeader>
             <SheetTitle className="text-white flex items-center gap-2">

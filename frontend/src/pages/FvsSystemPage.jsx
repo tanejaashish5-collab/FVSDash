@@ -853,7 +853,7 @@ export default function FvsSystemPage() {
 
       {/* ── Idea Detail Side Panel ── */}
       {selectedIdea && (
-        <Sheet open={panelOpen} onOpenChange={setPanelOpen}>
+        <Sheet open={panelOpen} onOpenChange={(open) => { if (!open) handleClosePanel(); else setPanelOpen(true); }}>
           <SheetContent
             side="right"
             className="w-full max-w-[480px] bg-[#0B1120] border-l border-[#1F2933] p-0 overflow-hidden"

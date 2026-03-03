@@ -146,6 +146,7 @@ export default function VideoEditorPage() {
   const [projectSidebarOpen, setProjectSidebarOpen] = useState(true);
   const [creatingProject, setCreatingProject] = useState(false);
   const [newProjectTitle, setNewProjectTitle] = useState('');
+  const [projectSearch, setProjectSearch] = useState('');
 
   // Clips
   const [clips, setClips] = useState([]);
@@ -606,9 +607,21 @@ export default function VideoEditorPage() {
             </Button>
           </div>
 
+          {/* Project search */}
+          {projects.length > 3 && (
+            <div className="px-2 pt-1.5 pb-1 border-b border-zinc-800/50">
+              <Input
+                placeholder="Search projects…"
+                value={projectSearch}
+                onChange={e => setProjectSearch(e.target.value)}
+                className="h-6 text-[10px] bg-zinc-950 border-zinc-800"
+              />
+            </div>
+          )}
+
           {/* Project list */}
           <div className="flex-1 overflow-y-auto py-1">
-            {projects.map(p => (
+            {projects.filter(p => !projectSearch || p.title?.toLowerCase().includes(projectSearch.toLowerCase())).map(p => (
               <button key={p.id} onClick={() => openProject(p)}
                 className={`w-full text-left px-3 py-2 text-xs transition-colors ${
                   p.id === activeProjectId ? 'bg-violet-500/10 text-violet-300' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'

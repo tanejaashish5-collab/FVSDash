@@ -33,6 +33,12 @@ import { tooltipContent } from '@/constants/tooltipContent';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
+function resolveUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('/api/files/')) return `${BACKEND}${url}`;
+  return url;
+}
 const STATUSES = ['INTAKE', 'EDITING', 'DESIGN', 'SCHEDULED', 'PUBLISHED'];
 const CONTENT_TYPES = ['Podcast', 'Short', 'Blog', 'Webinar'];
 const PRIORITIES = ['Low', 'Medium', 'High'];
@@ -106,6 +112,7 @@ export default function SubmissionsPage() {
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
 
   // List state
   const [submissions, setSubmissions] = useState([]);
@@ -327,15 +334,25 @@ export default function SubmissionsPage() {
     setTitle(''); setGuest(''); setDescription('');
     setContentType(''); setPriority('Medium');
     setReleaseDate(undefined); setSourceFileUrl('');
-    setConfirmed(false);
+    setConfirmed(false); setFormErrors({});
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!sourceFileUrl.trim() || !title.trim() || !guest.trim() || !description.trim() || !contentType || !releaseDate || !confirmed) {
-      toast.error('Please fill in all required fields and confirm rights.');
+    const errors = {};
+    if (!title.trim()) errors.title = 'Title is required';
+    if (!guest.trim()) errors.guest = 'Guest name is required';
+    if (!description.trim()) errors.description = 'Description is required';
+    if (!contentType) errors.contentType = 'Select a content type';
+    if (!releaseDate) errors.releaseDate = 'Release date is required';
+    if (!sourceFileUrl.trim()) errors.sourceFileUrl = 'Source file URL is required';
+    if (!confirmed) errors.confirmed = 'Please confirm rights';
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      toast.error('Please fill in all required fields.');
       return;
     }
+    setFormErrors({});
     setSubmitting(true);
     try {
       await axios.post(`${API}/submissions`, {
@@ -797,10 +814,11 @@ export default function SubmissionsPage() {
                   data-testid="form-source-url"
                   placeholder="https://drive.google.com/..."
                   value={sourceFileUrl}
-                  onChange={e => setSourceFileUrl(e.target.value)}
-                  className={`${inputCls} pl-8`}
+                  onChange={e => { setSourceFileUrl(e.target.value); setFormErrors(p => ({ ...p, sourceFileUrl: '' })); }}
+                  className={`${inputCls} pl-8 ${formErrors.sourceFileUrl ? 'border-red-500/50' : ''}`}
                 />
               </div>
+              {formErrors.sourceFileUrl && <p className="text-[10px] text-red-400">{formErrors.sourceFileUrl}</p>}
             </div>
 
             {/* Episode Title */}
@@ -810,9 +828,10 @@ export default function SubmissionsPage() {
                 data-testid="form-title"
                 placeholder="e.g. How AI Transforms Finance"
                 value={title}
-                onChange={e => setTitle(e.target.value)}
-                className={inputCls}
+                onChange={e => { setTitle(e.target.value); setFormErrors(p => ({ ...p, title: '' })); }}
+                className={`${inputCls} ${formErrors.title ? 'border-red-500/50' : ''}`}
               />
+              {formErrors.title && <p className="text-[10px] text-red-400">{formErrors.title}</p>}
             </div>
 
             {/* Guest Name */}
@@ -822,9 +841,10 @@ export default function SubmissionsPage() {
                 data-testid="form-guest"
                 placeholder="e.g. Dr. Sarah Mitchell"
                 value={guest}
-                onChange={e => setGuest(e.target.value)}
-                className={inputCls}
+                onChange={e => { setGuest(e.target.value); setFormErrors(p => ({ ...p, guest: '' })); }}
+                className={`${inputCls} ${formErrors.guest ? 'border-red-500/50' : ''}`}
               />
+              {formErrors.guest && <p className="text-[10px] text-red-400">{formErrors.guest}</p>}
             </div>
 
             {/* Description */}
@@ -834,10 +854,11 @@ export default function SubmissionsPage() {
                 data-testid="form-description"
                 placeholder="Brief summary of the episode content..."
                 value={description}
-                onChange={e => setDescription(e.target.value)}
+                onChange={e => { setDescription(e.target.value); setFormErrors(p => ({ ...p, description: '' })); }}
                 rows={3}
-                className={`${inputCls} resize-none`}
+                className={`${inputCls} resize-none ${formErrors.description ? 'border-red-500/50' : ''}`}
               />
+              {formErrors.description && <p className="text-[10px] text-red-400">{formErrors.description}</p>}
             </div>
 
             {/* Content Type + Priority */}
@@ -1093,7 +1114,7 @@ export default function SubmissionsPage() {
                           data-testid={`thumbnail-${idx}`}
                         >
                           {thumb.url ? (
-                            <img src={thumb.url} alt="" className="w-full h-full object-cover" />
+                            <img src={resolveUrl(thumb.url)} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none'; e.target.nextSibling && (e.target.nextSibling.style.display = 'flex'); }} />
                           ) : (
                             <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
                               <FileImage className="h-4 w-4 text-zinc-600" />
@@ -1163,7 +1184,7 @@ export default function SubmissionsPage() {
                           <p className="text-[10px] text-zinc-500 mb-1.5 truncate">{asset.name}</p>
                           {asset.url ? (
                             <a
-                              href={asset.url}
+                              href={resolveUrl(asset.url)}
                               target="_blank"
                               rel="noreferrer"
                               className="inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300"
@@ -1175,7 +1196,7 @@ export default function SubmissionsPage() {
                             <p className="text-[10px] text-zinc-600 italic">Processing…</p>
                           )}
                           {asset.isMocked && (
-                            <span className="text-[9px] text-amber-500/70 mt-1 block">Sample video (Veo key not set)</span>
+                            <span className="text-[9px] text-amber-500/70 mt-1 block">Sample video (preview only)</span>
                           )}
                         </div>
                       ))}

@@ -133,22 +133,47 @@ async def _download_from_storage(url: str, tmpdir: str, filename: str) -> Option
     out_path = os.path.join(tmpdir, filename)
     try:
         if url.startswith("/api/files/") or url.startswith("local://"):
+            # Try 1: Read directly from storage service
             storage = get_storage_service()
             data = await storage.read_file(url)
             if data:
                 with open(out_path, "wb") as f:
                     f.write(data)
                 return out_path
+
+            # Try 2: Direct filesystem path (handles local dev where storage dir is known)
+            if url.startswith("/api/files/"):
+                from pathlib import Path
+                local_candidates = [
+                    Path("storage") / url[len("/api/files/"):],
+                    Path("/tmp/fvs_storage") / url[len("/api/files/"):],
+                ]
+                for candidate in local_candidates:
+                    if candidate.exists():
+                        import shutil
+                        shutil.copy2(str(candidate), out_path)
+                        logger.info(f"Fallback read from {candidate}")
+                        return out_path
+
             logger.warning(f"Could not read from local storage: {url}")
             return None
         else:
             import httpx
-            async with httpx.AsyncClient(timeout=120) as client:
+            async with httpx.AsyncClient(timeout=120, follow_redirects=True) as client:
                 resp = await client.get(url)
                 if resp.status_code == 200:
                     with open(out_path, "wb") as f:
                         f.write(resp.content)
                     return out_path
+                # Retry once on failure
+                if resp.status_code >= 500:
+                    import asyncio
+                    await asyncio.sleep(2)
+                    resp = await client.get(url)
+                    if resp.status_code == 200:
+                        with open(out_path, "wb") as f:
+                            f.write(resp.content)
+                        return out_path
                 logger.warning(f"HTTP download failed {url}: status {resp.status_code}")
                 return None
     except Exception as e:

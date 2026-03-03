@@ -9,6 +9,8 @@ import { Separator } from '@/components/ui/separator';
 import { Search, BookOpen, Calendar, Tag, ArrowRight, X } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { AuraTooltip } from '@/components/ui/AuraTooltip';
 import { tooltipContent } from '@/constants/tooltipContent';
 
@@ -306,41 +308,9 @@ export default function BlogPage() {
                   prose-a:text-indigo-400 prose-a:no-underline hover:prose-a:underline"
                 data-testid="post-content"
               >
-                {selectedPost.content?.split('\n').map((paragraph, i) => {
-                  if (paragraph.startsWith('## ')) {
-                    return <h2 key={i}>{paragraph.replace('## ', '')}</h2>;
-                  }
-                  if (paragraph.startsWith('### ')) {
-                    return <h3 key={i}>{paragraph.replace('### ', '')}</h3>;
-                  }
-                  if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
-                    return <p key={i}><strong>{paragraph.replace(/\*\*/g, '')}</strong></p>;
-                  }
-                  if (paragraph.startsWith('- [ ] ')) {
-                    return <li key={i} className="list-none flex items-center gap-2">
-                      <span className="h-4 w-4 rounded border border-zinc-600 shrink-0" />
-                      {paragraph.replace('- [ ] ', '')}
-                    </li>;
-                  }
-                  if (paragraph.startsWith('- ')) {
-                    return <li key={i}>{paragraph.replace('- ', '')}</li>;
-                  }
-                  if (paragraph.trim() === '') {
-                    return <br key={i} />;
-                  }
-                  // Handle inline bold
-                  const parts = paragraph.split(/(\*\*[^*]+\*\*)/g);
-                  return (
-                    <p key={i}>
-                      {parts.map((part, j) => {
-                        if (part.startsWith('**') && part.endsWith('**')) {
-                          return <strong key={j}>{part.replace(/\*\*/g, '')}</strong>;
-                        }
-                        return part;
-                      })}
-                    </p>
-                  );
-                })}
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {selectedPost.content || ''}
+                </ReactMarkdown>
               </div>
             </>
           )}

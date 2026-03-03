@@ -40,6 +40,7 @@ export default function CommentIntelligencePanel({ onAddIdea }) {
 
   const handleAnalyse = async () => {
     if (!url.trim()) { toast.error('Enter a YouTube URL'); return; }
+    if (!/youtube\.com|youtu\.be/i.test(url)) { toast.error('Please enter a valid YouTube URL'); return; }
     setLoading(true);
     setResult(null);
     try {

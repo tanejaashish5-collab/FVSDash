@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import Sidebar from '@/components/layout/Sidebar';
@@ -39,13 +40,17 @@ export default function DashboardLayout() {
   const { isImpersonating } = useAuth();
   const location = useLocation();
   const prefersReducedMotion = getPrefersReducedMotion();
-  
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close mobile sidebar on route change
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
+
   return (
     <div className="min-h-screen bg-background" data-testid="dashboard-layout">
       <ImpersonationBanner />
-      <Sidebar />
-      <div className={`ml-[280px] min-h-screen flex flex-col ${isImpersonating ? 'pt-10' : ''}`}>
-        <Header />
+      <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
+      <div className={`lg:ml-[280px] min-h-screen flex flex-col ${isImpersonating ? 'pt-10' : ''}`}>
+        <Header onMenuClick={() => setMobileOpen(true)} />
         <main className="flex-1 p-6 md:p-8 min-h-[calc(100vh-64px)]">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div

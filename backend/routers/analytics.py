@@ -84,6 +84,7 @@ async def get_analytics_overview(
 async def get_analytics_videos(
     limit: int = 100,
     sort_by: str = "views",
+    days: int = 0,
     user: dict = Depends(get_current_user)
 ):
     """
@@ -92,7 +93,7 @@ async def get_analytics_videos(
     """
     client_id = get_client_id_from_user(user)
     db = get_db()
-    
+
     sort_field = {
         "views": "views",
         "ctr": "ctr",
@@ -100,20 +101,40 @@ async def get_analytics_videos(
         "watchTime": "watchTimeMinutes",
         "engagement": "engagementScore"
     }.get(sort_by, "views")
-    
+
+    query = {"clientId": client_id}
+    if days > 0:
+        cutoff = (datetime.now(timezone.utc).date() - timedelta(days=days)).isoformat()
+        query["$or"] = [
+            {"publishedAt": {"$gte": cutoff}},
+            {"syncedAt": {"$gte": cutoff}},
+        ]
+
     # Get analytics with engagement score calculated
     analytics = await db.youtube_analytics.find(
-        {"clientId": client_id},
+        query,
         {"_id": 0}
     ).to_list(500)
-    
+
+    # Deduplicate by videoId — keep first (latest by sort)
+    seen = set()
+    deduped = []
+    for a in analytics:
+        vid = a.get("videoId")
+        if vid and vid in seen:
+            continue
+        if vid:
+            seen.add(vid)
+        deduped.append(a)
+    analytics = deduped
+
     # Calculate engagement score
     for a in analytics:
         a["engagementScore"] = round(a.get("ctr", 0) * a.get("avgViewDurationSeconds", 0), 2)
-    
+
     # Sort
     analytics.sort(key=lambda x: x.get(sort_field, 0), reverse=True)
-    
+
     return {
         "videos": analytics[:limit],
         "totalCount": len(analytics)
@@ -188,12 +209,25 @@ async def get_analytics_dashboard(
         start_date = (today - timedelta(days=range_days)).isoformat()
         end_date = today.isoformat()
     
-    # First try to get real YouTube analytics
+    # First try to get real YouTube analytics — filter by publish date or sync date
+    yt_query = {"clientId": client_id}
+    # Filter by publishedAt if available, otherwise by syncedAt
+    yt_query["$or"] = [
+        {"publishedAt": {"$gte": start_date if isinstance(start_date, str) else start_date.isoformat()}},
+        {"syncedAt": {"$gte": start_date if isinstance(start_date, str) else start_date.isoformat()}},
+    ]
     youtube_analytics = await db.youtube_analytics.find(
-        {"clientId": client_id},
+        yt_query,
         {"_id": 0}
     ).to_list(500)
-    
+
+    # Fallback: if date filter returns nothing, try without filter
+    if not youtube_analytics:
+        youtube_analytics = await db.youtube_analytics.find(
+            {"clientId": client_id},
+            {"_id": 0}
+        ).to_list(500)
+
     if youtube_analytics:
         # Use real YouTube data
         total_views = sum(a.get("views", 0) for a in youtube_analytics)

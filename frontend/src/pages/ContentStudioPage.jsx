@@ -267,6 +267,7 @@ export default function ContentStudioPage() {
 
   // ── Step 1: Propose Ideas ──────────────────────────────────────────────────
   const handleProposeIdeas = async () => {
+    if (!topic.trim()) { toast.error('Enter a topic first'); return; }
     setProposingIdeas(true);
     setProposedIdeas([]);
     try {
@@ -516,7 +517,11 @@ export default function ContentStudioPage() {
       if (sid && taskId) await saveToSession(sid, { video_task_id: taskId });
     } catch (e) {
       setVideoStatus('failed');
-      toast.error(e.response?.data?.detail || 'Video generation failed');
+      const raw = e.response?.data?.detail || '';
+      const safeMsg = typeof raw === 'string' && raw.length < 150 && !raw.includes('API_KEY')
+        ? raw
+        : 'Video generation failed. Please check your API configuration in Settings.';
+      toast.error(safeMsg);
     }
   };
 

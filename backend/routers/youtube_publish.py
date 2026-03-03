@@ -299,7 +299,8 @@ async def process_youtube_upload(job_id: str, client_id: str):
                 title=job.get("title", "Untitled"),
                 description=job.get("description", ""),
                 tags=job.get("tags", []),
-                privacy_status=job.get("privacyStatus", "private")
+                privacy_status=job.get("privacyStatus", "private"),
+                scheduled_publish_at=job.get("scheduledAt")
             )
             
             if result.get("success"):
@@ -330,12 +331,17 @@ async def process_youtube_upload(job_id: str, client_id: str):
         await asyncio.sleep(1)
         
         now = datetime.now(timezone.utc).isoformat()
-        
-        # Update job to live
+        scheduled_at = job.get("scheduledAt")
+
+        # Determine final status based on whether this is a scheduled upload
+        final_status = "scheduled" if scheduled_at else "live"
+        publishing_status = "scheduled" if scheduled_at else "published"
+
+        # Update job
         await jobs_db.update_one(
             {"id": job_id},
             {"$set": {
-                "status": "live",
+                "status": final_status,
                 "platformVideoId": video_id,
                 "platformUrl": video_url,
                 "publishedAt": now,
@@ -343,7 +349,7 @@ async def process_youtube_upload(job_id: str, client_id: str):
                 "isMockUpload": MOCK_OAUTH_ENABLED
             }}
         )
-        
+
         # Update submission with YouTube info
         await subs_db.update_one(
             {"id": job["submissionId"]},
@@ -351,7 +357,7 @@ async def process_youtube_upload(job_id: str, client_id: str):
                 "youtubeVideoId": video_id,
                 "youtubeUrl": video_url,
                 "publishedAt": now,
-                "publishingStatus": "published"
+                "publishingStatus": publishing_status
             }}
         )
         
@@ -600,13 +606,13 @@ async def get_publish_queue(
         
         # Get video assets for this submission
         video_assets = await assets_db.find(
-            {"submissionId": sub["id"], "type": "video"},
+            {"submissionId": sub["id"], "$or": [{"type": {"$in": ["video", "Video"]}}, {"assetType": {"$in": ["video", "Video"]}}]},
             {"_id": 0, "id": 1, "title": 1, "url": 1, "thumbnailUrl": 1, "duration": 1}
         ).to_list(10)
         
         # Get thumbnail assets
         thumbnail_assets = await assets_db.find(
-            {"submissionId": sub["id"], "type": {"$in": ["image", "thumbnail"]}},
+            {"submissionId": sub["id"], "$or": [{"type": {"$in": ["image", "thumbnail", "Image", "Thumbnail"]}}, {"assetType": {"$in": ["image", "thumbnail", "Image", "Thumbnail"]}}]},
             {"_id": 0, "id": 1, "title": 1, "url": 1}
         ).to_list(10)
         

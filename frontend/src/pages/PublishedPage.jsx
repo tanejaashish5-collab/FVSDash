@@ -46,7 +46,7 @@ export default function PublishedPage() {
             Published
           </h1>
           <p className="text-sm text-zinc-500 mt-0.5">
-            {items.length} published short{items.length !== 1 ? 's' : ''} from your YouTube channel
+            {search ? `${filtered.length} of ${items.length}` : items.length} published short{(search ? filtered.length : items.length) !== 1 ? 's' : ''} from your YouTube channel
           </p>
         </div>
         <div className="relative">

@@ -385,11 +385,12 @@ export default function CalendarPage() {
     setAiScheduleLoading(true);
     try {
       const res = await axios.post(buildApiUrl(`${API}/calendar/ai-schedule`), {}, { headers: authHeaders });
-      if (res.data.status === 'complete') {
+      if (res.data.status === 'complete' && res.data.suggestion_count > 0) {
         setAiSchedule(res.data.schedule);
         toast.success(`Generated ${res.data.suggestion_count} scheduling suggestions!`);
       } else {
-        toast.error('Failed to generate schedule');
+        const errorMsg = res.data.error || 'Schedule generation returned no suggestions. Try adding content to your pipeline first.';
+        toast.error(errorMsg);
       }
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to generate AI schedule');
@@ -962,7 +963,7 @@ export default function CalendarPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => navigate('/dashboard/fvs')}
+                    onClick={() => navigate('/dashboard/system')}
                     className="mt-3 text-xs text-teal-400 hover:bg-teal-500/20"
                     data-testid="goto-fvs-btn"
                   >
@@ -984,7 +985,7 @@ export default function CalendarPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => navigate('/dashboard/fvs')}
+                    onClick={() => navigate('/dashboard/system')}
                     className="w-full text-xs text-zinc-500 hover:text-teal-400 hover:bg-teal-500/10 border border-dashed border-zinc-700 mt-2"
                     data-testid="add-new-idea-btn"
                   >

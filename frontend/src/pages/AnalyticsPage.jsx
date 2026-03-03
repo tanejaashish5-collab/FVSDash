@@ -164,8 +164,8 @@ export default function AnalyticsPage() {
       .then(res => setOverview(res.data))
       .catch(() => {});
     
-    // Fetch video-level analytics
-    const videosReq = youtubeApiCall(`${API}/analytics/videos?limit=20`)
+    // Fetch video-level analytics (pass date range for filtering)
+    const videosReq = youtubeApiCall(`${API}/analytics/videos?limit=20&days=${daysParam}`)
       .then(res => setVideos(res.data?.videos || []))
       .catch(() => {});
     

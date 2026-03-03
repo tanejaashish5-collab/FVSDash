@@ -119,7 +119,7 @@ function NavSection({ title, items, currentPath, submissionCount }) {
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }) {
   const location = useLocation();
   const { user, authHeaders } = useAuth();
   const currentPath = location.pathname;
@@ -127,23 +127,36 @@ export default function Sidebar() {
   
   const isAdmin = user?.role === 'admin';
   
-  // Fetch submission count for the badge
+  // Fetch submission count for the badge (on mount + every 30s for real-time updates)
   useEffect(() => {
     if (!authHeaders?.Authorization) return;
-    
-    // Count only active pipeline items (exclude PUBLISHED)
-    axios.get(`${API}/submissions`, { headers: authHeaders })
-      .then(res => {
-        const active = (res.data || []).filter(s => s.status !== 'PUBLISHED');
-        setSubmissionCount(active.length);
-      })
-      .catch(() => {});
+    const fetchCount = () => {
+      axios.get(`${API}/submissions`, { headers: authHeaders })
+        .then(res => {
+          const active = (res.data || []).filter(s => s.status !== 'PUBLISHED');
+          setSubmissionCount(active.length);
+        })
+        .catch(() => {});
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 30000);
+    return () => clearInterval(interval);
   }, [authHeaders]);
 
   return (
+    <>
+    {/* Mobile overlay backdrop */}
+    {mobileOpen && (
+      <div
+        className="fixed inset-0 bg-black/60 z-30 lg:hidden transition-opacity"
+        onClick={onMobileClose}
+      />
+    )}
     <aside
       data-testid="sidebar"
-      className="fixed left-0 top-0 bottom-0 w-[280px] bg-[#0c0c0f]/90 backdrop-blur-xl border-r border-white/[0.06] flex flex-col z-30"
+      className={`fixed left-0 top-0 bottom-0 w-[280px] bg-[#0c0c0f]/90 backdrop-blur-xl border-r border-white/[0.06] flex flex-col z-40 transition-transform duration-300 ${
+        mobileOpen ? 'translate-x-0' : '-translate-x-full'
+      } lg:translate-x-0`}
     >
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 h-16 shrink-0 border-b border-white/[0.06]">
@@ -201,5 +214,6 @@ export default function Sidebar() {
         </div>
       </div>
     </aside>
+    </>
   );
 }

@@ -314,7 +314,58 @@ async def sync_channel_data(
                 progress = 50 + int((idx / len(shorts)) * 40)
                 await progress_callback(f"Imported {idx + 1}/{len(shorts)} Shorts...", progress)
         
-        # Step 4: Update channel-level analytics snapshot
+        # Step 4: Populate youtube_analytics collection with per-video data
+        # This ensures analytics endpoints have real Shorts data to work with
+        if progress_callback:
+            await progress_callback("Updating per-video analytics...", 85)
+
+        for short in shorts:
+            analytics_doc = {
+                "id": str(uuid.uuid4()),
+                "clientId": client_id,
+                "videoId": short["videoId"],
+                "title": short["title"],
+                "thumbnailUrl": short["thumbnailUrl"],
+                "views": short["viewCount"],
+                "watchTimeMinutes": 0,
+                "avgViewDurationSeconds": 0,
+                "avgViewPercentage": 0,
+                "likes": short["likeCount"],
+                "comments": short["commentCount"],
+                "impressions": 0,
+                "ctr": 0,
+                "publishedAt": short["publishedAt"],
+                "durationSeconds": short["durationSeconds"],
+                "periodStart": (now - timedelta(days=30)).strftime("%Y-%m-%d"),
+                "periodEnd": now.strftime("%Y-%m-%d"),
+                "syncedAt": now.isoformat(),
+                "source": "data_api_sync"
+            }
+
+            await db.youtube_analytics.update_one(
+                {"clientId": client_id, "videoId": short["videoId"]},
+                {"$set": analytics_doc},
+                upsert=True
+            )
+
+        # Also store channel snapshot for subscriber count
+        await db.channel_snapshots.update_one(
+            {"clientId": client_id, "channelId": channel_info["channelId"]},
+            {"$set": {
+                "id": str(uuid.uuid4()),
+                "clientId": client_id,
+                "channelId": channel_info["channelId"],
+                "channelName": channel_info["title"],
+                "subscriberCount": channel_info["subscriberCount"],
+                "totalViews": channel_info["viewCount"],
+                "videoCount": channel_info["videoCount"],
+                "syncedAt": now.isoformat(),
+                "source": "youtube_sync"
+            }},
+            upsert=True
+        )
+
+        # Step 5: Update channel-level analytics snapshot
         if progress_callback:
             await progress_callback("Updating analytics...", 95)
         

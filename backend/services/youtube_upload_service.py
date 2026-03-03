@@ -123,12 +123,17 @@ async def upload_video_to_youtube(
     description: str,
     tags: list,
     privacy_status: str = "private",
+    scheduled_publish_at: str = None,
     category_id: str = "22",  # People & Blogs
     default_language: str = "hi"  # Hindi for Chanakya Sutra
 ) -> Dict[str, Any]:
     """
     Upload a video to YouTube using the YouTube Data API v3.
-    
+
+    Args:
+        scheduled_publish_at: ISO 8601 datetime for scheduled publishing.
+            When set, video is uploaded as private and auto-publishes at the given time.
+
     Returns: {
         "success": bool,
         "video_id": str (if successful),
@@ -138,7 +143,7 @@ async def upload_video_to_youtube(
     }
     """
     jobs_db = publish_jobs_collection()
-    
+
     try:
         # Update job status to uploading
         await jobs_db.update_one(
@@ -149,7 +154,7 @@ async def upload_video_to_youtube(
                 "updatedAt": datetime.now(timezone.utc).isoformat()
             }}
         )
-        
+
         # Verify video file exists
         if not os.path.exists(video_file_path):
             return {
@@ -157,7 +162,7 @@ async def upload_video_to_youtube(
                 "error": "Video file not found",
                 "error_code": "no_video_file"
             }
-        
+
         # Get credentials
         credentials = await get_youtube_credentials(user_id)
         if not credentials:
@@ -166,7 +171,7 @@ async def upload_video_to_youtube(
                 "error": "YouTube not connected or token expired",
                 "error_code": "auth_error"
             }
-        
+
         # Build YouTube service
         youtube = build(
             YOUTUBE_API_SERVICE_NAME,
@@ -174,7 +179,12 @@ async def upload_video_to_youtube(
             credentials=credentials,
             cache_discovery=False
         )
-        
+
+        # For scheduled publishing, YouTube requires privacyStatus=private + publishAt
+        effective_privacy = privacy_status
+        if scheduled_publish_at:
+            effective_privacy = "private"
+
         # Prepare video metadata
         body = {
             "snippet": {
@@ -185,10 +195,14 @@ async def upload_video_to_youtube(
                 "defaultLanguage": default_language
             },
             "status": {
-                "privacyStatus": privacy_status,
+                "privacyStatus": effective_privacy,
                 "selfDeclaredMadeForKids": False
             }
         }
+
+        # Add scheduled publish time if specified
+        if scheduled_publish_at:
+            body["status"]["publishAt"] = scheduled_publish_at
         
         # Create media upload
         media = MediaFileUpload(
@@ -281,29 +295,67 @@ async def upload_video_to_youtube(
 
 
 async def get_video_asset_path(asset_id: str, client_id: str) -> Optional[str]:
-    """Get the file path for a video asset."""
+    """Get the file path for a video asset.
+
+    Checks local paths first, then downloads from storage service if needed.
+    """
+    import tempfile
     assets_db = assets_collection()
-    
+
     asset = await assets_db.find_one({
         "id": asset_id,
         "clientId": client_id
     }, {"_id": 0})
-    
+
     if not asset:
         return None
-    
+
     # Check for local file path
     file_path = asset.get("filePath") or asset.get("localPath")
     if file_path and os.path.exists(file_path):
         return file_path
-    
-    # Check for URL - would need to download first
+
+    # Check for URL - download from storage service
     url = asset.get("url")
     if url and not url.startswith("data:"):
-        # For S3/external URLs, we'd need to download
-        # For now, return None and handle in the caller
-        return None
-    
+        try:
+            # Try reading from storage service
+            if url.startswith("/api/files/") or url.startswith("storage/"):
+                from services.storage_service import get_storage_service
+                storage = get_storage_service()
+                data = await storage.read_file(url)
+                if data:
+                    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4",
+                                                      dir=tempfile.gettempdir())
+                    tmp.write(data)
+                    tmp.close()
+                    return tmp.name
+
+            # Try direct filesystem paths (local dev)
+            for base in [Path("storage"), Path("/tmp/fvs_storage")]:
+                clean_url = url
+                if clean_url.startswith("/api/files/"):
+                    clean_url = clean_url[len("/api/files/"):]
+                local_path = base / clean_url
+                if local_path.exists():
+                    return str(local_path)
+
+            # External URL — download via httpx
+            if url.startswith("http"):
+                import httpx
+                async with httpx.AsyncClient(timeout=120) as client:
+                    resp = await client.get(url)
+                    if resp.status_code == 200:
+                        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4",
+                                                          dir=tempfile.gettempdir())
+                        tmp.write(resp.content)
+                        tmp.close()
+                        return tmp.name
+
+        except Exception as e:
+            logger.warning(f"Could not download video asset {asset_id}: {e}")
+            return None
+
     return None
 
 
@@ -334,9 +386,12 @@ async def check_submission_has_video(submission_id: str, client_id: str) -> Dict
         asset = await assets_db.find_one({
             "id": video_asset_id,
             "clientId": client_id,
-            "assetType": {"$in": ["video", "Video"]}
+            "$or": [
+                {"type": {"$in": ["video", "Video"]}},
+                {"assetType": {"$in": ["video", "Video"]}}
+            ]
         }, {"_id": 0})
-        
+
         if asset:
             file_path = await get_video_asset_path(video_asset_id, client_id)
             return {
@@ -345,12 +400,15 @@ async def check_submission_has_video(submission_id: str, client_id: str) -> Dict
                 "file_path": file_path,
                 "asset": asset
             }
-    
+
     # Check for any video asset linked to this submission
     video_asset = await assets_db.find_one({
         "clientId": client_id,
         "submissionId": submission_id,
-        "assetType": {"$in": ["video", "Video"]}
+        "$or": [
+            {"type": {"$in": ["video", "Video"]}},
+            {"assetType": {"$in": ["video", "Video"]}}
+        ]
     }, {"_id": 0})
     
     if video_asset:

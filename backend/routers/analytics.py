@@ -229,19 +229,38 @@ async def get_analytics_dashboard(
         ).to_list(500)
 
     if youtube_analytics:
-        # Use real YouTube data
+        # Deduplicate by videoId
+        seen = set()
+        deduped = []
+        for a in youtube_analytics:
+            vid = a.get("videoId")
+            if vid and vid in seen:
+                continue
+            if vid:
+                seen.add(vid)
+            deduped.append(a)
+        youtube_analytics = deduped
+
+        # Use real YouTube data (Shorts-specific)
         total_views = sum(a.get("views", 0) for a in youtube_analytics)
         total_watch_time = sum(a.get("watchTimeMinutes", 0) for a in youtube_analytics)
-        avg_ctr = sum(a.get("ctr", 0) for a in youtube_analytics) / len(youtube_analytics) if youtube_analytics else 0
-        avg_avd = sum(a.get("avgViewDurationSeconds", 0) for a in youtube_analytics) / len(youtube_analytics) if youtube_analytics else 0
-        
+
+        # Weighted averages for CTR and AVD
+        total_view_weight = sum(a.get("views", 0) for a in youtube_analytics)
+        if total_view_weight > 0:
+            avg_ctr = sum(a.get("ctr", 0) * a.get("views", 0) for a in youtube_analytics) / total_view_weight
+            avg_avd = sum(a.get("avgViewDurationSeconds", 0) * a.get("views", 0) for a in youtube_analytics) / total_view_weight
+        else:
+            avg_ctr = 0
+            avg_avd = 0
+
         # Get channel snapshot for subscribers
         channel = await db.channel_snapshots.find_one(
             {"clientId": client_id},
             {"_id": 0},
             sort=[("syncedAt", -1)]
         )
-        
+
         return {
             "snapshots": [],  # Legacy field
             "youtubeAnalytics": youtube_analytics,

@@ -157,12 +157,12 @@ async def sync_channel_analytics(
             analytics_doc["impressions"] = 0
             
             await db.youtube_analytics.update_one(
-                {"clientId": client_id, "videoId": video_id, "periodStart": start_date},
+                {"clientId": client_id, "videoId": video_id},
                 {"$set": analytics_doc},
                 upsert=True
             )
             result["synced"] += 1
-        
+
         # Step 5: Try to get impressions data separately (may not be available for all channels)
         try:
             impressions_response = analytics_service.reports().query(
@@ -174,14 +174,14 @@ async def sync_channel_analytics(
                 maxResults=200,
                 sort="-views"
             ).execute()
-            
+
             for row in impressions_response.get("rows", []):
                 video_id = row[0]
                 impressions = int(row[2]) if len(row) > 2 else 0
                 ctr = float(row[3]) * 100 if len(row) > 3 else 0  # Convert to percentage
-                
+
                 await db.youtube_analytics.update_one(
-                    {"clientId": client_id, "videoId": video_id, "periodStart": start_date},
+                    {"clientId": client_id, "videoId": video_id},
                     {"$set": {"impressions": impressions, "ctr": round(ctr, 2)}}
                 )
         except HttpError:
@@ -205,121 +205,197 @@ async def sync_channel_analytics(
 
 
 async def _fallback_to_data_api(db, client_id, data_service, channel_id, start_date, end_date, result):
-    """Fallback to Data API when Analytics API is not available."""
+    """Fallback to Data API when Analytics API is not available.
+
+    Actually calls the YouTube Data API to get fresh per-video statistics
+    instead of reading stale submission records.
+    """
     now = datetime.now(timezone.utc)
-    
-    # Get videos from submissions
+
+    # Get video IDs from submissions
     submissions = await db.submissions.find(
         {"clientId": client_id, "importedFromYoutube": True},
-        {"_id": 0, "youtubeVideoId": 1, "title": 1, "youtubeThumbnailUrl": 1, 
-         "youtubeViewCount": 1, "youtubeLikeCount": 1}
+        {"_id": 0, "youtubeVideoId": 1, "title": 1, "youtubeThumbnailUrl": 1,
+         "publishedAt": 1, "durationSeconds": 1}
     ).to_list(500)
-    
-    for sub in submissions:
-        video_id = sub.get("youtubeVideoId")
-        if not video_id:
-            continue
-            
-        analytics_doc = {
-            "id": str(uuid.uuid4()),
-            "clientId": client_id,
-            "videoId": video_id,
-            "title": sub.get("title", "Unknown"),
-            "thumbnailUrl": sub.get("youtubeThumbnailUrl"),
-            "views": sub.get("youtubeViewCount", 0),
-            "watchTimeMinutes": 0,
-            "avgViewDurationSeconds": 0,
-            "avgViewPercentage": 0,
-            "likes": sub.get("youtubeLikeCount", 0),
-            "comments": 0,
-            "impressions": 0,
-            "ctr": 0,
-            "periodStart": start_date,
-            "periodEnd": end_date,
-            "syncedAt": now.isoformat(),
-            "source": "data_api_fallback"
-        }
-        
-        await db.youtube_analytics.update_one(
-            {"clientId": client_id, "videoId": video_id, "periodStart": start_date},
-            {"$set": analytics_doc},
-            upsert=True
-        )
-        result["synced"] += 1
-    
+
+    video_ids = [s["youtubeVideoId"] for s in submissions if s.get("youtubeVideoId")]
+    sub_map = {s["youtubeVideoId"]: s for s in submissions if s.get("youtubeVideoId")}
+
+    if not video_ids:
+        result["success"] = True
+        result["errors"].append("No imported videos found to sync.")
+        return result
+
+    # Fetch fresh stats from YouTube Data API in batches of 50
+    for i in range(0, len(video_ids), 50):
+        batch = video_ids[i:i+50]
+        try:
+            videos_response = data_service.videos().list(
+                part="statistics,contentDetails,snippet",
+                id=",".join(batch)
+            ).execute()
+
+            for video in videos_response.get("items", []):
+                video_id = video["id"]
+                stats = video.get("statistics", {})
+                info = sub_map.get(video_id, {})
+
+                # Parse duration for durationSeconds
+                from services.youtube_sync_service import parse_iso_duration
+                duration_str = video.get("contentDetails", {}).get("duration", "PT0S")
+                duration_seconds = parse_iso_duration(duration_str)
+
+                analytics_doc = {
+                    "id": str(uuid.uuid4()),
+                    "clientId": client_id,
+                    "videoId": video_id,
+                    "title": video.get("snippet", {}).get("title") or info.get("title", "Unknown"),
+                    "thumbnailUrl": (video.get("snippet", {}).get("thumbnails", {}).get("high", {}).get("url")
+                                     or info.get("youtubeThumbnailUrl")),
+                    "views": int(stats.get("viewCount", 0)),
+                    "watchTimeMinutes": 0,
+                    "avgViewDurationSeconds": 0,
+                    "avgViewPercentage": 0,
+                    "likes": int(stats.get("likeCount", 0)),
+                    "comments": int(stats.get("commentCount", 0)),
+                    "impressions": 0,
+                    "ctr": 0,
+                    "durationSeconds": duration_seconds,
+                    "publishedAt": info.get("publishedAt") or video.get("snippet", {}).get("publishedAt"),
+                    "periodStart": start_date,
+                    "periodEnd": end_date,
+                    "syncedAt": now.isoformat(),
+                    "source": "data_api_fallback"
+                }
+
+                await db.youtube_analytics.update_one(
+                    {"clientId": client_id, "videoId": video_id},
+                    {"$set": analytics_doc},
+                    upsert=True
+                )
+
+                # Also update submission with fresh stats
+                await db.submissions.update_one(
+                    {"clientId": client_id, "youtubeVideoId": video_id},
+                    {"$set": {
+                        "youtubeViewCount": int(stats.get("viewCount", 0)),
+                        "youtubeLikeCount": int(stats.get("likeCount", 0)),
+                        "youtubeCommentCount": int(stats.get("commentCount", 0)),
+                        "updatedAt": now.isoformat()
+                    }}
+                )
+                result["synced"] += 1
+
+        except HttpError as e:
+            logger.warning(f"Error fetching video batch stats: {e}")
+            result["errors"].append(f"Could not fetch stats for some videos")
+
     result["success"] = True
-    result["errors"].append("Note: Using basic stats from Data API. Full analytics requires channel monetization.")
+    result["errors"].append("Note: Using basic stats from Data API. Watch time and CTR require YouTube Analytics API access.")
     return result
 
 
 async def get_analytics_overview(db, client_id: str, days: int = 30) -> Dict[str, Any]:
-    """Get aggregated analytics overview for the user."""
+    """Get aggregated analytics overview for the user.
+
+    Uses youtube_analytics for Shorts-specific stats (views, watch time, etc.)
+    and channel_snapshots only for subscriber count.
+    """
     now = datetime.now(timezone.utc)
-    start_date = (now - timedelta(days=days)).strftime("%Y-%m-%d")
-    
-    # Get analytics records (all records, not date-filtered - cumulative stats per video)
+
+    # Get channel snapshot for subscriber count (always channel-level)
+    channel = await db.channel_snapshots.find_one(
+        {"clientId": client_id},
+        {"_id": 0},
+        sort=[("syncedAt", -1)]
+    )
+    subscriber_count = channel.get("subscriberCount", 0) if channel else 0
+
+    # Get per-video analytics records (Shorts-specific data)
     analytics = await db.youtube_analytics.find(
         {"clientId": client_id},
         {"_id": 0}
     ).to_list(500)
-    
+
+    # Deduplicate by videoId
+    seen = set()
+    deduped = []
+    for a in analytics:
+        vid = a.get("videoId")
+        if vid and vid in seen:
+            continue
+        if vid:
+            seen.add(vid)
+        deduped.append(a)
+    analytics = deduped
+
     if not analytics:
-        # Fallback 1: channel_snapshots (populated by /api/analytics/sync)
-        channel = await db.channel_snapshots.find_one(
-            {"clientId": client_id},
-            {"_id": 0},
-            sort=[("syncedAt", -1)]
-        )
-        if channel:
+        # Fallback: aggregate from submissions (imported Shorts)
+        submissions = await db.submissions.find(
+            {"clientId": client_id, "importedFromYoutube": True},
+            {"_id": 0, "youtubeViewCount": 1, "youtubeLikeCount": 1,
+             "youtubeCommentCount": 1, "title": 1, "youtubeVideoId": 1,
+             "youtubeThumbnailUrl": 1}
+        ).to_list(500)
+
+        if submissions:
+            total_views = sum(s.get("youtubeViewCount", 0) for s in submissions)
+            # Find best performer by views
+            best_sub = max(submissions, key=lambda s: s.get("youtubeViewCount", 0), default=None)
             return {
-                "totalViews": channel.get("totalViews", 0),
+                "totalViews": total_views,
                 "totalWatchTimeMinutes": 0,
                 "avgCtr": 0,
                 "avgAvd": 0,
-                "bestPerformer": None,
-                "subscriberCount": channel.get("subscriberCount", 0),
-                "videoCount": channel.get("videoCount", 0),
+                "bestPerformer": {
+                    "videoId": best_sub.get("youtubeVideoId"),
+                    "title": best_sub.get("title"),
+                    "views": best_sub.get("youtubeViewCount", 0),
+                    "ctr": 0,
+                    "avgViewDuration": 0
+                } if best_sub else None,
+                "subscriberCount": subscriber_count,
+                "videoCount": len(submissions),
                 "lastSyncedAt": None
             }
-        # Fallback 2: analytics_snapshots (populated by "Sync Channel" button)
+
+        # No data at all — check analytics_snapshots for Shorts-specific views
         snapshot = await db.analytics_snapshots.find_one(
             {"clientId": client_id, "source": "youtube_sync"},
             {"_id": 0},
             sort=[("date", -1)]
         )
         return {
-            "totalViews": snapshot.get("totalViews", 0) if snapshot else 0,
+            "totalViews": snapshot.get("views", 0) if snapshot else 0,
             "totalWatchTimeMinutes": 0,
             "avgCtr": 0,
             "avgAvd": 0,
             "bestPerformer": None,
-            "subscriberCount": snapshot.get("subscriberCount", 0) if snapshot else 0,
-            "videoCount": snapshot.get("videoCount", 0) if snapshot else 0,
+            "subscriberCount": subscriber_count or (snapshot.get("subscriberCount", 0) if snapshot else 0),
+            "videoCount": snapshot.get("shortsCount", 0) if snapshot else 0,
             "lastSyncedAt": snapshot.get("createdAt") if snapshot else None
         }
-    
+
     total_views = sum(a.get("views", 0) for a in analytics)
     total_watch_time = sum(a.get("watchTimeMinutes", 0) for a in analytics)
-    
+
     # Calculate averages weighted by views
     total_ctr_weighted = sum(a.get("ctr", 0) * a.get("views", 0) for a in analytics)
     total_avd_weighted = sum(a.get("avgViewDurationSeconds", 0) * a.get("views", 0) for a in analytics)
-    
+
     avg_ctr = round(total_ctr_weighted / total_views, 2) if total_views > 0 else 0
     avg_avd = round(total_avd_weighted / total_views, 1) if total_views > 0 else 0
-    
-    # Get best performer by engagement score (CTR * AVD)
-    best = max(analytics, key=lambda a: a.get("ctr", 0) * a.get("avgViewDurationSeconds", 0), default=None)
-    
-    # Get channel snapshot
-    channel = await db.channel_snapshots.find_one(
-        {"clientId": client_id},
-        {"_id": 0},
-        sort=[("syncedAt", -1)]
-    )
-    
+
+    # Get best performer: prefer engagement score (CTR × AVD), fall back to views
+    has_engagement_data = any(a.get("ctr", 0) > 0 for a in analytics)
+    if has_engagement_data:
+        best = max(analytics, key=lambda a: a.get("ctr", 0) * a.get("avgViewDurationSeconds", 0), default=None)
+    else:
+        best = max(analytics, key=lambda a: a.get("views", 0), default=None)
+
     last_synced = analytics[0].get("syncedAt") if analytics else None
-    
+
     return {
         "totalViews": total_views,
         "totalWatchTimeMinutes": round(total_watch_time, 1),
@@ -332,25 +408,49 @@ async def get_analytics_overview(db, client_id: str, days: int = 30) -> Dict[str
             "ctr": best.get("ctr"),
             "avgViewDuration": best.get("avgViewDurationSeconds")
         } if best else None,
-        "subscriberCount": channel.get("subscriberCount", 0) if channel else 0,
+        "subscriberCount": subscriber_count,
         "videoCount": len(analytics),
         "lastSyncedAt": last_synced
     }
 
 
 async def get_top_performers(db, client_id: str, limit: int = 10) -> List[Dict[str, Any]]:
-    """Get top performing videos by engagement score (CTR × AVD)."""
+    """Get top performing videos.
+
+    Uses engagement score (CTR × AVD) when CTR data is available,
+    otherwise falls back to sorting by views.
+    """
     analytics = await db.youtube_analytics.find(
         {"clientId": client_id},
         {"_id": 0}
     ).to_list(500)
-    
-    # Calculate engagement score and sort
+
+    # Deduplicate by videoId
+    seen = set()
+    deduped = []
     for a in analytics:
-        a["engagementScore"] = a.get("ctr", 0) * a.get("avgViewDurationSeconds", 0)
-    
-    analytics.sort(key=lambda x: x.get("engagementScore", 0), reverse=True)
-    
+        vid = a.get("videoId")
+        if vid and vid in seen:
+            continue
+        if vid:
+            seen.add(vid)
+        deduped.append(a)
+    analytics = deduped
+
+    # Check if any video has real CTR data
+    has_ctr = any(a.get("ctr", 0) > 0 for a in analytics)
+
+    if has_ctr:
+        # Sort by engagement score (CTR × AVD)
+        for a in analytics:
+            a["engagementScore"] = a.get("ctr", 0) * a.get("avgViewDurationSeconds", 0)
+        analytics.sort(key=lambda x: x.get("engagementScore", 0), reverse=True)
+    else:
+        # Fall back to sorting by views (most reliable metric)
+        for a in analytics:
+            a["engagementScore"] = 0
+        analytics.sort(key=lambda x: x.get("views", 0), reverse=True)
+
     return analytics[:limit]
 
 

@@ -19,6 +19,7 @@ const mainNav = [
   { label: 'Pipeline', path: '/dashboard/submissions', icon: FileText, showBadge: true },
   { label: 'Content Studio', path: '/dashboard/studio', icon: Wand2 },
   { label: 'Video Editor', path: '/dashboard/video-editor', icon: Scissors },
+  { label: 'Podcast Studio', path: '/dashboard/podcast-studio', icon: Mic },
   { label: 'Calendar', path: '/dashboard/calendar', icon: Calendar },
 ];
 

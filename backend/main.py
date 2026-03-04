@@ -219,6 +219,10 @@ async def startup():
     # Start the publishing scheduler
     start_scheduler()
 
+    # Log which AI providers are configured
+    from services.ai_service import check_ai_providers
+    check_ai_providers()
+
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

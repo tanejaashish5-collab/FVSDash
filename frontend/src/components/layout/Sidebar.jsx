@@ -16,10 +16,10 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 // Core workflow nav
 const mainNav = [
   { label: 'Overview', path: '/dashboard/overview', icon: LayoutDashboard },
-  { label: 'Pipeline', path: '/dashboard/submissions', icon: FileText, showBadge: true },
   { label: 'Content Studio', path: '/dashboard/studio', icon: Wand2 },
   { label: 'Video Editor', path: '/dashboard/video-editor', icon: Scissors },
   { label: 'Podcast Studio', path: '/dashboard/podcast-studio', icon: Mic },
+  { label: 'Pipeline', path: '/dashboard/submissions', icon: FileText, showBadge: true },
   { label: 'Calendar', path: '/dashboard/calendar', icon: Calendar },
 ];
 

@@ -253,29 +253,33 @@ export default function SubmissionsPage() {
     const fetchDetailData = async () => {
       setLoadingThumbnails(true);
       try {
-        const [assetsRes, connectionsRes, tasksRes] = await Promise.all([
+        const [assetsRes, oauthRes, tasksRes] = await Promise.all([
           axios.get(`${API}/assets/library`, { headers: authHeaders }),
-          axios.get(`${API}/platform-connections`, { headers: authHeaders }).catch(() => ({ data: [] })),
+          axios.get(`${API}/oauth/status`, { headers: authHeaders }).catch(() => ({ data: {} })),
           axios.get(`${API}/publishing-tasks?submissionId=${selected.id}`, { headers: authHeaders }).catch(() => ({ data: [] }))
         ]);
-        
+
         // Filter assets by type for this submission
         const allAssets = assetsRes.data.filter(a => a.submissionId === selected.id);
         setThumbnails(allAssets.filter(a => a.type === 'Thumbnail'));
         setAudioAssets(allAssets.filter(a => a.type === 'Audio'));
         setVideoAssets(allAssets.filter(a => a.type === 'Video'));
-        
-        // Ensure all platforms are represented with a connection status
+
+        // Map real OAuth status to pipeline platform format
+        // OAuth uses "youtube", pipeline uses "youtube_shorts" etc.
+        const oauthData = oauthRes.data || {};
+        const oauthToPipeline = { youtube: 'youtube_shorts', tiktok: 'tiktok', instagram: 'instagram_reels' };
         const platforms = ['youtube_shorts', 'tiktok', 'instagram_reels'];
-        const existingConnections = connectionsRes.data || [];
         const fullConnections = platforms.map(platform => {
-          const existing = existingConnections.find(c => c.platform === platform);
-          return existing || {
+          const oauthKey = Object.entries(oauthToPipeline).find(([, v]) => v === platform)?.[0];
+          const oauthInfo = oauthKey ? oauthData[oauthKey] : null;
+          return {
             id: null,
             platform,
-            connected: false,
-            accountName: null,
-            accountHandle: null
+            connected: oauthInfo?.connected || false,
+            accountName: oauthInfo?.accountName || null,
+            accountHandle: oauthInfo?.accountHandle || null,
+            tokenStatus: oauthInfo?.tokenStatus || null,
           };
         });
         setPlatformConnections(fullConnections);
@@ -289,7 +293,8 @@ export default function SubmissionsPage() {
           platform,
           connected: false,
           accountName: null,
-          accountHandle: null
+          accountHandle: null,
+          tokenStatus: null,
         })));
         setPublishingTasks([]);
       } finally {
@@ -1238,6 +1243,9 @@ export default function SubmissionsPage() {
                             </div>
                             <div>
                               <span className="text-xs text-white font-medium">{cfg.label}</span>
+                              {isConnected && connection?.accountHandle && (
+                                <p className="text-[9px] text-zinc-500">{connection.accountHandle}</p>
+                              )}
                               {taskStatus && (
                                 <div className="flex items-center gap-1.5 mt-0.5">
                                   <Badge className={`text-[9px] px-1 py-0 ${statusCfgItem.bg} ${statusCfgItem.color} border ${statusCfgItem.border}`}>
@@ -1321,7 +1329,7 @@ export default function SubmissionsPage() {
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent side="top" className="max-w-[240px] bg-zinc-900 text-white border-zinc-700">
-                                    Simulate posting to this platform. Connect real OAuth in Settings → Publishing to go live.
+                                    Publish this content to your connected {cfg.label} account.
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>

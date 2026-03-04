@@ -9,7 +9,25 @@ from models.publishing import (
     PlatformType, PublishingStatus
 )
 from services.auth_service import get_current_user, get_client_id_from_user
-from db.mongo import publishing_tasks_collection, platform_connections_collection, submissions_collection, users_collection
+from db.mongo import publishing_tasks_collection, platform_connections_collection, submissions_collection, users_collection, oauth_tokens_collection
+
+# Map pipeline platform names to OAuth platform names
+PIPELINE_TO_OAUTH = {
+    "youtube_shorts": "youtube",
+    "tiktok": "tiktok",
+    "instagram_reels": "instagram",
+}
+
+
+async def _is_platform_connected(client_id: str, pipeline_platform: str) -> bool:
+    """Check if a platform is connected via real OAuth (oauth_tokens_collection)."""
+    oauth_platform = PIPELINE_TO_OAUTH.get(pipeline_platform, pipeline_platform)
+    db = oauth_tokens_collection()
+    token = await db.find_one(
+        {"clientId": client_id, "platform": oauth_platform, "connected": True},
+        {"_id": 0, "connected": 1}
+    )
+    return bool(token)
 
 router = APIRouter(tags=["publishing"])
 
@@ -146,7 +164,6 @@ async def create_publishing_task(
     client_id = get_client_id_from_user(user, impersonateClientId)
     tasks_db = publishing_tasks_collection()
     subs_db = submissions_collection()
-    conn_db = platform_connections_collection()
     
     # Verify submission exists and belongs to client
     submission = await subs_db.find_one(
@@ -156,12 +173,8 @@ async def create_publishing_task(
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
     
-    # Check if platform is connected
-    connection = await conn_db.find_one(
-        {"clientId": client_id, "platform": data.platform.value, "connected": True},
-        {"_id": 0}
-    )
-    if not connection:
+    # Check if platform is connected via real OAuth
+    if not await _is_platform_connected(client_id, data.platform.value):
         raise HTTPException(status_code=400, detail=f"Platform {data.platform.value} not connected. Connect in Settings first.")
     
     # Check for existing task for same submission+platform
@@ -356,21 +369,16 @@ async def post_task_now(
     """
     client_id = get_client_id_from_user(user, impersonateClientId)
     db = publishing_tasks_collection()
-    conn_db = platform_connections_collection()
-    
+
     task = await db.find_one({"id": task_id, "clientId": client_id}, {"_id": 0})
     if not task:
         raise HTTPException(status_code=404, detail="Publishing task not found")
-    
+
     if task.get("status") == "posted":
         raise HTTPException(status_code=400, detail="Task already posted")
-    
-    # Verify platform is still connected
-    connection = await conn_db.find_one(
-        {"clientId": client_id, "platform": task["platform"], "connected": True},
-        {"_id": 0}
-    )
-    if not connection:
+
+    # Verify platform is still connected via real OAuth
+    if not await _is_platform_connected(client_id, task["platform"]):
         await db.update_one(
             {"id": task_id},
             {"$set": {"status": "failed", "errorMessage": "Platform disconnected", "updatedAt": datetime.now(timezone.utc).isoformat()}}

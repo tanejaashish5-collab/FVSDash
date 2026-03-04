@@ -150,14 +150,30 @@ export default function SubmissionDetailPage() {
       const [subRes, assetsRes, connectionsRes, tasksRes] = await Promise.all([
         axios.get(`${API}/submissions/${submissionId}`, { headers: { Authorization: `Bearer ${token}` } }),
         axios.get(`${API}/assets/library`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${API}/platform-connections`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${API}/oauth/status`, { headers: { Authorization: `Bearer ${token}` } }),
         axios.get(`${API}/publishing-tasks?submissionId=${submissionId}`, { headers: { Authorization: `Bearer ${token}` } })
       ]);
       
       setSubmission(subRes.data);
       const submissionAssets = assetsRes.data.filter(a => a.submissionId === submissionId);
       setAssets(submissionAssets);
-      setPlatformConnections(connectionsRes.data);
+
+      // Map real OAuth status to pipeline platform format
+      const oauthData = connectionsRes.data || {};
+      const oauthToPipeline = { youtube: 'youtube_shorts', tiktok: 'tiktok', instagram: 'instagram_reels' };
+      const platforms = ['youtube_shorts', 'tiktok', 'instagram_reels'];
+      setPlatformConnections(platforms.map(platform => {
+        const oauthKey = Object.entries(oauthToPipeline).find(([, v]) => v === platform)?.[0];
+        const oauthInfo = oauthKey ? oauthData[oauthKey] : null;
+        return {
+          id: null,
+          platform,
+          connected: oauthInfo?.connected || false,
+          accountName: oauthInfo?.accountName || null,
+          accountHandle: oauthInfo?.accountHandle || null,
+          tokenStatus: oauthInfo?.tokenStatus || null,
+        };
+      }));
       setPublishingTasks(tasksRes.data);
       
       // Try to fetch related FVS idea if this is an FVS-generated submission

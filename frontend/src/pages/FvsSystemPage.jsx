@@ -73,6 +73,7 @@ export default function FvsSystemPage() {
   const [loading, setLoading]               = useState(true);
   const [proposing, setProposing]           = useState(false);
   const [producing, setProducing]           = useState(null);
+  const [producingStep, setProducingStep]   = useState('');
 
   // Trend state
   const [recommendations, setRecommendations] = useState(null);
@@ -188,6 +189,7 @@ export default function FvsSystemPage() {
   // Produce episode (full auto)
   const handleProduceEpisode = async (ideaId) => {
     setProducing(ideaId);
+    setProducingStep('Generating script, audio & thumbnail…');
     try {
       const res = await axios.post(`${API}/fvs/produce-episode`, { ideaId, mode: 'full_auto_short' }, { headers: authHeaders });
       setIdeas(prev => prev.map(i => i.id === ideaId ? { ...i, status: 'completed', submissionId: res.data.submission.id } : i));
@@ -198,12 +200,20 @@ export default function FvsSystemPage() {
         metadata: res.data,
         createdAt: new Date().toISOString()
       }, ...prev]);
-      toast.success(`Episode created!`, { description: 'Script, audio, and thumbnail generated. Opening submission…' });
+      // Show warnings if any assets were skipped
+      const warnings = res.data.warnings || [];
+      if (warnings.length > 0) {
+        toast.warning('Episode created with warnings', { description: warnings.join('. ') });
+      } else {
+        toast.success('Episode created!', { description: 'Script, audio, and thumbnail generated. Opening submission…' });
+      }
       navigate('/dashboard/submissions', { state: { openSubmissionId: res.data.submission.id } });
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to produce episode');
+      const detail = err.response?.data?.detail || 'Failed to produce episode';
+      toast.error('Auto production failed', { description: detail, duration: 8000 });
     } finally {
       setProducing(null);
+      setProducingStep('');
     }
   };
 
@@ -560,6 +570,9 @@ export default function FvsSystemPage() {
                                     {isProducing ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Zap className="h-2.5 w-2.5" />}
                                     <span>Auto</span>
                                   </Button>
+                                  {isProducing && producingStep && (
+                                    <span className="text-[9px] text-amber-400/70 animate-pulse">{producingStep}</span>
+                                  )}
                                   <Button
                                     onClick={() => handleRejectIdea(idea.id)}
                                     size="sm"

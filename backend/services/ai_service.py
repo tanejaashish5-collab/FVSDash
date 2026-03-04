@@ -39,6 +39,20 @@ def get_enabled_video_providers() -> list:
     return providers
 
 
+def check_ai_providers():
+    """Log which AI providers are configured. Called at startup."""
+    llm = get_enabled_llm_providers()
+    video = get_enabled_video_providers()
+    if not llm:
+        logger.warning("NO LLM PROVIDERS CONFIGURED. Set GEMINI_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY.")
+    else:
+        logger.info(f"Enabled LLM providers: {', '.join(llm)}")
+    if not video:
+        logger.warning("No video providers configured.")
+    else:
+        logger.info(f"Enabled video providers: {', '.join(video)}")
+
+
 async def call_gemini(prompt: str, max_tokens: int = 4096, system_message: str = None) -> str:
     """Direct Gemini call, returns raw text string. Used by calendar, fvs, trend services."""
     api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("EMERGENT_LLM_KEY")

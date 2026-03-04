@@ -770,7 +770,29 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"FVS produce-episode error at step {len(completed_steps) + 1}: {e}", exc_info=True)
+        # Map completed step count to human-readable stage name
+        step_names = {
+            0: "Script generation",
+            1: "Script generation",
+            2: "Metadata generation",
+            3: "Audio generation (ElevenLabs)",
+            4: "Video task creation",
+            5: "Video asset creation",
+            6: "Thumbnail generation (OpenAI)",
+        }
+        failed_step = step_names.get(len(completed_steps), f"Step {len(completed_steps) + 1}")
+        error_msg = str(e)
+        # Add hints for common issues
+        if "GEMINI_API_KEY" in error_msg or "genai" in error_msg.lower():
+            error_msg = f"{failed_step} failed: Gemini API key not configured or invalid. Check GEMINI_API_KEY in environment."
+        elif "ELEVENLABS" in error_msg or "elevenlabs" in error_msg.lower():
+            error_msg = f"{failed_step} failed: ElevenLabs API error. Check ELEVENLABS_API_KEY."
+        elif "OPENAI" in error_msg or "openai" in error_msg.lower() or "dall" in error_msg.lower():
+            error_msg = f"{failed_step} failed: OpenAI API error. Check OPENAI_API_KEY."
+        else:
+            error_msg = f"{failed_step} failed: {error_msg}"
+
+        logger.error(f"FVS produce-episode error — {error_msg}", exc_info=True)
         # Saga rollback: clean up any documents created before the failure
         if completed_steps:
             logger.info(f"FVS rollback: removing {len(completed_steps)} created document(s)")
@@ -780,7 +802,7 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
             {"id": idea_id},
             {"$set": {"status": "proposed", "updatedAt": now}}
         )
-        raise HTTPException(status_code=500, detail=f"Failed to produce episode at step {len(completed_steps) + 1}: {str(e)}")
+        raise HTTPException(status_code=500, detail=error_msg)
 
 
 async def get_ideas(client_id: str, status: Optional[str] = None) -> list:

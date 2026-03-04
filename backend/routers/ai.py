@@ -23,6 +23,21 @@ async def get_ai_capabilities():
     }
 
 
+@router.get("/ai/health")
+async def get_ai_health():
+    """Returns AI provider health status — which providers are configured and ready."""
+    llm = get_enabled_llm_providers()
+    video = get_enabled_video_providers()
+    return {
+        "status": "ok" if llm else "no_providers_configured",
+        "providers": llm,
+        "videoProviders": video,
+        "geminiConfigured": "gemini" in llm,
+        "openaiConfigured": "openai" in llm,
+        "anthropicConfigured": "anthropic" in llm,
+    }
+
+
 @router.post("/ai/generate")
 async def ai_generate(request: Request, data: AIGenerateRequest, user: dict = Depends(get_current_user)):
     """Universal AI generation endpoint supporting multiple LLM providers."""

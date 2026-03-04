@@ -41,6 +41,7 @@ import StrategyIdeaDetailPage from "@/pages/StrategyIdeaDetailPage";
 import PublishingDashboardPage from "@/pages/PublishingDashboardPage";
 import ContentStudioPage from "@/pages/ContentStudioPage";
 import VideoEditorPage from "@/pages/VideoEditorPage";
+import PodcastStudioPage from "@/pages/PodcastStudioPage";
 import PublishedPage from "@/pages/PublishedPage";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 
@@ -119,6 +120,8 @@ function AppRoutes() {
           <Route path="/dashboard/studio" element={<ContentStudioPage />} />
           {/* Video Editor — upload, arrange clips, FFmpeg stitch */}
           <Route path="/dashboard/video-editor" element={<VideoEditorPage />} />
+          {/* Podcast Studio — raw podcast → polish → clips → publish */}
+          <Route path="/dashboard/podcast-studio" element={<PodcastStudioPage />} />
           {/* Published library */}
           <Route path="/dashboard/published" element={<PublishedPage />} />
           {/* Redirect legacy lab pages to Content Studio */}

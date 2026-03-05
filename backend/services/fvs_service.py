@@ -97,12 +97,15 @@ async def generate_ideas_with_llm(client_id: str, analytics_data: dict, brand_vo
     top_topics = analytics_data.get("topTopics", [])
     recent_performance = analytics_data.get("performance", "moderate growth")
 
-    # Use real trending topics from Trend Radar if available, otherwise fall back to simulated
+    # Use real trending topics from Trend Radar if available, otherwise use channel pillars as signals
     if trending_topics:
         signals_text = "\n".join([
             f"- [{t.get('keyword', '')}] {t.get('title', 'N/A')[:60]} by {t.get('channelName', 'Unknown')} ({t.get('viewCount', 0):,} views)"
             for t in trending_topics
         ])
+    elif content_pillars:
+        # Generate pillar-based signals instead of generic off-topic ones
+        signals_text = "\n".join([f"- audience_feedback: '{pillar}' (trending in niche)" for pillar in content_pillars])
     else:
         external_signals = random.sample(SIMULATED_EXTERNAL_SIGNALS, min(4, len(SIMULATED_EXTERNAL_SIGNALS)))
         signals_text = "\n".join([f"- {s['source']}: '{s['topic']}' ({s['trend']})" for s in external_signals])
@@ -124,7 +127,7 @@ async def generate_ideas_with_llm(client_id: str, analytics_data: dict, brand_vo
     }
     lang_instruction = language_instructions.get(language_style, "Generate ideas in English.")
 
-    prompt = f"""You are FVS Brain, an AI content strategist. Generate 5 episode ideas that perfectly match this channel's niche and audience.
+    prompt = f"""You are FVS Brain, an AI content strategist. Generate 5 episode ideas that are STRICTLY about this channel's core subject matter.
 
 CHANNEL PROFILE:
 - Description: {brand_desc or tone}
@@ -132,6 +135,8 @@ CHANNEL PROFILE:
 - Content Pillars: {pillars_text}
 - Language Style: {language_style}
 - Target format: {target_format} ({"40-90 second vertical Shorts" if target_format == "short" else "15-45 minute full episodes"})
+
+CRITICAL CONSTRAINT: Every single idea MUST be directly about the channel's content pillars ({pillars_text}). Do NOT suggest ideas about AI, generic content creation tips, monetization, tech tools, or any topic outside the channel's pillars. If the channel is about Chanakya Niti, every idea must be about Chanakya principles. If the channel is about cooking, every idea must be about cooking. Stay 100% on-niche.
 
 LANGUAGE INSTRUCTIONS:
 {lang_instruction}
@@ -142,17 +147,18 @@ TOP PERFORMING PAST CONTENT:
 RECENT PERFORMANCE:
 {recent_performance}
 
-TRENDING SIGNALS (from Trend Radar):
+TRENDING SIGNALS (use ONLY signals relevant to this channel's niche, ignore off-topic signals):
 {signals_text}
 
 Generate exactly 5 episode ideas that:
-1. Fit the channel's content pillars and niche
+1. Are DIRECTLY about the channel's content pillars ({pillars_text}) — no off-topic ideas
 2. Use the channel's language style ({language_style}) for titles
-3. Build on trending signals relevant to this channel
+3. Incorporate trending angles only if they relate to the channel's niche
 4. Are specific and actionable (not generic)
+5. Would make sense on this specific channel and nowhere else
 
 For each idea, provide:
-1. topic: A specific, actionable topic title (in {language_style})
+1. topic: A specific, actionable topic title (in {language_style}) — must be on-niche
 2. hypothesis: Why this will resonate with the audience (1-2 sentences)
 3. source: Which signal inspired this (youtube_analytics, reddit, search_trends, competitor_analysis, audience_feedback, or original)
 4. format: "{target_format}"
@@ -165,7 +171,7 @@ Return ONLY valid JSON array, no markdown:
         response = await call_gemini(
             prompt,
             max_tokens=4096,
-            system_message=f"You are a strategic content advisor specializing in {pillars_text}. Always respond with valid JSON only."
+            system_message=f"You are a strategic content advisor specializing EXCLUSIVELY in {pillars_text}. Every idea you generate must be directly about these topics. Never suggest off-topic ideas about AI, tech, generic tips, or anything outside the channel's niche. Always respond with valid JSON only."
         )
 
         cleaned = response.strip()

@@ -97,6 +97,14 @@ async def generate_ideas_with_llm(client_id: str, analytics_data: dict, brand_vo
     top_topics = analytics_data.get("topTopics", [])
     recent_performance = analytics_data.get("performance", "moderate growth")
 
+    # Build channel-aware context from profile
+    language_style = channel_profile.get("languageStyle", "english") if channel_profile else "english"
+    content_pillars = channel_profile.get("contentPillars", []) if channel_profile else []
+    brand_desc = channel_profile.get("brandDescription", "") if channel_profile else ""
+    tone = channel_profile.get("tone", brand_voice or "Professional and engaging") if channel_profile else (brand_voice or "Professional and engaging")
+
+    pillars_text = ", ".join(content_pillars) if content_pillars else "general content"
+
     # Use real trending topics from Trend Radar if available, otherwise use channel pillars as signals
     if trending_topics:
         signals_text = "\n".join([
@@ -109,14 +117,6 @@ async def generate_ideas_with_llm(client_id: str, analytics_data: dict, brand_vo
     else:
         external_signals = random.sample(SIMULATED_EXTERNAL_SIGNALS, min(4, len(SIMULATED_EXTERNAL_SIGNALS)))
         signals_text = "\n".join([f"- {s['source']}: '{s['topic']}' ({s['trend']})" for s in external_signals])
-
-    # Build channel-aware context from profile
-    language_style = channel_profile.get("languageStyle", "english") if channel_profile else "english"
-    content_pillars = channel_profile.get("contentPillars", []) if channel_profile else []
-    brand_desc = channel_profile.get("brandDescription", "") if channel_profile else ""
-    tone = channel_profile.get("tone", brand_voice or "Professional and engaging") if channel_profile else (brand_voice or "Professional and engaging")
-
-    pillars_text = ", ".join(content_pillars) if content_pillars else "general content"
 
     # Language-specific instructions
     language_instructions = {

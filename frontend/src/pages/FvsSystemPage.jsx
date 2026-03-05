@@ -192,7 +192,13 @@ export default function FvsSystemPage() {
     setProducingStep('Generating script, audio & thumbnail…');
     try {
       const res = await axios.post(`${API}/fvs/produce-episode`, { ideaId, mode: 'full_auto_short' }, { headers: authHeaders });
-      setIdeas(prev => prev.map(i => i.id === ideaId ? { ...i, status: 'completed', submissionId: res.data.submission.id } : i));
+      const thumbnailUrl = res.data.thumbnailAsset?.url || '';
+      const audioUrl = res.data.audioAsset?.url || '';
+      const scriptText = res.data.script?.text || '';
+      setIdeas(prev => prev.map(i => i.id === ideaId ? {
+        ...i, status: 'completed', submissionId: res.data.submission.id,
+        script: scriptText || i.script, thumbnailUrl, audioUrl
+      } : i));
       setActivities(prev => [{
         id: Date.now().toString(),
         action: 'produce_episode',
@@ -228,13 +234,21 @@ export default function FvsSystemPage() {
     }
   };
 
-  // Send idea to Content Studio (pre-fill topic)
+  // Send idea to Content Studio (pre-fill topic + script + thumbnail if available)
   const handleSendToStudio = (idea) => {
-    sessionStorage.setItem('studio_prefill_idea', JSON.stringify({
+    const prefill = {
       topic: idea.topic,
       hypothesis: idea.hypothesis,
       source: idea.source,
-    }));
+    };
+    // Carry forward script if already generated
+    if (idea.script) prefill.script = idea.script;
+    if (scriptData?.scriptText) prefill.script = scriptData.scriptText;
+    // Carry forward thumbnail if available from the produce-episode response
+    if (idea.thumbnailUrl) prefill.thumbnailUrl = idea.thumbnailUrl;
+    // Carry forward audio if available
+    if (idea.audioUrl) prefill.audioUrl = idea.audioUrl;
+    sessionStorage.setItem('studio_prefill_idea', JSON.stringify(prefill));
     navigate('/dashboard/studio');
   };
 

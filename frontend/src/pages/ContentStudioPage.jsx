@@ -179,6 +179,10 @@ export default function ContentStudioPage() {
         const idea = JSON.parse(prefill);
         if (idea.topic) { setTopic(idea.topic); setPublishTitle(idea.topic); }
         if (idea.script) setScript(idea.script);
+        // Carry forward thumbnail from FVS System (avoid re-generating)
+        if (idea.thumbnailUrl) { setThumbnailUrl(idea.thumbnailUrl); setThumbnailStatus('ready'); }
+        // Carry forward audio from FVS System (avoid re-generating)
+        if (idea.audioUrl) { setAudioUrl(idea.audioUrl); setAudioStatus('ready'); }
         sessionStorage.removeItem('studio_prefill_idea');
       } catch {}
     }
@@ -1078,21 +1082,31 @@ export default function ContentStudioPage() {
                         </div>
                         {thumbnailVariants.length > 0 && (
                           <div className="grid grid-cols-2 gap-2">
-                            {thumbnailVariants.map((v) => (
-                              <div key={v.id} className="group relative">
-                                <img src={resolveUrl(v.url)} alt="Thumbnail variant"
-                                  className="w-full rounded border border-zinc-800 object-cover aspect-video cursor-pointer hover:border-violet-500/50 transition-colors"
-                                  onClick={() => { setThumbnailUrl(v.url); setThumbnailStatus('ready'); toast.success('Variant set as primary'); }} />
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <span className="text-[9px] bg-black/70 text-white px-1.5 py-0.5 rounded">Use This</span>
+                            {thumbnailVariants.map((v) => {
+                              const isSelected = thumbnailUrl === v.url;
+                              return (
+                                <div key={v.id} className="group relative">
+                                  <img src={resolveUrl(v.url)} alt="Thumbnail variant"
+                                    className={`w-full rounded border-2 object-cover aspect-video cursor-pointer transition-all ${
+                                      isSelected
+                                        ? 'border-violet-500 ring-2 ring-violet-500/30'
+                                        : 'border-zinc-800 hover:border-violet-500/50'
+                                    }`}
+                                    onClick={() => { setThumbnailUrl(v.url); setThumbnailStatus('ready'); toast.success('Variant set as primary'); }} />
+                                  {isSelected && (
+                                    <div className="absolute top-1.5 left-1.5 bg-violet-500 rounded-full p-0.5">
+                                      <CheckCircle className="h-3 w-3 text-white" />
+                                    </div>
+                                  )}
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setThumbnailVariants(prev => prev.filter(x => x.id !== v.id)); toast.success('Variant deleted'); }}
+                                    className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity bg-black/70 hover:bg-red-500/80 rounded-full p-1 text-zinc-300 hover:text-white"
+                                    title="Delete variant">
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
                                 </div>
-                                <button
-                                  onClick={() => setThumbnailVariants(prev => prev.filter(x => x.id !== v.id))}
-                                  className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 rounded-full p-0.5 text-zinc-400 hover:text-red-400">
-                                  <X className="h-2.5 w-2.5" />
-                                </button>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         )}
                       </div>

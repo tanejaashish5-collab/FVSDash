@@ -28,6 +28,14 @@ def is_real_oauth_enabled(platform: str) -> bool:
         client_id = os.environ.get("YOUTUBE_CLIENT_ID")
         client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
         return bool(client_id and client_secret and not client_id.startswith("mock_"))
+    if platform == "tiktok":
+        client_key = os.environ.get("TIKTOK_CLIENT_KEY")
+        client_secret = os.environ.get("TIKTOK_CLIENT_SECRET")
+        return bool(client_key and client_secret and not client_key.startswith("mock_"))
+    if platform == "instagram":
+        app_id = os.environ.get("INSTAGRAM_APP_ID")
+        app_secret = os.environ.get("INSTAGRAM_APP_SECRET")
+        return bool(app_id and app_secret and not app_id.startswith("mock_"))
     return False
 
 MOCK_OAUTH_ENABLED = not is_real_oauth_enabled("youtube")  # Use mock if no real creds
@@ -180,14 +188,13 @@ async def initiate_oauth_connect(
     
     # Determine if we should use real OAuth for this platform
     use_real_oauth = is_real_oauth_enabled(platform)
-    
-    # For mock mode or unsupported platforms, return mock auth URL
-    if not use_real_oauth or platform != "youtube":
-        # Mock OAuth URL points to our callback with pre-generated code
+    base_url = os.environ.get("BACKEND_PUBLIC_URL", os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001"))
+
+    # For mock mode, return mock auth URL
+    if not use_real_oauth:
         mock_code = f"mock_auth_code_{secrets.token_urlsafe(16)}"
-        base_url = os.environ.get("BACKEND_PUBLIC_URL", os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001"))
         auth_url = f"{base_url}/api/oauth/callback/{platform}?code={mock_code}&state={state}"
-        
+
         return {
             "authUrl": auth_url,
             "state": state,
@@ -195,24 +202,58 @@ async def initiate_oauth_connect(
             "popupWidth": 600,
             "popupHeight": 700
         }
-    
-    # Real YouTube OAuth URL with proper scopes
-    redirect_uri = os.environ.get("YOUTUBE_REDIRECT_URI", f"{os.environ.get('BACKEND_PUBLIC_URL')}/api/oauth/callback/youtube")
-    scopes = "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/yt-analytics.readonly https://www.googleapis.com/auth/youtube.upload"
-    
-    auth_url = (
-        f"https://accounts.google.com/o/oauth2/v2/auth"
-        f"?client_id={os.environ.get('YOUTUBE_CLIENT_ID')}"
-        f"&redirect_uri={redirect_uri}"
-        f"&response_type=code"
-        f"&scope={scopes}"
-        f"&state={state}"
-        f"&code_challenge={code_challenge}"
-        f"&code_challenge_method=S256"
-        f"&access_type=offline"
-        f"&prompt=consent"
-    )
-    
+
+    # ── Real OAuth URLs per platform ────────────────────────────────────
+    if platform == "youtube":
+        redirect_uri = os.environ.get("YOUTUBE_REDIRECT_URI", f"{base_url}/api/oauth/callback/youtube")
+        scopes = "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/yt-analytics.readonly https://www.googleapis.com/auth/youtube.upload"
+
+        auth_url = (
+            f"https://accounts.google.com/o/oauth2/v2/auth"
+            f"?client_id={os.environ.get('YOUTUBE_CLIENT_ID')}"
+            f"&redirect_uri={redirect_uri}"
+            f"&response_type=code"
+            f"&scope={scopes}"
+            f"&state={state}"
+            f"&code_challenge={code_challenge}"
+            f"&code_challenge_method=S256"
+            f"&access_type=offline"
+            f"&prompt=consent"
+        )
+
+    elif platform == "tiktok":
+        redirect_uri = os.environ.get("TIKTOK_REDIRECT_URI", f"{base_url}/api/oauth/callback/tiktok")
+        # TikTok Login Kit v2 — Content Posting API scopes
+        scopes = "user.info.basic,video.publish,video.upload"
+
+        auth_url = (
+            f"https://www.tiktok.com/v2/auth/authorize/"
+            f"?client_key={os.environ.get('TIKTOK_CLIENT_KEY')}"
+            f"&redirect_uri={redirect_uri}"
+            f"&response_type=code"
+            f"&scope={scopes}"
+            f"&state={state}"
+            f"&code_challenge={code_challenge}"
+            f"&code_challenge_method=S256"
+        )
+
+    elif platform == "instagram":
+        redirect_uri = os.environ.get("INSTAGRAM_REDIRECT_URI", f"{base_url}/api/oauth/callback/instagram")
+        # Instagram Graph API via Facebook Login — publishing scopes
+        scopes = "instagram_basic,instagram_content_publish,pages_read_engagement"
+
+        auth_url = (
+            f"https://www.facebook.com/v21.0/dialog/oauth"
+            f"?client_id={os.environ.get('INSTAGRAM_APP_ID')}"
+            f"&redirect_uri={redirect_uri}"
+            f"&response_type=code"
+            f"&scope={scopes}"
+            f"&state={state}"
+        )
+
+    else:
+        raise HTTPException(status_code=400, detail=f"No OAuth configuration for {platform}")
+
     return {
         "authUrl": auth_url,
         "state": state,
@@ -352,28 +393,62 @@ async def oauth_callback(
     
     # Real OAuth: Exchange code for tokens
     import httpx
-    
+    import logging as _logging
+
     code_verifier = token_record.get("codeVerifier")
-    redirect_uri = os.environ.get("YOUTUBE_REDIRECT_URI", f"{os.environ.get('BACKEND_PUBLIC_URL')}/api/oauth/callback/youtube")
-    
+    base_url = os.environ.get("BACKEND_PUBLIC_URL", os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001"))
+
     try:
         async with httpx.AsyncClient() as http_client:
-            token_response = await http_client.post(
-                "https://oauth2.googleapis.com/token",
-                data={
-                    "client_id": os.environ.get("YOUTUBE_CLIENT_ID"),
-                    "client_secret": os.environ.get("YOUTUBE_CLIENT_SECRET"),
-                    "code": code,
-                    "code_verifier": code_verifier,
-                    "grant_type": "authorization_code",
-                    "redirect_uri": redirect_uri
-                }
-            )
-            
+            # ── Platform-specific token exchange ──────────────────────────
+            if platform == "youtube":
+                redirect_uri = os.environ.get("YOUTUBE_REDIRECT_URI", f"{base_url}/api/oauth/callback/youtube")
+                token_response = await http_client.post(
+                    "https://oauth2.googleapis.com/token",
+                    data={
+                        "client_id": os.environ.get("YOUTUBE_CLIENT_ID"),
+                        "client_secret": os.environ.get("YOUTUBE_CLIENT_SECRET"),
+                        "code": code,
+                        "code_verifier": code_verifier,
+                        "grant_type": "authorization_code",
+                        "redirect_uri": redirect_uri
+                    }
+                )
+
+            elif platform == "tiktok":
+                redirect_uri = os.environ.get("TIKTOK_REDIRECT_URI", f"{base_url}/api/oauth/callback/tiktok")
+                token_response = await http_client.post(
+                    "https://open.tiktokapis.com/v2/oauth/token/",
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                    data={
+                        "client_key": os.environ.get("TIKTOK_CLIENT_KEY"),
+                        "client_secret": os.environ.get("TIKTOK_CLIENT_SECRET"),
+                        "code": code,
+                        "code_verifier": code_verifier,
+                        "grant_type": "authorization_code",
+                        "redirect_uri": redirect_uri
+                    }
+                )
+
+            elif platform == "instagram":
+                redirect_uri = os.environ.get("INSTAGRAM_REDIRECT_URI", f"{base_url}/api/oauth/callback/instagram")
+                # Step 1: Exchange code for short-lived token via Facebook
+                token_response = await http_client.post(
+                    "https://graph.facebook.com/v21.0/oauth/access_token",
+                    data={
+                        "client_id": os.environ.get("INSTAGRAM_APP_ID"),
+                        "client_secret": os.environ.get("INSTAGRAM_APP_SECRET"),
+                        "code": code,
+                        "grant_type": "authorization_code",
+                        "redirect_uri": redirect_uri
+                    }
+                )
+            else:
+                raise Exception(f"Unsupported platform: {platform}")
+
             if token_response.status_code != 200:
                 error_detail = token_response.text
-                import logging
-                logging.error(f"[OAuth] Token exchange FAILED for {platform}. Status: {token_response.status_code}. Google response: {error_detail}")
+                _logging.error(f"[OAuth] Token exchange FAILED for {platform}. Status: {token_response.status_code}. Response: {error_detail}")
                 return HTMLResponse(content=f"""
                     <html><body>
                     <script>
@@ -383,53 +458,167 @@ async def oauth_callback(
                     <p>Token exchange failed: {error_detail}</p>
                     </body></html>
                 """)
-            
+
             tokens = token_response.json()
-            access_token = tokens.get("access_token")
-            refresh_token_value = tokens.get("refresh_token")
-            expires_in = tokens.get("expires_in", 3600)
-            
             now = datetime.now(timezone.utc)
-            expires_at = (now + timedelta(seconds=expires_in)).isoformat()
-            
-            # Fetch channel info using the new access token
-            channel_info = None
-            try:
-                from services.youtube_sync_service import get_youtube_service_with_credentials, get_channel_info
-                youtube = get_youtube_service_with_credentials(access_token, refresh_token_value)
-                
-                # Get channel info synchronously
-                import asyncio
-                channel_info = await get_channel_info(youtube)
-            except Exception as e:
-                import logging
-                logging.error(f"Failed to fetch channel info: {e}")
-            
-            # Store tokens
-            account_name = channel_info.get("title", "YouTube Channel") if channel_info else "YouTube Channel"
-            account_handle = channel_info.get("customUrl", "@channel") if channel_info else "@channel"
-            
-            await db.update_one(
-                {"clientId": client_id, "platform": platform},
-                {"$set": {
-                    "connected": True,
-                    "accessToken": access_token,
-                    "refreshToken": refresh_token_value,
-                    "expiresAt": expires_at,
-                    "accountName": account_name,
-                    "accountHandle": account_handle,
-                    "accountMeta": {
-                        "subscriberCount": f"{channel_info.get('subscriberCount', 0):,}" if channel_info else "0",
+
+            # ── Platform-specific account info fetch ──────────────────────
+            if platform == "youtube":
+                access_token = tokens.get("access_token")
+                refresh_token_value = tokens.get("refresh_token")
+                expires_in = tokens.get("expires_in", 3600)
+                expires_at = (now + timedelta(seconds=expires_in)).isoformat()
+
+                channel_info = None
+                try:
+                    from services.youtube_sync_service import get_youtube_service_with_credentials, get_channel_info
+                    youtube = get_youtube_service_with_credentials(access_token, refresh_token_value)
+                    channel_info = await get_channel_info(youtube)
+                except Exception as e:
+                    _logging.error(f"Failed to fetch YouTube channel info: {e}")
+
+                account_name = channel_info.get("title", "YouTube Channel") if channel_info else "YouTube Channel"
+                account_handle = channel_info.get("customUrl", "@channel") if channel_info else "@channel"
+
+                await db.update_one(
+                    {"clientId": client_id, "platform": platform},
+                    {"$set": {
+                        "connected": True,
+                        "accessToken": access_token,
+                        "refreshToken": refresh_token_value,
+                        "expiresAt": expires_at,
+                        "accountName": account_name,
+                        "accountHandle": account_handle,
+                        "accountMeta": {
+                            "subscriberCount": f"{channel_info.get('subscriberCount', 0):,}" if channel_info else "0",
+                            "channelId": channel_info.get("channelId") if channel_info else None,
+                            "uploadsPlaylistId": channel_info.get("uploadsPlaylistId") if channel_info else None
+                        },
                         "channelId": channel_info.get("channelId") if channel_info else None,
-                        "uploadsPlaylistId": channel_info.get("uploadsPlaylistId") if channel_info else None
-                    },
-                    "channelId": channel_info.get("channelId") if channel_info else None,
-                    "connectedAt": now.isoformat(),
-                    "updatedAt": now.isoformat(),
-                    "oauthState": None,
-                    "codeVerifier": None
-                }}
-            )
+                        "connectedAt": now.isoformat(),
+                        "updatedAt": now.isoformat(),
+                        "oauthState": None, "codeVerifier": None
+                    }}
+                )
+
+            elif platform == "tiktok":
+                access_token = tokens.get("access_token")
+                refresh_token_value = tokens.get("refresh_token")
+                expires_in = tokens.get("expires_in", 86400)
+                open_id = tokens.get("open_id", "")
+                expires_at = (now + timedelta(seconds=expires_in)).isoformat()
+
+                # Fetch TikTok user info
+                account_name = "TikTok Account"
+                account_handle = "@tiktok_user"
+                account_meta = {"open_id": open_id}
+                try:
+                    user_resp = await http_client.get(
+                        "https://open.tiktokapis.com/v2/user/info/",
+                        headers={"Authorization": f"Bearer {access_token}"},
+                        params={"fields": "open_id,display_name,avatar_url,follower_count,username"}
+                    )
+                    if user_resp.status_code == 200:
+                        user_data = user_resp.json().get("data", {}).get("user", {})
+                        account_name = user_data.get("display_name", account_name)
+                        account_handle = f"@{user_data.get('username', 'tiktok_user')}"
+                        account_meta = {
+                            "open_id": open_id,
+                            "followerCount": str(user_data.get("follower_count", 0)),
+                            "avatarUrl": user_data.get("avatar_url", "")
+                        }
+                except Exception as e:
+                    _logging.error(f"Failed to fetch TikTok user info: {e}")
+
+                await db.update_one(
+                    {"clientId": client_id, "platform": platform},
+                    {"$set": {
+                        "connected": True,
+                        "accessToken": access_token,
+                        "refreshToken": refresh_token_value,
+                        "expiresAt": expires_at,
+                        "accountName": account_name,
+                        "accountHandle": account_handle,
+                        "accountMeta": account_meta,
+                        "connectedAt": now.isoformat(),
+                        "updatedAt": now.isoformat(),
+                        "oauthState": None, "codeVerifier": None
+                    }}
+                )
+
+            elif platform == "instagram":
+                short_lived_token = tokens.get("access_token")
+                expires_in = 5184000  # 60 days for long-lived token
+
+                # Step 2: Exchange for long-lived token
+                long_token_resp = await http_client.get(
+                    "https://graph.facebook.com/v21.0/oauth/access_token",
+                    params={
+                        "grant_type": "fb_exchange_token",
+                        "client_id": os.environ.get("INSTAGRAM_APP_ID"),
+                        "client_secret": os.environ.get("INSTAGRAM_APP_SECRET"),
+                        "fb_exchange_token": short_lived_token
+                    }
+                )
+                if long_token_resp.status_code == 200:
+                    long_data = long_token_resp.json()
+                    access_token = long_data.get("access_token", short_lived_token)
+                    expires_in = long_data.get("expires_in", expires_in)
+                else:
+                    access_token = short_lived_token
+                    _logging.warning(f"Failed to get long-lived Instagram token, using short-lived: {long_token_resp.text}")
+
+                expires_at = (now + timedelta(seconds=expires_in)).isoformat()
+
+                # Fetch Instagram Business Account info via Facebook Pages
+                account_name = "Instagram Account"
+                account_handle = "@instagram_user"
+                account_meta = {}
+                try:
+                    # Get Facebook pages linked to user
+                    pages_resp = await http_client.get(
+                        "https://graph.facebook.com/v21.0/me/accounts",
+                        params={"access_token": access_token, "fields": "id,name,instagram_business_account"}
+                    )
+                    if pages_resp.status_code == 200:
+                        pages = pages_resp.json().get("data", [])
+                        for page in pages:
+                            ig_id = page.get("instagram_business_account", {}).get("id")
+                            if ig_id:
+                                # Fetch Instagram business account details
+                                ig_resp = await http_client.get(
+                                    f"https://graph.facebook.com/v21.0/{ig_id}",
+                                    params={"access_token": access_token, "fields": "id,username,name,followers_count,profile_picture_url"}
+                                )
+                                if ig_resp.status_code == 200:
+                                    ig_data = ig_resp.json()
+                                    account_name = ig_data.get("name", account_name)
+                                    account_handle = f"@{ig_data.get('username', 'instagram_user')}"
+                                    account_meta = {
+                                        "igBusinessAccountId": ig_id,
+                                        "facebookPageId": page.get("id"),
+                                        "followerCount": str(ig_data.get("followers_count", 0)),
+                                        "profilePictureUrl": ig_data.get("profile_picture_url", "")
+                                    }
+                                break
+                except Exception as e:
+                    _logging.error(f"Failed to fetch Instagram account info: {e}")
+
+                await db.update_one(
+                    {"clientId": client_id, "platform": platform},
+                    {"$set": {
+                        "connected": True,
+                        "accessToken": access_token,
+                        "refreshToken": None,  # Instagram long-lived tokens don't use refresh tokens; they get refreshed directly
+                        "expiresAt": expires_at,
+                        "accountName": account_name,
+                        "accountHandle": account_handle,
+                        "accountMeta": account_meta,
+                        "connectedAt": now.isoformat(),
+                        "updatedAt": now.isoformat(),
+                        "oauthState": None, "codeVerifier": None
+                    }}
+                )
             
             return HTMLResponse(content=f"""
                 <html>
@@ -565,41 +754,75 @@ async def refresh_token(
     
     # Real OAuth refresh using refresh_token
     refresh_token_value = token.get("refreshToken")
-    if not refresh_token_value:
-        raise HTTPException(status_code=400, detail="No refresh token available. Please reconnect.")
-    
+
     try:
         import httpx
         async with httpx.AsyncClient() as http_client:
-            response = await http_client.post(
-                "https://oauth2.googleapis.com/token",
-                data={
-                    "client_id": os.environ.get("YOUTUBE_CLIENT_ID"),
-                    "client_secret": os.environ.get("YOUTUBE_CLIENT_SECRET"),
-                    "refresh_token": refresh_token_value,
-                    "grant_type": "refresh_token"
-                }
-            )
-            
+            if platform == "youtube":
+                if not refresh_token_value:
+                    raise HTTPException(status_code=400, detail="No refresh token. Please reconnect.")
+                response = await http_client.post(
+                    "https://oauth2.googleapis.com/token",
+                    data={
+                        "client_id": os.environ.get("YOUTUBE_CLIENT_ID"),
+                        "client_secret": os.environ.get("YOUTUBE_CLIENT_SECRET"),
+                        "refresh_token": refresh_token_value,
+                        "grant_type": "refresh_token"
+                    }
+                )
+
+            elif platform == "tiktok":
+                if not refresh_token_value:
+                    raise HTTPException(status_code=400, detail="No refresh token. Please reconnect.")
+                response = await http_client.post(
+                    "https://open.tiktokapis.com/v2/oauth/token/",
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                    data={
+                        "client_key": os.environ.get("TIKTOK_CLIENT_KEY"),
+                        "client_secret": os.environ.get("TIKTOK_CLIENT_SECRET"),
+                        "refresh_token": refresh_token_value,
+                        "grant_type": "refresh_token"
+                    }
+                )
+
+            elif platform == "instagram":
+                # Instagram long-lived tokens are refreshed via GET request
+                current_token = token.get("accessToken")
+                response = await http_client.get(
+                    "https://graph.instagram.com/refresh_access_token",
+                    params={
+                        "grant_type": "ig_refresh_token",
+                        "access_token": current_token
+                    }
+                )
+
+            else:
+                raise HTTPException(status_code=400, detail=f"Refresh not supported for {platform}")
+
             if response.status_code != 200:
                 raise HTTPException(status_code=400, detail="Token refresh failed. Please reconnect.")
-            
+
             tokens = response.json()
             new_access_token = tokens.get("access_token")
             expires_in = tokens.get("expires_in", 3600)
-            
+
             now = datetime.now(timezone.utc)
             new_expires_at = (now + timedelta(seconds=expires_in)).isoformat()
-            
+
+            update_fields = {
+                "accessToken": new_access_token,
+                "expiresAt": new_expires_at,
+                "updatedAt": now.isoformat()
+            }
+            # TikTok returns a new refresh token on each refresh
+            if platform == "tiktok" and tokens.get("refresh_token"):
+                update_fields["refreshToken"] = tokens["refresh_token"]
+
             await db.update_one(
                 {"clientId": client_id, "platform": platform},
-                {"$set": {
-                    "accessToken": new_access_token,
-                    "expiresAt": new_expires_at,
-                    "updatedAt": now.isoformat()
-                }}
+                {"$set": update_fields}
             )
-            
+
             return {
                 "success": True,
                 "expiresAt": new_expires_at,

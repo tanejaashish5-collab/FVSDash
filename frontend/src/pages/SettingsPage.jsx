@@ -46,8 +46,7 @@ const platformCfg = {
     color: 'text-pink-400', 
     bg: 'bg-pink-500/10',
     border: 'border-pink-500/20',
-    description: 'Share videos on TikTok',
-    comingSoon: true
+    description: 'Share videos on TikTok'
   },
   instagram: { 
     label: 'Instagram Reels', 
@@ -55,8 +54,7 @@ const platformCfg = {
     color: 'text-purple-400', 
     bg: 'bg-purple-500/10',
     border: 'border-purple-500/20',
-    description: 'Publish Reels to Instagram',
-    comingSoon: true
+    description: 'Publish Reels to Instagram'
   },
 };
 

@@ -312,23 +312,42 @@ export default function SubmissionDetailPage() {
         });
 
         toast.success('YouTube upload started!', { description: 'Video is being uploaded in the background.' });
-      } else {
-        const res = await axios.post(`${API}/publishing-tasks/create-and-post`, {
+      } else if (platform === 'tiktok') {
+        const videoAsset = videoAssets[0];
+        if (!videoAsset) { toast.error('No video asset found.'); setPostingPlatform(null); return; }
+        if (videoAsset.isMocked) { toast.warning('Upload a real video before publishing to TikTok.'); setPostingPlatform(null); return; }
+        const res = await axios.post(`${API}/publish/tiktok`, {
           submissionId,
-          platform
+          videoAssetId: videoAsset.id,
+          title: (submission?.title || '').slice(0, 150),
+          privacyLevel: 'PUBLIC_TO_EVERYONE',
         }, { headers: { Authorization: `Bearer ${token}` } });
-
         setPublishingTasks(prev => {
           const existing = prev.findIndex(t => t.platform === platform);
-          if (existing >= 0) {
-            const updated = [...prev];
-            updated[existing] = res.data;
-            return updated;
-          }
-          return [...prev, res.data];
+          const jobData = { ...res.data, platform, status: res.data.status || 'posting' };
+          if (existing >= 0) { const updated = [...prev]; updated[existing] = jobData; return updated; }
+          return [...prev, jobData];
         });
+        toast.success('TikTok upload started!', { description: 'Video is being uploaded in the background.' });
 
-        toast.success(`Posted to ${platformCfg[platform]?.label}!`);
+      } else if (platform === 'instagram_reels') {
+        const videoAsset = videoAssets[0];
+        if (!videoAsset) { toast.error('No video asset found.'); setPostingPlatform(null); return; }
+        if (videoAsset.isMocked) { toast.warning('Upload a real video before publishing to Instagram.'); setPostingPlatform(null); return; }
+        const videoUrl = videoAsset.url;
+        if (!videoUrl || !videoUrl.startsWith('http')) { toast.error('Instagram requires a publicly accessible video URL.'); setPostingPlatform(null); return; }
+        const res = await axios.post(`${API}/publish/instagram`, {
+          submissionId,
+          videoAssetId: videoAsset.id,
+          caption: submission?.description || submission?.title || '',
+        }, { headers: { Authorization: `Bearer ${token}` } });
+        setPublishingTasks(prev => {
+          const existing = prev.findIndex(t => t.platform === platform);
+          const jobData = { ...res.data, platform, status: res.data.status || 'posting' };
+          if (existing >= 0) { const updated = [...prev]; updated[existing] = jobData; return updated; }
+          return [...prev, jobData];
+        });
+        toast.success('Instagram Reel upload started!', { description: 'Reel is being published in the background.' });
       }
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to post');
@@ -388,28 +407,48 @@ export default function SubmissionDetailPage() {
         setSchedulingPlatform(null);
         setSelectedDate(null);
         toast.success('YouTube upload scheduled!', { description: `Video will go live at ${scheduledAt.toLocaleString()}` });
-      } else {
-        const res = await axios.post(`${API}/publishing-tasks`, {
+      } else if (platform === 'tiktok') {
+        const videoAsset = videoAssets[0];
+        if (!videoAsset) { toast.error('No video asset found.'); setPostingPlatform(null); return; }
+        if (videoAsset.isMocked) { toast.warning('Upload a real video before scheduling to TikTok.'); setPostingPlatform(null); return; }
+        toast.info('TikTok does not support scheduled publishing. Posting now instead.');
+        const res = await axios.post(`${API}/publish/tiktok`, {
           submissionId,
-          platform,
-          scheduledAt: scheduledAt.toISOString()
+          videoAssetId: videoAsset.id,
+          title: (submission?.title || '').slice(0, 150),
+          privacyLevel: 'PUBLIC_TO_EVERYONE',
         }, { headers: { Authorization: `Bearer ${token}` } });
-
         setPublishingTasks(prev => {
           const existing = prev.findIndex(t => t.platform === platform);
-          if (existing >= 0) {
-            const updated = [...prev];
-            updated[existing] = res.data;
-            return updated;
-          }
-          return [...prev, res.data];
+          const jobData = { ...res.data, platform, status: res.data.status || 'posting' };
+          if (existing >= 0) { const updated = [...prev]; updated[existing] = jobData; return updated; }
+          return [...prev, jobData];
         });
-
         setSchedulingPlatform(null);
         setSelectedDate(null);
-        toast.success(`Scheduled for ${platformCfg[platform]?.label}!`, {
-          description: `Will post on ${scheduledAt.toLocaleString()}`
+        toast.success('TikTok upload started!');
+
+      } else if (platform === 'instagram_reels') {
+        const videoAsset = videoAssets[0];
+        if (!videoAsset) { toast.error('No video asset found.'); setPostingPlatform(null); return; }
+        if (videoAsset.isMocked) { toast.warning('Upload a real video before scheduling to Instagram.'); setPostingPlatform(null); return; }
+        const videoUrl = videoAsset.url;
+        if (!videoUrl || !videoUrl.startsWith('http')) { toast.error('Instagram requires a publicly accessible video URL.'); setPostingPlatform(null); return; }
+        toast.info('Instagram does not support scheduled Reels via API. Posting now instead.');
+        const res = await axios.post(`${API}/publish/instagram`, {
+          submissionId,
+          videoAssetId: videoAsset.id,
+          caption: submission?.description || submission?.title || '',
+        }, { headers: { Authorization: `Bearer ${token}` } });
+        setPublishingTasks(prev => {
+          const existing = prev.findIndex(t => t.platform === platform);
+          const jobData = { ...res.data, platform, status: res.data.status || 'posting' };
+          if (existing >= 0) { const updated = [...prev]; updated[existing] = jobData; return updated; }
+          return [...prev, jobData];
         });
+        setSchedulingPlatform(null);
+        setSelectedDate(null);
+        toast.success('Instagram Reel upload started!');
       }
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to schedule');

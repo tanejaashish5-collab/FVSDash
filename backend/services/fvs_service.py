@@ -34,47 +34,125 @@ SIMULATED_EXTERNAL_SIGNALS = [
 ]
 
 
-def generate_mock_ideas(target_format: str) -> list:
-    """Generate mock ideas when LLM is unavailable."""
+def generate_mock_ideas(target_format: str, channel_profile: dict = None) -> list:
+    """Generate mock ideas when LLM is unavailable. Uses channel profile if available."""
+    language = channel_profile.get("languageStyle", "english") if channel_profile else "english"
+    pillars = channel_profile.get("contentPillars", []) if channel_profile else []
+
+    # Channel-aware mock ideas based on content pillars
+    if pillars or language in ("hinglish", "hindi"):
+        # Use pillar-inspired topics in the channel's language style
+        pillar_ideas = {
+            "Wealth Building": [
+                {"topic": "Chanakya ka Dhan Sutra jo aaj bhi kaam karta hai", "hypothesis": "Wealth-related Chanakya Niti consistently drives views among 25-44 male audience", "source": "youtube_analytics"},
+                {"topic": "Paise bachane ke 3 Chanakya rules jo koi nahi batata", "hypothesis": "Money saving tips framed through ancient wisdom have high search volume", "source": "search_trends"},
+            ],
+            "Enemy Strategy": [
+                {"topic": "Dushman ko kaise pehchane - Chanakya ke 5 signals", "hypothesis": "Enemy detection content has high watch time and completion rates", "source": "competitor_analysis"},
+                {"topic": "Office politics mein Chanakya Niti kaise use karein", "hypothesis": "Workplace strategy content resonates with urban professionals", "source": "reddit"},
+            ],
+            "Mind Control": [
+                {"topic": "Apne mann ko control karo - Chanakya ka secret formula", "hypothesis": "Self-discipline content in Hinglish is trending among young professionals", "source": "search_trends"},
+                {"topic": "Focus kaise badhaye - 3 Chanakya techniques", "hypothesis": "Productivity framed as ancient wisdom performs well in Shorts format", "source": "audience_feedback"},
+            ],
+            "Success Formula": [
+                {"topic": "Safalta ka shortcut - Chanakya ne kya kaha", "hypothesis": "Success formula content has strong engagement in Hinglish Shorts", "source": "youtube_analytics"},
+                {"topic": "Haar ko jeet mein badlo - Chanakya strategy", "hypothesis": "Motivational content with strategic framing drives shares", "source": "competitor_analysis"},
+            ],
+        }
+        ideas = []
+        for pillar in pillars:
+            if pillar in pillar_ideas:
+                ideas.extend(pillar_ideas[pillar])
+        # Fill remaining slots with general channel-themed ideas
+        if len(ideas) < 5:
+            general = [
+                {"topic": "Chanakya ki sabse powerful sikh jo zindagi badal de", "hypothesis": "Broad Chanakya wisdom content consistently performs well", "source": "original"},
+                {"topic": "Ye galti mat karna - Chanakya ki warning", "hypothesis": "Warning/mistake format drives curiosity clicks", "source": "youtube_analytics"},
+                {"topic": "3 log jinse door raho - Chanakya Niti", "hypothesis": "People-avoidance listicles have high save and share rates", "source": "search_trends"},
+            ]
+            ideas.extend(general)
+        mock = [{"topic": i["topic"], "hypothesis": i["hypothesis"], "source": i["source"], "format": target_format, "convictionScore": round(random.uniform(0.65, 0.90), 2)} for i in ideas[:5]]
+        return mock
+
+    # Generic fallback for channels without profile
     mock_ideas = [
-        {"topic": "5 Podcast Editing Mistakes That Kill Your Audience Retention", "hypothesis": "Editing tips consistently perform well, and this angle addresses a pain point", "source": "youtube_analytics", "format": target_format, "convictionScore": 0.85},
-        {"topic": "I Tried AI Voice Cloning for My Podcast - Here's What Happened", "hypothesis": "AI content is trending, and personal experiments drive engagement", "source": "search_trends", "format": target_format, "convictionScore": 0.78},
-        {"topic": "The $50 Mic Setup That Sounds Like $500", "hypothesis": "Budget content resonates with beginners, high search volume", "source": "reddit", "format": target_format, "convictionScore": 0.72},
-        {"topic": "How Top Podcasters Repurpose One Episode Into 10 Pieces of Content", "hypothesis": "Content multiplication is a hot topic in creator communities", "source": "competitor_analysis", "format": target_format, "convictionScore": 0.80},
-        {"topic": "Behind the Scenes: How We Produce an Episode in 2 Hours", "hypothesis": "Audience requested more process content, builds trust", "source": "audience_feedback", "format": target_format, "convictionScore": 0.68},
+        {"topic": "5 Content Mistakes That Kill Audience Retention", "hypothesis": "Editing tips consistently perform well, and this angle addresses a pain point", "source": "youtube_analytics", "format": target_format, "convictionScore": 0.85},
+        {"topic": "I Tried AI Tools for Content Creation - Here's What Happened", "hypothesis": "AI content is trending, and personal experiments drive engagement", "source": "search_trends", "format": target_format, "convictionScore": 0.78},
+        {"topic": "The Budget Setup That Sounds Professional", "hypothesis": "Budget content resonates with beginners, high search volume", "source": "reddit", "format": target_format, "convictionScore": 0.72},
+        {"topic": "How Top Creators Repurpose One Episode Into 10 Pieces of Content", "hypothesis": "Content multiplication is a hot topic in creator communities", "source": "competitor_analysis", "format": target_format, "convictionScore": 0.80},
+        {"topic": "Behind the Scenes: How We Produce Content in 2 Hours", "hypothesis": "Audience requested more process content, builds trust", "source": "audience_feedback", "format": target_format, "convictionScore": 0.68},
     ]
     return mock_ideas[:5]
 
 
-async def generate_ideas_with_llm(client_id: str, analytics_data: dict, brand_voice: str, target_format: str) -> list:
-    """Use LLM to generate FVS ideas based on analytics and external signals."""
+async def generate_ideas_with_llm(client_id: str, analytics_data: dict, brand_voice: str, target_format: str, channel_profile: dict = None, trending_topics: list = None) -> list:
+    """Use LLM to generate FVS ideas based on channel profile, real trends, and analytics."""
     from services.ai_service import call_gemini
 
     api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("EMERGENT_LLM_KEY")
     if not api_key:
-        return generate_mock_ideas(target_format)
-    
-    top_topics = analytics_data.get("topTopics", ["content creation", "podcasting", "AI tools"])
+        return generate_mock_ideas(target_format, channel_profile)
+
+    top_topics = analytics_data.get("topTopics", [])
     recent_performance = analytics_data.get("performance", "moderate growth")
-    
-    external_signals = random.sample(SIMULATED_EXTERNAL_SIGNALS, min(4, len(SIMULATED_EXTERNAL_SIGNALS)))
-    signals_text = "\n".join([f"- {s['source']}: '{s['topic']}' ({s['trend']})" for s in external_signals])
-    
-    prompt = f"""You are an AI content strategist for a podcast/video production studio.
 
-Based on the following data, generate 5 creative episode ideas in JSON format.
+    # Use real trending topics from Trend Radar if available, otherwise fall back to simulated
+    if trending_topics:
+        signals_text = "\n".join([
+            f"- [{t.get('keyword', '')}] {t.get('title', 'N/A')[:60]} by {t.get('channelName', 'Unknown')} ({t.get('viewCount', 0):,} views)"
+            for t in trending_topics
+        ])
+    else:
+        external_signals = random.sample(SIMULATED_EXTERNAL_SIGNALS, min(4, len(SIMULATED_EXTERNAL_SIGNALS)))
+        signals_text = "\n".join([f"- {s['source']}: '{s['topic']}' ({s['trend']})" for s in external_signals])
 
-CLIENT CONTEXT:
-- Brand voice: {brand_voice or 'Professional and engaging'}
-- Target format: {target_format} ({"60-90 second vertical videos" if target_format == "short" else "15-45 minute full episodes"})
-- Top performing topics: {', '.join(top_topics)}
-- Recent performance: {recent_performance}
+    # Build channel-aware context from profile
+    language_style = channel_profile.get("languageStyle", "english") if channel_profile else "english"
+    content_pillars = channel_profile.get("contentPillars", []) if channel_profile else []
+    brand_desc = channel_profile.get("brandDescription", "") if channel_profile else ""
+    tone = channel_profile.get("tone", brand_voice or "Professional and engaging") if channel_profile else (brand_voice or "Professional and engaging")
 
-TRENDING SIGNALS:
+    pillars_text = ", ".join(content_pillars) if content_pillars else "general content"
+
+    # Language-specific instructions
+    language_instructions = {
+        "english": "Generate ideas in English.",
+        "hinglish": "Generate ideas in Hinglish (Hindi words written in Latin/Roman script mixed with English). Titles should be punchy, using Hindi expressions Indian audiences naturally use.",
+        "hindi": "Generate ideas in Hindi (Devanagari script).",
+        "spanish": "Generate ideas in Spanish.",
+    }
+    lang_instruction = language_instructions.get(language_style, "Generate ideas in English.")
+
+    prompt = f"""You are FVS Brain, an AI content strategist. Generate 5 episode ideas that perfectly match this channel's niche and audience.
+
+CHANNEL PROFILE:
+- Description: {brand_desc or tone}
+- Tone: {tone}
+- Content Pillars: {pillars_text}
+- Language Style: {language_style}
+- Target format: {target_format} ({"40-90 second vertical Shorts" if target_format == "short" else "15-45 minute full episodes"})
+
+LANGUAGE INSTRUCTIONS:
+{lang_instruction}
+
+TOP PERFORMING PAST CONTENT:
+{', '.join(top_topics) if top_topics else 'No past content yet'}
+
+RECENT PERFORMANCE:
+{recent_performance}
+
+TRENDING SIGNALS (from Trend Radar):
 {signals_text}
 
-Generate 5 episode ideas. For each idea, provide:
-1. topic: A specific, actionable topic title
+Generate exactly 5 episode ideas that:
+1. Fit the channel's content pillars and niche
+2. Use the channel's language style ({language_style}) for titles
+3. Build on trending signals relevant to this channel
+4. Are specific and actionable (not generic)
+
+For each idea, provide:
+1. topic: A specific, actionable topic title (in {language_style})
 2. hypothesis: Why this will resonate with the audience (1-2 sentences)
 3. source: Which signal inspired this (youtube_analytics, reddit, search_trends, competitor_analysis, audience_feedback, or original)
 4. format: "{target_format}"
@@ -87,7 +165,7 @@ Return ONLY valid JSON array, no markdown:
         response = await call_gemini(
             prompt,
             max_tokens=4096,
-            system_message="You are a strategic content advisor. Always respond with valid JSON only."
+            system_message=f"You are a strategic content advisor specializing in {pillars_text}. Always respond with valid JSON only."
         )
 
         cleaned = response.strip()
@@ -96,13 +174,13 @@ Return ONLY valid JSON array, no markdown:
             if cleaned.startswith("json"):
                 cleaned = cleaned[4:]
         cleaned = cleaned.strip()
-        
+
         ideas = json.loads(cleaned)
         return ideas if isinstance(ideas, list) else []
-        
+
     except Exception as e:
         logger.error(f"FVS idea generation LLM error: {e}")
-        return generate_mock_ideas(target_format)
+        return generate_mock_ideas(target_format, channel_profile)
 
 
 async def propose_ideas(client_id: str, format: str, range: str) -> dict:
@@ -116,51 +194,73 @@ async def propose_ideas(client_id: str, format: str, range: str) -> dict:
         range_days = {"30d": 30, "90d": 90}.get(range, 30)
         today = datetime.now(timezone.utc).date()
         start_date = (today - timedelta(days=range_days)).isoformat()
-        
+
         analytics_db = analytics_snapshots_collection()
         analytics = await analytics_db.find(
             {"clientId": client_id, "date": {"$gte": start_date}},
             {"_id": 0}
         ).to_list(1000)
-        
+
         total_downloads = sum(a.get("downloads", 0) for a in analytics)
         total_views = sum(a.get("views", 0) for a in analytics)
         episodes_published = sum(a.get("episodesPublished", 0) for a in analytics)
-        
+
         settings_db = client_settings_collection()
         settings = await settings_db.find_one({"clientId": client_id}, {"_id": 0})
         brand_voice = settings.get("brandVoiceDescription", "") if settings else ""
-        
+
+        # Load Channel Profile (Brand Brain) for niche, language, and content pillars
+        from services.channel_profile_service import get_channel_profile
+        channel_profile = await get_channel_profile(client_id)
+        logger.info(f"FVS propose_ideas: channel language={channel_profile.get('languageStyle')}, pillars={channel_profile.get('contentPillars')}")
+
+        # Query real trending topics from Trend Radar database
+        from db.mongo import get_db
+        database = get_db()
+        trending_topics = await database.trending_topics.find(
+            {"clientId": client_id},
+            {"_id": 0, "keyword": 1, "title": 1, "viewCount": 1, "channelName": 1}
+        ).sort("viewCount", -1).limit(10).to_list(10)
+
         submissions_db = submissions_collection()
         recent_subs = await submissions_db.find(
             {"clientId": client_id, "status": {"$in": ["PUBLISHED", "SCHEDULED"]}},
             {"_id": 0, "title": 1, "contentType": 1}
         ).sort("createdAt", -1).to_list(10)
-        
-        top_topics = [s["title"] for s in recent_subs[:5]] if recent_subs else ["content creation", "podcasting"]
-        
+
+        top_topics = [s["title"] for s in recent_subs[:5]] if recent_subs else []
+
         analytics_context = {
             "topTopics": top_topics,
             "performance": f"{total_downloads} downloads, {total_views} views, {episodes_published} episodes in {range_days} days"
         }
+
+        raw_ideas = await generate_ideas_with_llm(client_id, analytics_context, brand_voice, format, channel_profile, trending_topics)
         
-        raw_ideas = await generate_ideas_with_llm(client_id, analytics_context, brand_voice, format)
-        
+        language_style = channel_profile.get("languageStyle", "english")
+        pillar_tags = [f"#{p.replace(' ', '').lower()}" for p in channel_profile.get("contentPillars", [])]
+
         ideas = []
         for idea_data in raw_ideas:
-            # Generate mock hooks, caption, and hashtags for the idea
             topic = idea_data.get("topic", "Untitled Idea")
-            
-            # Generate hooks based on topic
-            hooks = [
-                f"Kya aap bhi yeh galti kar rahe ho? {topic} ke baare mein suno!",
-                f"Maine {topic} try kiya aur yeh hua...",
-                f"3 secrets about {topic} jo koi nahi batata!"
-            ]
-            
-            # Generate caption and hashtags
-            caption = f"🔥 {topic} - ek dum fresh perspective! Like & share if you agree 🙌"
-            hashtags = ["#shorts", "#viral", "#trending", "#hinglish", "#podcast", f"#{topic.split()[0].lower() if topic else 'content'}"]
+
+            # Generate hooks and captions based on channel language
+            if language_style in ("hinglish", "hindi"):
+                hooks = [
+                    f"Kya aap bhi yeh galti kar rahe ho? {topic} ke baare mein suno!",
+                    f"Maine {topic} try kiya aur yeh hua...",
+                    f"3 secrets about {topic} jo koi nahi batata!"
+                ]
+                caption = f"🔥 {topic} - ek dum fresh perspective! Like & share if you agree 🙌"
+                hashtags = ["#shorts", "#viral", "#trending", *pillar_tags[:3], f"#{topic.split()[0].lower() if topic else 'content'}"]
+            else:
+                hooks = [
+                    f"Are you making this mistake? Listen up about {topic}!",
+                    f"I tried {topic} and this is what happened...",
+                    f"3 secrets about {topic} nobody tells you!"
+                ]
+                caption = f"🔥 {topic} - a fresh perspective! Like & share if you agree 🙌"
+                hashtags = ["#shorts", "#viral", "#trending", *pillar_tags[:3], f"#{topic.split()[0].lower() if topic else 'content'}"]
             
             idea = {
                 "id": str(uuid.uuid4()),
@@ -187,18 +287,19 @@ async def propose_ideas(client_id: str, format: str, range: str) -> dict:
                 if "_id" in idea:
                     del idea["_id"]
         
+        pillars_str = ", ".join(channel_profile.get("contentPillars", [])) or "general content"
         patterns = [
-            f"Format '{format}' episodes recommended based on current trends",
-            f"Top performing topics: {', '.join(top_topics[:3])}",
-            "External signals suggest focus on AI and efficiency content",
+            f"Format '{format}' episodes recommended based on channel pillars: {pillars_str}",
+            f"Top performing topics: {', '.join(top_topics[:3]) if top_topics else 'No past content yet'}",
+            f"Trend Radar signals: {len(trending_topics)} trending topics incorporated" if trending_topics else "No trending data available — using simulated signals",
             f"Audience engagement is {('strong' if total_views > 5000 else 'growing')}"
         ]
-        
+
         snapshot = {
             "id": str(uuid.uuid4()),
             "clientId": client_id,
             "timeWindow": range,
-            "summary": f"Analyzed {range_days} days of data. Generated {len(ideas)} {format}-format episode ideas based on {total_downloads} downloads and {total_views} views. Focus areas: trending AI topics, audience pain points, and content repurposing.",
+            "summary": f"Analyzed {range_days} days of data. Generated {len(ideas)} {format}-format episode ideas in {language_style} style based on {total_downloads} downloads and {total_views} views. Focus: {pillars_str}.",
             "topPatterns": patterns,
             "ideasGenerated": len(ideas),
             "createdAt": now

@@ -445,27 +445,107 @@ export default function SubmissionsPage() {
     }
   };
 
-  // Post Now
+  // Post Now — uses real YouTube upload API for YouTube, mock for others
   const handlePostNow = async (platform) => {
     if (!selected) return;
     setPostingPlatform(platform);
     try {
-      const res = await axios.post(`${API}/publishing-tasks/create-and-post`, {
-        submissionId: selected.id,
-        platform
-      }, { headers: authHeaders });
-      
-      setPublishingTasks(prev => {
-        const existing = prev.findIndex(t => t.platform === platform);
-        if (existing >= 0) {
-          const updated = [...prev];
-          updated[existing] = res.data;
-          return updated;
+      // For YouTube: use the real upload endpoint
+      if (platform === 'youtube_shorts') {
+        const videoAsset = videoAssets[0];
+        if (!videoAsset) {
+          toast.error('No video asset found for this submission. Generate or upload a video first.');
+          setPostingPlatform(null);
+          return;
         }
-        return [...prev, res.data];
-      });
-      
-      toast.success(`Posted to ${platformCfg[platform]?.label}!`);
+        if (videoAsset.isMocked) {
+          toast.warning('This is a sample/preview video. Upload a real video in the Video Editor before publishing to YouTube.');
+          setPostingPlatform(null);
+          return;
+        }
+        const primaryThumbId = selected.primaryThumbnailAssetId || thumbnails[0]?.id;
+        const res = await axios.post(`${API}/publish/youtube`, {
+          submissionId: selected.id,
+          videoAssetId: videoAsset.id,
+          title: (selected.title || 'Untitled').slice(0, 100),
+          description: selected.description || '',
+          tags: selected.tags || [],
+          privacyStatus: 'public',
+          thumbnailAssetId: primaryThumbId || null,
+        }, { headers: authHeaders });
+
+        // Update publishing tasks UI with the real job
+        setPublishingTasks(prev => {
+          const existing = prev.findIndex(t => t.platform === platform);
+          const jobData = { ...res.data, platform, status: res.data.status || 'posting' };
+          if (existing >= 0) {
+            const updated = [...prev];
+            updated[existing] = jobData;
+            return updated;
+          }
+          return [...prev, jobData];
+        });
+
+        toast.success('YouTube upload started!', { description: 'Video is being uploaded in the background.' });
+      } else if (platform === 'tiktok') {
+        const videoAsset = videoAssets[0];
+        if (!videoAsset) {
+          toast.error('No video asset found. Generate or upload a video first.');
+          setPostingPlatform(null);
+          return;
+        }
+        if (videoAsset.isMocked) {
+          toast.warning('This is a sample/preview video. Upload a real video before publishing to TikTok.');
+          setPostingPlatform(null);
+          return;
+        }
+        const res = await axios.post(`${API}/publish/tiktok`, {
+          submissionId: selected.id,
+          videoAssetId: videoAsset.id,
+          title: (selected.title || '').slice(0, 150),
+          privacyLevel: 'PUBLIC_TO_EVERYONE',
+        }, { headers: authHeaders });
+
+        setPublishingTasks(prev => {
+          const existing = prev.findIndex(t => t.platform === platform);
+          const jobData = { ...res.data, platform, status: res.data.status || 'posting' };
+          if (existing >= 0) { const updated = [...prev]; updated[existing] = jobData; return updated; }
+          return [...prev, jobData];
+        });
+        toast.success('TikTok upload started!', { description: 'Video is being uploaded in the background.' });
+
+      } else if (platform === 'instagram_reels') {
+        const videoAsset = videoAssets[0];
+        if (!videoAsset) {
+          toast.error('No video asset found. Generate or upload a video first.');
+          setPostingPlatform(null);
+          return;
+        }
+        if (videoAsset.isMocked) {
+          toast.warning('This is a sample/preview video. Upload a real video before publishing to Instagram.');
+          setPostingPlatform(null);
+          return;
+        }
+        const videoUrl = videoAsset.url;
+        if (!videoUrl || !videoUrl.startsWith('http')) {
+          toast.error('Instagram requires a publicly accessible video URL. Upload your video to cloud storage first.');
+          setPostingPlatform(null);
+          return;
+        }
+        const res = await axios.post(`${API}/publish/instagram`, {
+          submissionId: selected.id,
+          videoAssetId: videoAsset.id,
+          caption: selected.description || selected.title || '',
+        }, { headers: authHeaders });
+
+        setPublishingTasks(prev => {
+          const existing = prev.findIndex(t => t.platform === platform);
+          const jobData = { ...res.data, platform, status: res.data.status || 'posting' };
+          if (existing >= 0) { const updated = [...prev]; updated[existing] = jobData; return updated; }
+          return [...prev, jobData];
+        });
+        toast.success('Instagram Reel upload started!', { description: 'Reel is being published in the background.' });
+      }
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to post');
     } finally {
@@ -473,38 +553,103 @@ export default function SubmissionsPage() {
     }
   };
 
-  // Schedule
+  // Schedule — uses real YouTube scheduled publish for YouTube, mock for others
   const handleSchedule = async (platform) => {
     if (!selected || !scheduleDate) {
       toast.error('Please select a date');
       return;
     }
-    
+
     setPostingPlatform(platform);
     try {
       const scheduledAt = new Date(scheduleDate);
       const [hours, minutes] = scheduleTime.split(':');
       scheduledAt.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-      
-      const res = await axios.post(`${API}/publishing-tasks`, {
-        submissionId: selected.id,
-        platform,
-        scheduledAt: scheduledAt.toISOString()
-      }, { headers: authHeaders });
-      
-      setPublishingTasks(prev => {
-        const existing = prev.findIndex(t => t.platform === platform);
-        if (existing >= 0) {
-          const updated = [...prev];
-          updated[existing] = res.data;
-          return updated;
+
+      if (platform === 'youtube_shorts') {
+        // Real YouTube scheduled publish — uploads now but sets publish time in the future
+        const videoAsset = videoAssets[0];
+        if (!videoAsset) {
+          toast.error('No video asset found. Generate or upload a video first.');
+          setPostingPlatform(null);
+          return;
         }
-        return [...prev, res.data];
-      });
-      
-      setSchedulingPlatform(null);
-      setScheduleDate(null);
-      toast.success(`Scheduled for ${platformCfg[platform]?.label}!`);
+        if (videoAsset.isMocked) {
+          toast.warning('This is a sample/preview video. Upload a real video before scheduling to YouTube.');
+          setPostingPlatform(null);
+          return;
+        }
+        const primaryThumbId = selected.primaryThumbnailAssetId || thumbnails[0]?.id;
+        const res = await axios.post(`${API}/publish/youtube`, {
+          submissionId: selected.id,
+          videoAssetId: videoAsset.id,
+          title: (selected.title || 'Untitled').slice(0, 100),
+          description: selected.description || '',
+          tags: selected.tags || [],
+          privacyStatus: 'private', // YouTube requires private for scheduled
+          scheduledPublishAt: scheduledAt.toISOString(),
+          thumbnailAssetId: primaryThumbId || null,
+        }, { headers: authHeaders });
+
+        setPublishingTasks(prev => {
+          const existing = prev.findIndex(t => t.platform === platform);
+          const jobData = { ...res.data, platform, status: 'scheduled', scheduledAt: scheduledAt.toISOString() };
+          if (existing >= 0) {
+            const updated = [...prev];
+            updated[existing] = jobData;
+            return updated;
+          }
+          return [...prev, jobData];
+        });
+
+        setSchedulingPlatform(null);
+        setScheduleDate(null);
+        toast.success('YouTube upload scheduled!', { description: `Video will go live at ${scheduledAt.toLocaleString()}` });
+      } else if (platform === 'tiktok') {
+        const videoAsset = videoAssets[0];
+        if (!videoAsset) { toast.error('No video asset found.'); setPostingPlatform(null); return; }
+        if (videoAsset.isMocked) { toast.warning('Upload a real video before scheduling to TikTok.'); setPostingPlatform(null); return; }
+        // TikTok doesn't support scheduled publishing via API — post now with a toast
+        toast.info('TikTok does not support scheduled publishing. Posting now instead.');
+        const res = await axios.post(`${API}/publish/tiktok`, {
+          submissionId: selected.id,
+          videoAssetId: videoAsset.id,
+          title: (selected.title || '').slice(0, 150),
+          privacyLevel: 'PUBLIC_TO_EVERYONE',
+        }, { headers: authHeaders });
+        setPublishingTasks(prev => {
+          const existing = prev.findIndex(t => t.platform === platform);
+          const jobData = { ...res.data, platform, status: res.data.status || 'posting' };
+          if (existing >= 0) { const updated = [...prev]; updated[existing] = jobData; return updated; }
+          return [...prev, jobData];
+        });
+        setSchedulingPlatform(null);
+        setScheduleDate(null);
+        toast.success('TikTok upload started!');
+
+      } else if (platform === 'instagram_reels') {
+        const videoAsset = videoAssets[0];
+        if (!videoAsset) { toast.error('No video asset found.'); setPostingPlatform(null); return; }
+        if (videoAsset.isMocked) { toast.warning('Upload a real video before scheduling to Instagram.'); setPostingPlatform(null); return; }
+        const videoUrl = videoAsset.url;
+        if (!videoUrl || !videoUrl.startsWith('http')) { toast.error('Instagram requires a publicly accessible video URL.'); setPostingPlatform(null); return; }
+        // Instagram doesn't support scheduled publishing via Content Publishing API — post now
+        toast.info('Instagram does not support scheduled Reels via API. Posting now instead.');
+        const res = await axios.post(`${API}/publish/instagram`, {
+          submissionId: selected.id,
+          videoAssetId: videoAsset.id,
+          caption: selected.description || selected.title || '',
+        }, { headers: authHeaders });
+        setPublishingTasks(prev => {
+          const existing = prev.findIndex(t => t.platform === platform);
+          const jobData = { ...res.data, platform, status: res.data.status || 'posting' };
+          if (existing >= 0) { const updated = [...prev]; updated[existing] = jobData; return updated; }
+          return [...prev, jobData];
+        });
+        setSchedulingPlatform(null);
+        setScheduleDate(null);
+        toast.success('Instagram Reel upload started!');
+      }
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to schedule');
     } finally {
@@ -1329,7 +1474,9 @@ export default function SubmissionsPage() {
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent side="top" className="max-w-[240px] bg-zinc-900 text-white border-zinc-700">
-                                    Publish this content to your connected {cfg.label} account.
+                                    {platform === 'youtube_shorts'
+                                      ? `Upload and publish this video to your ${cfg.label} channel.`
+                                      : `Publish this content to your connected ${cfg.label} account.`}
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>

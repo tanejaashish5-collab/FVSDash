@@ -23,7 +23,7 @@ from routers import (
     help, blog, ai, video_tasks, fvs, admin, channel_profile,
     publishing, strategy_session, notifications, oauth, youtube_publish,
     trends, brain, dev, search, pipeline, video_editor, templates,
-    podcast_studio,
+    podcast_studio, social_publish,
 )
 
 # Import database utilities
@@ -97,6 +97,7 @@ api_router.include_router(pipeline.router)
 api_router.include_router(video_editor.router)
 api_router.include_router(templates.router)
 api_router.include_router(podcast_studio.router)
+api_router.include_router(social_publish.router)
 
 # ---------------------------------------------------------------------------
 # Local file serving — active when S3 is not configured.

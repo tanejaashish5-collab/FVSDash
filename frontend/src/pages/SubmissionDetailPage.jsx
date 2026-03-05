@@ -273,28 +273,63 @@ export default function SubmissionDetailPage() {
     }
   };
 
-  // Post Now handler
+  // Post Now handler — real YouTube upload for YouTube, mock for others
   const handlePostNow = async (platform) => {
     setPostingPlatform(platform);
     try {
-      const res = await axios.post(`${API}/publishing-tasks/create-and-post`, {
-        submissionId,
-        platform
-      }, { headers: { Authorization: `Bearer ${token}` } });
-      
-      setPublishingTasks(prev => {
-        const existing = prev.findIndex(t => t.platform === platform);
-        if (existing >= 0) {
-          const updated = [...prev];
-          updated[existing] = res.data;
-          return updated;
+      if (platform === 'youtube_shorts') {
+        const videoAsset = videoAssets[0];
+        if (!videoAsset) {
+          toast.error('No video asset found. Generate or upload a video first.');
+          setPostingPlatform(null);
+          return;
         }
-        return [...prev, res.data];
-      });
-      
-      toast.success(`Posted to ${platformCfg[platform]?.label}!`, {
-        description: 'Your content is now live (mock).'
-      });
+        if (videoAsset.isMocked) {
+          toast.warning('This is a sample/preview video. Upload a real video before publishing to YouTube.');
+          setPostingPlatform(null);
+          return;
+        }
+        const primaryThumbId = submission?.primaryThumbnailAssetId || thumbnailAssets[0]?.id;
+        const res = await axios.post(`${API}/publish/youtube`, {
+          submissionId,
+          videoAssetId: videoAsset.id,
+          title: (submission?.title || 'Untitled').slice(0, 100),
+          description: submission?.description || '',
+          tags: submission?.tags || [],
+          privacyStatus: 'public',
+          thumbnailAssetId: primaryThumbId || null,
+        }, { headers: { Authorization: `Bearer ${token}` } });
+
+        setPublishingTasks(prev => {
+          const existing = prev.findIndex(t => t.platform === platform);
+          const jobData = { ...res.data, platform, status: res.data.status || 'posting' };
+          if (existing >= 0) {
+            const updated = [...prev];
+            updated[existing] = jobData;
+            return updated;
+          }
+          return [...prev, jobData];
+        });
+
+        toast.success('YouTube upload started!', { description: 'Video is being uploaded in the background.' });
+      } else {
+        const res = await axios.post(`${API}/publishing-tasks/create-and-post`, {
+          submissionId,
+          platform
+        }, { headers: { Authorization: `Bearer ${token}` } });
+
+        setPublishingTasks(prev => {
+          const existing = prev.findIndex(t => t.platform === platform);
+          if (existing >= 0) {
+            const updated = [...prev];
+            updated[existing] = res.data;
+            return updated;
+          }
+          return [...prev, res.data];
+        });
+
+        toast.success(`Posted to ${platformCfg[platform]?.label}!`);
+      }
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to post');
     } finally {
@@ -302,41 +337,80 @@ export default function SubmissionDetailPage() {
     }
   };
 
-  // Schedule handler
+  // Schedule handler — real YouTube for YouTube, mock for others
   const handleSchedule = async (platform) => {
     if (!selectedDate) {
       toast.error('Please select a date');
       return;
     }
-    
+
     setPostingPlatform(platform);
     try {
       const scheduledAt = new Date(selectedDate);
       const [hours, minutes] = selectedTime.split(':');
       scheduledAt.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-      
-      const res = await axios.post(`${API}/publishing-tasks`, {
-        submissionId,
-        platform,
-        scheduledAt: scheduledAt.toISOString()
-      }, { headers: { Authorization: `Bearer ${token}` } });
-      
-      setPublishingTasks(prev => {
-        const existing = prev.findIndex(t => t.platform === platform);
-        if (existing >= 0) {
-          const updated = [...prev];
-          updated[existing] = res.data;
-          return updated;
+
+      if (platform === 'youtube_shorts') {
+        const videoAsset = videoAssets[0];
+        if (!videoAsset) {
+          toast.error('No video asset found. Generate or upload a video first.');
+          setPostingPlatform(null);
+          return;
         }
-        return [...prev, res.data];
-      });
-      
-      setSchedulingPlatform(null);
-      setSelectedDate(null);
-      
-      toast.success(`Scheduled for ${platformCfg[platform]?.label}!`, {
-        description: `Will post on ${scheduledAt.toLocaleString()}`
-      });
+        if (videoAsset.isMocked) {
+          toast.warning('This is a sample/preview video. Upload a real video before scheduling.');
+          setPostingPlatform(null);
+          return;
+        }
+        const primaryThumbId = submission?.primaryThumbnailAssetId || thumbnailAssets[0]?.id;
+        const res = await axios.post(`${API}/publish/youtube`, {
+          submissionId,
+          videoAssetId: videoAsset.id,
+          title: (submission?.title || 'Untitled').slice(0, 100),
+          description: submission?.description || '',
+          tags: submission?.tags || [],
+          privacyStatus: 'private',
+          scheduledPublishAt: scheduledAt.toISOString(),
+          thumbnailAssetId: primaryThumbId || null,
+        }, { headers: { Authorization: `Bearer ${token}` } });
+
+        setPublishingTasks(prev => {
+          const existing = prev.findIndex(t => t.platform === platform);
+          const jobData = { ...res.data, platform, status: 'scheduled', scheduledAt: scheduledAt.toISOString() };
+          if (existing >= 0) {
+            const updated = [...prev];
+            updated[existing] = jobData;
+            return updated;
+          }
+          return [...prev, jobData];
+        });
+
+        setSchedulingPlatform(null);
+        setSelectedDate(null);
+        toast.success('YouTube upload scheduled!', { description: `Video will go live at ${scheduledAt.toLocaleString()}` });
+      } else {
+        const res = await axios.post(`${API}/publishing-tasks`, {
+          submissionId,
+          platform,
+          scheduledAt: scheduledAt.toISOString()
+        }, { headers: { Authorization: `Bearer ${token}` } });
+
+        setPublishingTasks(prev => {
+          const existing = prev.findIndex(t => t.platform === platform);
+          if (existing >= 0) {
+            const updated = [...prev];
+            updated[existing] = res.data;
+            return updated;
+          }
+          return [...prev, res.data];
+        });
+
+        setSchedulingPlatform(null);
+        setSelectedDate(null);
+        toast.success(`Scheduled for ${platformCfg[platform]?.label}!`, {
+          description: `Will post on ${scheduledAt.toLocaleString()}`
+        });
+      }
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to schedule');
     } finally {

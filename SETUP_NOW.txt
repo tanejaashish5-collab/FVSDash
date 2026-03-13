@@ -1,0 +1,35 @@
+==========================================
+CHANAKYA AUTOMATION - QUICK SETUP
+==========================================
+
+Auto-posting code is READY! ✅
+
+Now YOU need to update 3 things in backend/.env:
+
+1. MONGO_URL
+   - Go to: https://cloud.mongodb.com/v2/69a10d4f066d11f19e781347
+   - Click "Connect" → "Connect your application"
+   - Copy connection string
+   - Replace password with your actual password
+   - Make sure it ends with "/forgevoice_prod"
+
+2. GEMINI_API_KEY
+   - Go to: https://aistudio.google.com/apikey
+   - Create API key
+   - Copy and paste
+
+3. ELEVENLABS_API_KEY
+   - Go to: https://elevenlabs.io/app/settings/api-keys
+   - Copy your API key
+
+==========================================
+AFTER YOU UPDATE .ENV:
+==========================================
+
+Run this to set up Chanakya profile:
+cd ~/Desktop/FVS-audit/backend
+python3 setup_chanakya_profile.py
+
+Then we can test generating a Short!
+
+==========================================

@@ -348,12 +348,107 @@ async def _chanakya_generate_short(day: str):
             mode="full_auto_short"
         )
 
-        # TODO: Wire to YouTube Shorts API scheduler + TikTok/Instagram posting
-        # await schedule_youtube_upload(submission_id=short_result["submission"]["id"], scheduled_at="today 12:30 UTC", platform="youtube_shorts")
-        # await upload_video_to_tiktok(CLIENT_ID, job_id, video_path, short_idea["topic"])
-        # await upload_reel_to_instagram(CLIENT_ID, job_id, video_url, short_idea["topic"])
-
         logger.info(f"[Chanakya {day}] ✅ Short completed: {short_result['submission']['title']}")
+
+        # Auto-post to all connected platforms
+        submission_id = short_result["submission"]["id"]
+        video_url = short_result["submission"].get("sourceFileUrl")
+        title = short_idea["topic"]
+
+        logger.info(f"[Chanakya {day}] 🚀 Starting auto-posting to platforms...")
+
+        # YouTube Shorts
+        try:
+            from services.youtube_upload_service import upload_video_to_youtube
+            from services.storage_service import get_storage_service
+
+            # Download video from storage to local temp file
+            import httpx
+            import tempfile
+
+            async with httpx.AsyncClient(timeout=180) as http:
+                video_response = await http.get(video_url)
+
+                with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+                    tmp.write(video_response.content)
+                    local_video_path = tmp.name
+
+            # Upload to YouTube
+            youtube_result = await upload_video_to_youtube(
+                user_id=CLIENT_ID,
+                video_file_path=local_video_path,
+                title=title[:100],  # YouTube title limit
+                description=f"{title}\n\nChanakya Niti wisdom for modern leaders.\n\n#Chanakya #Leadership #Business #Strategy #Wisdom",
+                category_id="22",  # People & Blogs
+                privacy_status="public",
+                is_short=True
+            )
+
+            if youtube_result.get("success"):
+                logger.info(f"[Chanakya {day}] ✅ Posted to YouTube: {youtube_result.get('video_id')}")
+            else:
+                logger.error(f"[Chanakya {day}] ❌ YouTube upload failed: {youtube_result.get('error')}")
+
+            # Clean up temp file
+            import os
+            os.unlink(local_video_path)
+
+        except Exception as e:
+            logger.error(f"[Chanakya {day}] ❌ YouTube upload error: {e}")
+
+        # TikTok (only if credentials configured)
+        if os.environ.get("TIKTOK_CLIENT_KEY"):
+            try:
+                from services.tiktok_upload_service import upload_video_to_tiktok
+
+                # Download video again for TikTok
+                async with httpx.AsyncClient(timeout=180) as http:
+                    video_response = await http.get(video_url)
+
+                    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+                        tmp.write(video_response.content)
+                        local_video_path = tmp.name
+
+                tiktok_result = await upload_video_to_tiktok(
+                    client_id=CLIENT_ID,
+                    job_id=str(uuid.uuid4()),
+                    video_file_path=local_video_path,
+                    title=title[:150],  # TikTok title limit
+                    privacy_level="PUBLIC_TO_EVERYONE"
+                )
+
+                if tiktok_result.get("success"):
+                    logger.info(f"[Chanakya {day}] ✅ Posted to TikTok: {tiktok_result.get('video_id')}")
+                else:
+                    logger.error(f"[Chanakya {day}] ❌ TikTok upload failed: {tiktok_result.get('error')}")
+
+                os.unlink(local_video_path)
+
+            except Exception as e:
+                logger.error(f"[Chanakya {day}] ❌ TikTok upload error: {e}")
+        else:
+            logger.info(f"[Chanakya {day}] ⏭️  TikTok skipped (no credentials configured)")
+
+        # Instagram Reels
+        try:
+            from services.instagram_upload_service import upload_reel_to_instagram
+
+            instagram_result = await upload_reel_to_instagram(
+                client_id=CLIENT_ID,
+                job_id=str(uuid.uuid4()),
+                video_url=video_url,  # Instagram can use public URL
+                caption=f"{title}\n\n#Chanakya #Leadership #Strategy #Business #Wisdom"[:2200]  # IG caption limit
+            )
+
+            if instagram_result.get("success"):
+                logger.info(f"[Chanakya {day}] ✅ Posted to Instagram: {instagram_result.get('media_id')}")
+            else:
+                logger.error(f"[Chanakya {day}] ❌ Instagram upload failed: {instagram_result.get('error')}")
+
+        except Exception as e:
+            logger.error(f"[Chanakya {day}] ❌ Instagram upload error: {e}")
+
+        logger.info(f"[Chanakya {day}] 🎉 Auto-posting complete!")
 
     except Exception as e:
         logger.exception(f"[Chanakya {day}] ❌ Short production failed: {e}")

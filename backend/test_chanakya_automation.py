@@ -26,7 +26,12 @@ async def test_automation():
     print("  2 → Test Long-form production (6 min, 3 clips + 33 images)")
     print()
 
-    choice = input("Enter 1 or 2: ").strip()
+    # Check if choice provided via command-line argument
+    if len(sys.argv) > 1 and sys.argv[1] in ['1', '2']:
+        choice = sys.argv[1]
+        print(f"Enter 1 or 2: {choice} (from command-line)")
+    else:
+        choice = input("Enter 1 or 2: ").strip()
 
     if choice == "1":
         test_type = "short"
@@ -125,7 +130,15 @@ async def test_automation():
 
 if __name__ == "__main__":
     print()
-    input("⚠️  Press ENTER to start (or Ctrl+C to cancel)... ")
+
+    # Check if running non-interactively (for automated testing)
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] in ['1', '2']:
+        # Skip user prompts if argument provided
+        pass
+    else:
+        input("⚠️  Press ENTER to start (or Ctrl+C to cancel)... ")
+
     print()
 
     success = asyncio.run(test_automation())

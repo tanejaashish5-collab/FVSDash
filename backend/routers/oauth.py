@@ -263,6 +263,71 @@ async def initiate_oauth_connect(
     }
 
 
+@router.get("/connect/{platform}")
+async def initiate_oauth_connect_bypass(
+    platform: str,
+    clientId: Optional[str] = Query(None)
+):
+    """
+    Unauthenticated OAuth initiation endpoint for automation systems.
+    Only works with clientId=chanakya-sutra for security.
+    Redirects directly to Google OAuth flow.
+    """
+    # Security: Only allow chanakya-sutra automation system
+    if clientId != "chanakya-sutra":
+        raise HTTPException(status_code=403, detail="This endpoint is only for chanakya-sutra automation")
+
+    if platform not in PLATFORMS:
+        raise HTTPException(status_code=400, detail=f"Unsupported platform: {platform}")
+
+    # Generate state and PKCE verifier
+    state = secrets.token_urlsafe(32)
+    code_verifier = secrets.token_urlsafe(64)
+    code_challenge = base64.urlsafe_b64encode(
+        hashlib.sha256(code_verifier.encode()).digest()
+    ).decode().rstrip("=")
+
+    # Store state for callback verification
+    db = oauth_tokens_collection()
+    await db.update_one(
+        {"clientId": clientId, "platform": platform},
+        {"$set": {
+            "oauthState": state,
+            "codeVerifier": code_verifier,
+            "oauthInitiatedAt": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+
+    # Determine if we should use real OAuth for this platform
+    use_real_oauth = is_real_oauth_enabled(platform)
+    base_url = os.environ.get("BACKEND_PUBLIC_URL", os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8000"))
+
+    # For YouTube, build real OAuth URL
+    if platform == "youtube" and use_real_oauth:
+        redirect_uri = os.environ.get("YOUTUBE_REDIRECT_URI", f"{base_url}/api/oauth/callback/youtube")
+        scopes = "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/yt-analytics.readonly https://www.googleapis.com/auth/youtube.upload"
+
+        auth_url = (
+            f"https://accounts.google.com/o/oauth2/v2/auth"
+            f"?client_id={os.environ.get('YOUTUBE_CLIENT_ID')}"
+            f"&redirect_uri={redirect_uri}"
+            f"&response_type=code"
+            f"&scope={scopes}"
+            f"&state={state}"
+            f"&code_challenge={code_challenge}"
+            f"&code_challenge_method=S256"
+            f"&access_type=offline"
+            f"&prompt=consent"
+        )
+
+        # Redirect directly to Google OAuth
+        return RedirectResponse(url=auth_url)
+
+    else:
+        raise HTTPException(status_code=400, detail=f"OAuth not configured for {platform}")
+
+
 @router.get("/callback/{platform}")
 async def oauth_callback(
     platform: str,

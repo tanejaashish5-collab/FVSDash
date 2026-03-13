@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Test Chanakya Sutra Automation Manually
-Triggers the daily content generation without waiting for cron.
+Test Chanakya Sutra 3x/Week Automation Manually
+Triggers Tuesday/Thursday/Sunday content generation without waiting for cron.
+Choose to test Short OR Long-form production.
 """
 import os
 import sys
@@ -13,21 +14,40 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).parent))
 
 async def test_automation():
-    """Run Chanakya daily content generation manually."""
+    """Run Chanakya 3x/week content generation manually."""
 
     print("=" * 70)
-    print("🎬 CHANAKYA SUTRA AUTOMATION - MANUAL TEST")
+    print("🎬 CHANAKYA SUTRA 3X/WEEK AUTOMATION - MANUAL TEST")
     print("=" * 70)
     print(f"⏰ Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S IST')}")
     print()
-    print("This will:")
-    print("  1. Generate 1 Short idea (Chanakya Niti, Hinglish)")
-    print("  2. Produce Short: Script → Voice → 8 Kling clips → Captions")
-    print("  3. Generate 1 Long-form idea (Chanakya Niti, Hinglish)")
-    print("  4. Produce Long: Script → Voice → 6 Pro + 24 Std clips + images")
+    print("Choose what to test:")
+    print("  1 → Test Short production (50 sec, 5 clips)")
+    print("  2 → Test Long-form production (6 min, 3 clips + 33 images)")
     print()
-    print("⏱️  Expected time: ~45 minutes")
-    print("💰 Expected cost: ~$11.21 ($4.58 short + $6.63 long)")
+
+    choice = input("Enter 1 or 2: ").strip()
+
+    if choice == "1":
+        test_type = "short"
+        print()
+        print("Testing SHORT production:")
+        print("  • Generate 1 Short idea (Chanakya wisdom, Hinglish)")
+        print("  • Produce: Script → Voice → 5 Kling clips (10 sec each) → Captions")
+        print("  • ⏱️  Expected time: ~15 minutes")
+        print("  • 💰 Expected cost: ~$3.50 (5 clips × $0.70)")
+    elif choice == "2":
+        test_type = "longform"
+        print()
+        print("Testing LONG-FORM production:")
+        print("  • Generate 1 Long-form idea (Chanakya wisdom, Hinglish)")
+        print("  • Produce: Script → Voice → 3 Kling hero clips + 33 AI images → Captions")
+        print("  • ⏱️  Expected time: ~25 minutes")
+        print("  • 💰 Expected cost: ~$2.25 (3 clips × $0.70 + images)")
+    else:
+        print("❌ Invalid choice. Exiting.")
+        return False
+
     print()
     print("=" * 70)
     print()
@@ -58,11 +78,16 @@ async def test_automation():
     print()
 
     try:
-        # Import the automation function
-        from services.publishing_scheduler import chanakya_daily_content
+        # Import the automation functions
+        from services.publishing_scheduler import _chanakya_generate_short, _chanakya_generate_longform
 
-        # Run it
-        await chanakya_daily_content()
+        # Run the selected test
+        if test_type == "short":
+            await _chanakya_generate_short("Manual Test")
+            video_count = "1 Short"
+        else:
+            await _chanakya_generate_longform("Manual Test")
+            video_count = "1 Long-form"
 
         print()
         print("=" * 70)
@@ -70,12 +95,12 @@ async def test_automation():
         print("=" * 70)
         print()
         print("📊 What to check:")
-        print("  1. MongoDB submissions_collection → 2 new entries (1 short + 1 long)")
-        print("  2. Backend logs → Look for '[Chanakya Daily] ✅' messages")
+        print(f"  1. MongoDB submissions_collection → {video_count} video")
+        print("  2. Backend logs → Look for '[Chanakya Manual Test] ✅' messages")
         print("  3. fal.ai dashboard → Check usage/billing for API calls")
         print()
-        print("🎥 Videos are saved to MongoDB with status='SCHEDULED'")
-        print("   (Auto-posting to YouTube is Week 3 work, not yet implemented)")
+        print("🎥 Video saved to MongoDB with status='SCHEDULED'")
+        print("   (Auto-posting to YouTube/TikTok/IG requires OAuth setup)")
         print()
         return True
 

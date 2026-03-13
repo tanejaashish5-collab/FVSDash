@@ -88,53 +88,55 @@ async def split_script_into_scenes(script: str, format_type: str = "short") -> l
     from services.ai_service import call_gemini
 
     if format_type == "short":
-        prompt = f"""Split this YouTube Shorts script into 8-10 visual scenes for AI video generation.
+        prompt = f"""Split this YouTube Shorts script into exactly 5 visual scenes for AI video generation.
 
 Script:
 {script}
 
 Rules:
-- Each scene = 7-9 seconds of video content
+- Exactly 5 scenes (target: 50 seconds total, max 59 seconds for YouTube Shorts)
+- Each scene = 10 seconds of video content (Kling minimum duration)
 - ALL scenes should be type "veo" (we'll generate video clips for everything)
 - Each visual_prompt should be a CINEMATIC description: dark moody aesthetic, dramatic lighting, Indian business/philosophy theme
 - Include motion in prompts (camera pan, zoom in, person walking, text appearing)
 - Match the visual to what's being spoken in that segment
 
-Return ONLY a valid JSON array, no other text:
+Return ONLY a valid JSON array with exactly 5 scenes, no other text:
 [
   {{
     "scene_index": 0,
     "type": "veo",
-    "duration_seconds": 8,
+    "duration_seconds": 10,
     "script_segment": "exact words spoken during this scene",
     "visual_prompt": "cinematic prompt for video generation",
     "is_hero": true
   }}
 ]"""
     else:
-        # Long-form: mix of images and Veo clips to control cost
-        prompt = f"""Split this long-form content script into visual scenes.
+        # Long-form: mix of images and Kling clips to control cost
+        # Target: 6 minutes (360 seconds) = 3 Kling hero clips (30 sec) + 33 AI images (330 sec)
+        prompt = f"""Split this long-form content script into exactly 36 visual scenes for a 6-minute video.
 
 Script:
 {script}
 
 Rules:
-- Aim for 1 scene per 5-6 seconds of content
-- Mark important/impactful moments as type "veo" (max 8 hero clips), rest as type "image"
-- "image" scenes: generate an AI image and apply slow zoom/pan (Ken Burns effect)
-- "veo" scenes: generate actual video with Veo AI
-- Visual prompts for "image": dramatic still composition, business/philosophy theme, Indian aesthetic
-- Visual prompts for "veo": cinematic motion, dramatic action, storytelling moment
-- Duration for "image" scenes: 4-6 seconds each
-- Duration for "veo" scenes: 8-9 seconds each
+- EXACTLY 36 scenes total (target: 360 seconds = 6 minutes)
+- Exactly 3 scenes should be type "veo" (the most impactful/important moments only)
+- Remaining 33 scenes should be type "image" (AI image + Ken Burns zoom/pan effect)
+- Each scene = 10 seconds (both image and veo scenes)
+- "image" scenes: dramatic still composition, business/philosophy theme, Indian aesthetic, Chanakya wisdom
+- "veo" scenes: cinematic motion, dramatic action, storytelling climax moment
+- Mark the 3 most important moments as "is_hero": true, "type": "veo"
+- All other scenes: "is_hero": false, "type": "image"
 
-Return ONLY a valid JSON array:
+Return ONLY a valid JSON array with exactly 36 scenes, no other text:
 [
   {{
     "scene_index": 0,
     "type": "image",
-    "duration_seconds": 5,
-    "script_segment": "words spoken",
+    "duration_seconds": 10,
+    "script_segment": "words spoken during this 10-second segment",
     "visual_prompt": "prompt for image/video generation",
     "is_hero": false
   }}
@@ -169,18 +171,22 @@ Return ONLY a valid JSON array:
 # VIDEO CLIP GENERATION (Veo)
 # ─────────────────────────────────────────────
 
-async def generate_kling_clip(prompt: str, duration: int = 8, aspect: str = "9:16", quality: str = "pro") -> str:
+async def generate_kling_clip(prompt: str, duration: int = 10, aspect: str = "9:16", quality: str = "pro") -> str:
     """
     Generate a single video clip using Kling AI via fal.ai.
 
     Args:
         prompt: Cinematic description for video generation
-        duration: Video duration in seconds (5 or 10)
+        duration: Video duration in seconds (10 is minimum, will be capped at 10)
         aspect: Aspect ratio ("9:16" for shorts, "16:9" for long-form)
-        quality: "pro" (Kling 2.6 Pro, $0.07/sec) or "standard" (Kling 2.1, $0.025/sec)
+        quality: "pro" (Kling 2.6 Pro, $0.70/clip) or "standard" (Kling 2.1, $0.25/clip)
 
     Returns:
         Local file path to the downloaded .mp4
+
+    Cost per 10-second clip:
+        - Pro: $0.70 (highest quality, use for all shorts + long-form hero clips)
+        - Standard: $0.25 (good quality, not currently used)
     """
     fal_key = os.environ.get("FAL_KEY")
     if not fal_key:
@@ -188,13 +194,16 @@ async def generate_kling_clip(prompt: str, duration: int = 8, aspect: str = "9:1
         return await _get_mock_video_clip(aspect)
 
     try:
+        # Force 10-second duration (Kling minimum, tested at $0.70/clip)
+        duration = 10
+
         # Choose model based on quality tier
         if quality == "pro":
             model = "fal-ai/kling-video/v2.6/pro/text-to-video"
-            logger.info(f"Using Kling 2.6 Pro ($0.07/sec) for {duration}sec clip")
+            logger.info(f"Using Kling 2.6 Pro ($0.70/clip) for {duration}sec clip")
         else:  # standard
             model = "fal-ai/kling-video/v2.1/standard/text-to-video"
-            logger.info(f"Using Kling 2.1 Standard ($0.025/sec) for {duration}sec clip")
+            logger.info(f"Using Kling 2.1 Standard ($0.25/clip) for {duration}sec clip")
 
         # Import fal_client
         try:

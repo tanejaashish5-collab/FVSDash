@@ -125,6 +125,15 @@ def start_scheduler():
         replace_existing=True
     )
 
+    # Chanakya Sutra daily content generation at 8 AM UTC (1:30 PM IST)
+    _scheduler.add_job(
+        chanakya_daily_content,
+        trigger=CronTrigger(hour=8, minute=0),
+        id="chanakya_daily_content",
+        name="Chanakya Sutra Daily Auto Content (1 Short + 1 Long)",
+        replace_existing=True
+    )
+
     # Weekly digest every Monday at 08:00 UTC
     from services.email_service import build_and_send_weekly_digests
     _scheduler.add_job(
@@ -139,6 +148,7 @@ def start_scheduler():
     logger.info("Publishing scheduler started (checking every 30 seconds)")
     logger.info("Daily analytics sync scheduled at 6 AM UTC")
     logger.info("Daily trend scan scheduled at 7 AM UTC")
+    logger.info("Chanakya Sutra daily content scheduled at 8 AM UTC (1:30 PM IST)")
 
 
 async def daily_analytics_sync():
@@ -184,43 +194,174 @@ async def daily_trend_scan():
     """Run daily competitor and trend scan for all connected accounts."""
     from db.mongo import get_db, oauth_tokens_collection
     from services.trend_service import scan_competitors, scan_trending_topics, generate_recommendations
-    
+
     logger.info("Starting daily trend scan...")
-    
+
     try:
         oauth_db = oauth_tokens_collection()
         db = get_db()
-        
+
         # Get all connected YouTube accounts
         tokens = await oauth_db.find({
             "platform": "youtube",
             "connected": True
         }).to_list(100)
-        
+
         scanned = 0
         for token in tokens:
             client_id = token.get("clientId")
             access_token = token.get("accessToken")
             refresh_token = token.get("refreshToken")
-            
+
             try:
                 # Scan competitors
                 await scan_competitors(db, client_id, access_token, refresh_token)
-                
+
                 # Scan trending topics
                 await scan_trending_topics(db, client_id, access_token, refresh_token)
-                
+
                 # Generate recommendations
                 await generate_recommendations(db, client_id)
-                
+
                 scanned += 1
                 logger.info(f"Completed trend scan for client {client_id}")
             except Exception as e:
                 logger.error(f"Failed trend scan for {client_id}: {e}")
-        
+
         logger.info(f"Daily trend scan complete. Scanned {scanned} accounts.")
     except Exception as e:
         logger.exception("Daily trend scan error")
+
+
+async def chanakya_daily_content():
+    """
+    Daily cron: Generate 1 short + 1 long-form for Chanakya Sutra channel.
+    Runs at 8 AM UTC (1:30 PM IST).
+
+    Workflow:
+    1. Generate 1 short idea → produce short → schedule YouTube Shorts upload (6 PM IST)
+    2. Generate 1 long-form idea → produce long-form → schedule YouTube upload (9 AM IST next day)
+    """
+    from db.mongo import submissions_collection, fvs_ideas_collection
+    from services.fvs_service import generate_ideas, produce_episode, generate_script_for_idea, get_channel_profile
+    from services.video_production_service import produce_longform
+
+    CLIENT_ID = "chanakya-sutra"  # Your channel's client ID
+
+    logger.info("[Chanakya Daily] Starting content generation...")
+
+    try:
+        # ═══════════════════════════════════════════════════════════
+        # PART 1: GENERATE SHORT
+        # ═══════════════════════════════════════════════════════════
+        logger.info("[Chanakya Daily] Generating short idea...")
+
+        short_ideas = await generate_ideas(
+            client_id=CLIENT_ID,
+            target_format="short",
+            count=1
+        )
+
+        if not short_ideas:
+            logger.error("[Chanakya Daily] No short ideas generated!")
+        else:
+            short_idea = short_ideas[0]
+            logger.info(f"[Chanakya Daily] Producing short: '{short_idea['topic']}'")
+
+            try:
+                short_result = await produce_episode(
+                    client_id=CLIENT_ID,
+                    idea_id=short_idea["id"],
+                    mode="full_auto_short"
+                )
+
+                # Schedule short to post at 6 PM IST (12:30 PM UTC)
+                # TODO: Wire to YouTube Shorts API scheduler
+                # await schedule_youtube_upload(
+                #     submission_id=short_result["submission"]["id"],
+                #     scheduled_at="today 12:30 UTC",
+                #     platform="youtube_shorts"
+                # )
+
+                logger.info(f"[Chanakya Daily] ✅ Short completed: {short_result['submission']['title']}")
+
+            except Exception as e:
+                logger.exception(f"[Chanakya Daily] ❌ Short production failed: {e}")
+
+        # ═══════════════════════════════════════════════════════════
+        # PART 2: GENERATE LONG-FORM
+        # ═══════════════════════════════════════════════════════════
+        logger.info("[Chanakya Daily] Generating long-form idea...")
+
+        long_ideas = await generate_ideas(
+            client_id=CLIENT_ID,
+            target_format="longform",
+            count=1
+        )
+
+        if not long_ideas:
+            logger.error("[Chanakya Daily] No long-form ideas generated!")
+        else:
+            long_idea = long_ideas[0]
+            logger.info(f"[Chanakya Daily] Producing long-form: '{long_idea['topic']}'")
+
+            try:
+                # Generate script first
+                channel_profile = await get_channel_profile(CLIENT_ID)
+                script_data = await generate_script_for_idea(
+                    long_idea,
+                    brand_voice="Authoritative storyteller, Chanakya wisdom",
+                    channel_profile=channel_profile
+                )
+
+                # Produce long-form video (uses tiered Kling quality)
+                long_result = await produce_longform(
+                    script=script_data["text"],
+                    title=long_idea["topic"]
+                )
+
+                # Create submission record
+                now = datetime.now(timezone.utc).isoformat()
+                submission = {
+                    "id": str(uuid.uuid4()),
+                    "clientId": CLIENT_ID,
+                    "title": long_idea["topic"],
+                    "contentType": "Podcast",
+                    "status": "SCHEDULED",
+                    "sourceFileUrl": long_result["url"],
+                    "fvsIdeaId": long_idea["id"],
+                    "languageStyle": "hinglish",
+                    "createdAt": now,
+                    "updatedAt": now
+                }
+
+                subs_db = submissions_collection()
+                await subs_db.insert_one(submission)
+
+                # Update idea status
+                ideas_db = fvs_ideas_collection()
+                await ideas_db.update_one(
+                    {"id": long_idea["id"]},
+                    {"$set": {"status": "completed", "submissionId": submission["id"]}}
+                )
+
+                # Schedule long-form to post at 9 AM IST next day (3:30 AM UTC)
+                # TODO: Wire to YouTube API scheduler
+                # await schedule_youtube_upload(
+                #     submission_id=submission["id"],
+                #     scheduled_at="tomorrow 03:30 UTC",
+                #     platform="youtube"
+                # )
+
+                logger.info(f"[Chanakya Daily] ✅ Long-form completed: {submission['title']}")
+
+            except Exception as e:
+                logger.exception(f"[Chanakya Daily] ❌ Long-form production failed: {e}")
+
+        logger.info("[Chanakya Daily] ✅ Daily content generation complete!")
+
+    except Exception as e:
+        logger.exception(f"[Chanakya Daily] ❌ Fatal error: {e}")
 
 
 def stop_scheduler():

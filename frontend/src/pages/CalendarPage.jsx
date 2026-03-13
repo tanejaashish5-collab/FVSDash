@@ -62,14 +62,15 @@ const typeCfg = {
   Other: { class: 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20', color: 'zinc' },
 };
 
-// Cadence watermarks configuration - Sprint 13
-// Configurable cadence labels for each day of the week - subtle, lowercase
+// Cadence watermarks configuration - Updated for 7x/week Chanakya schedule
+// Shorts: Sat, Mon, Wed, Fri at 8 PM IST
+// Long-form: Sun, Tue, Thu at 8 PM IST
 const CADENCE_CONFIG = {
-  0: null, // Sunday - rest day
+  0: { text: 'Long-form day', type: 'Podcast' }, // Sunday
   1: { text: 'Shorts day', type: 'Short' }, // Monday
-  2: { text: 'Strategy day', type: 'Podcast' }, // Tuesday (Chanakya Sutra specific)
+  2: { text: 'Long-form day', type: 'Podcast' }, // Tuesday
   3: { text: 'Shorts day', type: 'Short' }, // Wednesday
-  4: { text: 'Strategy day', type: 'Podcast' }, // Thursday
+  4: { text: 'Long-form day', type: 'Podcast' }, // Thursday
   5: { text: 'Shorts day', type: 'Short' }, // Friday
   6: { text: 'Shorts day', type: 'Short' }, // Saturday
 };

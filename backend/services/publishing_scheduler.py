@@ -125,31 +125,64 @@ def start_scheduler():
         replace_existing=True
     )
 
-    # Chanakya Sutra 3x/week content generation (Tue/Thu/Sun)
-    # Tuesday 8 AM UTC (1:30 PM IST)
+    # Chanakya Sutra 7x/week content generation
+    # 8 PM IST = 2:30 PM UTC (14:30)
+
+    # SHORTS (4x/week): Sat, Mon, Wed, Fri
     _scheduler.add_job(
-        chanakya_tuesday_content,
-        trigger=CronTrigger(day_of_week="tue", hour=8, minute=0),
-        id="chanakya_tuesday",
-        name="Chanakya Tuesday Auto Content",
+        chanakya_short_content,
+        trigger=CronTrigger(day_of_week="sat", hour=14, minute=30),
+        id="chanakya_saturday_short",
+        name="Chanakya Saturday Short",
         replace_existing=True
     )
 
-    # Thursday 8 AM UTC (1:30 PM IST)
     _scheduler.add_job(
-        chanakya_thursday_content,
-        trigger=CronTrigger(day_of_week="thu", hour=8, minute=0),
-        id="chanakya_thursday",
-        name="Chanakya Thursday Auto Content",
+        chanakya_short_content,
+        trigger=CronTrigger(day_of_week="mon", hour=14, minute=30),
+        id="chanakya_monday_short",
+        name="Chanakya Monday Short",
         replace_existing=True
     )
 
-    # Sunday 8 AM UTC (1:30 PM IST)
     _scheduler.add_job(
-        chanakya_sunday_content,
-        trigger=CronTrigger(day_of_week="sun", hour=8, minute=0),
-        id="chanakya_sunday",
-        name="Chanakya Sunday Auto Content",
+        chanakya_short_content,
+        trigger=CronTrigger(day_of_week="wed", hour=14, minute=30),
+        id="chanakya_wednesday_short",
+        name="Chanakya Wednesday Short",
+        replace_existing=True
+    )
+
+    _scheduler.add_job(
+        chanakya_short_content,
+        trigger=CronTrigger(day_of_week="fri", hour=14, minute=30),
+        id="chanakya_friday_short",
+        name="Chanakya Friday Short",
+        replace_existing=True
+    )
+
+    # LONG-FORM (3x/week): Sun, Tue, Thu
+    _scheduler.add_job(
+        chanakya_longform_content,
+        trigger=CronTrigger(day_of_week="sun", hour=14, minute=30),
+        id="chanakya_sunday_longform",
+        name="Chanakya Sunday Long-form",
+        replace_existing=True
+    )
+
+    _scheduler.add_job(
+        chanakya_longform_content,
+        trigger=CronTrigger(day_of_week="tue", hour=14, minute=30),
+        id="chanakya_tuesday_longform",
+        name="Chanakya Tuesday Long-form",
+        replace_existing=True
+    )
+
+    _scheduler.add_job(
+        chanakya_longform_content,
+        trigger=CronTrigger(day_of_week="thu", hour=14, minute=30),
+        id="chanakya_thursday_longform",
+        name="Chanakya Thursday Long-form",
         replace_existing=True
     )
 
@@ -167,10 +200,9 @@ def start_scheduler():
     logger.info("Publishing scheduler started (checking every 30 seconds)")
     logger.info("Daily analytics sync scheduled at 6 AM UTC")
     logger.info("Daily trend scan scheduled at 7 AM UTC")
-    logger.info("Chanakya Sutra 3x/week content scheduled:")
-    logger.info("  → Tuesday 8 AM UTC (1:30 PM IST)")
-    logger.info("  → Thursday 8 AM UTC (1:30 PM IST)")
-    logger.info("  → Sunday 8 AM UTC (1:30 PM IST)")
+    logger.info("Chanakya Sutra 7x/week content scheduled at 8 PM IST (2:30 PM UTC):")
+    logger.info("  SHORTS (4x): Saturday, Monday, Wednesday, Friday")
+    logger.info("  LONG-FORM (3x): Sunday, Tuesday, Thursday")
 
 
 async def daily_analytics_sync():
@@ -255,64 +287,24 @@ async def daily_trend_scan():
         logger.exception("Daily trend scan error")
 
 
-async def chanakya_tuesday_content():
+async def chanakya_short_content():
     """
-    Tuesday cron: Generate content for Chanakya Sutra channel.
-    Alternates between Short (odd weeks) and Long-form (even weeks).
-    Runs Tuesday 8 AM UTC (1:30 PM IST).
-
-    Week 1, 3, 5, ... → Short
-    Week 2, 4, 6, ... → Long-form
+    Generate and post a YouTube Short for Chanakya Sutra.
+    Runs 4x/week: Sat, Mon, Wed, Fri at 8 PM IST (2:30 PM UTC).
     """
-    week_num = datetime.now(timezone.utc).isocalendar()[1]
-    content_type = "short" if week_num % 2 == 1 else "longform"
-
-    logger.info(f"[Chanakya Tuesday] Week {week_num} → Generating {content_type}")
-
-    if content_type == "short":
-        await _chanakya_generate_short("Tuesday")
-    else:
-        await _chanakya_generate_longform("Tuesday")
+    day = datetime.now(timezone.utc).strftime("%A")
+    logger.info(f"[Chanakya {day}] Starting Short generation...")
+    await _chanakya_generate_short(day)
 
 
-async def chanakya_thursday_content():
+async def chanakya_longform_content():
     """
-    Thursday cron: Generate content for Chanakya Sutra channel.
-    Alternates OPPOSITE of Tuesday (Long-form on odd weeks, Short on even weeks).
-    Runs Thursday 8 AM UTC (1:30 PM IST).
-
-    Week 1, 3, 5, ... → Long-form
-    Week 2, 4, 6, ... → Short
+    Generate and post a Long-form video for Chanakya Sutra.
+    Runs 3x/week: Sun, Tue, Thu at 8 PM IST (2:30 PM UTC).
     """
-    week_num = datetime.now(timezone.utc).isocalendar()[1]
-    content_type = "longform" if week_num % 2 == 1 else "short"
-
-    logger.info(f"[Chanakya Thursday] Week {week_num} → Generating {content_type}")
-
-    if content_type == "short":
-        await _chanakya_generate_short("Thursday")
-    else:
-        await _chanakya_generate_longform("Thursday")
-
-
-async def chanakya_sunday_content():
-    """
-    Sunday cron: Generate content for Chanakya Sutra channel.
-    Alternates same as Tuesday (Short on odd weeks, Long-form on even weeks).
-    Runs Sunday 8 AM UTC (1:30 PM IST).
-
-    Week 1, 3, 5, ... → Short
-    Week 2, 4, 6, ... → Long-form
-    """
-    week_num = datetime.now(timezone.utc).isocalendar()[1]
-    content_type = "short" if week_num % 2 == 1 else "longform"
-
-    logger.info(f"[Chanakya Sunday] Week {week_num} → Generating {content_type}")
-
-    if content_type == "short":
-        await _chanakya_generate_short("Sunday")
-    else:
-        await _chanakya_generate_longform("Sunday")
+    day = datetime.now(timezone.utc).strftime("%A")
+    logger.info(f"[Chanakya {day}] Starting Long-form generation...")
+    await _chanakya_generate_longform(day)
 
 
 async def _chanakya_generate_short(day: str):

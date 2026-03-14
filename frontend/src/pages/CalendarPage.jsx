@@ -185,13 +185,17 @@ function DraggablePipelineCard({ submission, isDragging }) {
 
 // Draggable Calendar Event (or static for automated items)
 function DraggableCalendarEvent({ submission, isToday, onClick }) {
-  // Automated items are NOT draggable
+  // Always call the hook (React rules), but disable for automated items
+  const draggable = useDraggable({
+    id: `calendar-${submission.id}`,
+    data: { submission, source: 'calendar' },
+    disabled: submission.isAutomated, // Disable dragging for automated items
+  });
+
+  // For automated items, override with no-op values
   const { attributes, listeners, setNodeRef, transform, isDragging } = submission.isAutomated
-    ? { attributes: {}, listeners: {}, setNodeRef: () => {}, transform: null, isDragging: false }
-    : useDraggable({
-        id: `calendar-${submission.id}`,
-        data: { submission, source: 'calendar' },
-      });
+    ? { attributes: {}, listeners: {}, setNodeRef: draggable.setNodeRef, transform: null, isDragging: false }
+    : draggable;
 
   const borderColor = TYPE_BORDER_COLORS[submission.contentType] || TYPE_BORDER_COLORS.Other;
 

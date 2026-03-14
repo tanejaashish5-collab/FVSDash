@@ -348,7 +348,8 @@ async def create_kling_job(task_data: dict) -> VideoJobResult:
         job_id = f"kling-{uuid.uuid4().hex[:12]}"
 
         # DECISION POINT: Full pipeline (script) vs Single clip (prompt only)
-        if script_text and len(script_text) > 100:
+        # Threshold lowered to 20 chars (was 100) - allows shorter scripts for full Shorts
+        if script_text and len(script_text) > 20:
             # ================================================================
             # PATH A: FULL PRODUCTION PIPELINE (when script is provided)
             # ================================================================
@@ -600,7 +601,18 @@ async def create_video_task(client_id: str, data: dict) -> dict:
     
     if job_result.warning:
         warnings.append(job_result.warning)
-    
+
+    # IMPORTANT: Kling generates synchronously → video_url available immediately
+    # Check if video is already ready (Kling returns video_url in job_result)
+    if job_result.video_url:
+        status = "READY"
+        video_url = job_result.video_url
+        logger.info(f"Video generated synchronously, marking as READY: {video_url}")
+    else:
+        status = "PROCESSING"
+        video_url = None
+        logger.info(f"Video generation started, status=PROCESSING (job_id={job_result.job_id})")
+
     task = {
         "id": str(uuid.uuid4()),
         "clientId": client_id,
@@ -615,8 +627,8 @@ async def create_video_task(client_id: str, data: dict) -> dict:
         "aspectRatio": data.get("aspectRatio", "16:9"),
         "outputProfile": data.get("outputProfile", "youtube_long"),
         "submissionId": data.get("submissionId"),
-        "status": "PROCESSING",
-        "videoUrl": None,
+        "status": status,
+        "videoUrl": video_url,
         "isMocked": job_result.is_mocked,
         "warnings": warnings if warnings else None,
         "createdAt": now,

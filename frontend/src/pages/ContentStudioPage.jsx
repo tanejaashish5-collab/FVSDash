@@ -503,8 +503,8 @@ export default function ContentStudioPage() {
       const sid = await ensureSession();
       const res = await axios.post(`${API}/video-tasks`, {
         provider: videoProvider, mode: 'script',
-        prompt: topic, script_text: script.slice(0, 500),
-        aspect_ratio: '9:16', output_profile: 'shorts',
+        prompt: topic, scriptText: script.slice(0, 500),
+        aspectRatio: '9:16', outputProfile: 'shorts',
       }, { headers: authHeaders });
       const taskId = res.data.id || res.data.task_id;
       setVideoTaskId(taskId);

@@ -31,6 +31,7 @@ class VideoJobResult:
     provider: str
     is_mocked: bool
     warning: Optional[str] = None
+    video_url: Optional[str] = None  # For synchronous providers like Kling
 
 
 @dataclass

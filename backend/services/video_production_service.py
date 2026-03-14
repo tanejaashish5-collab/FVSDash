@@ -97,9 +97,33 @@ Rules:
 - Exactly 5 scenes (target: 50 seconds total, max 59 seconds for YouTube Shorts)
 - Each scene = 10 seconds of video content (Kling minimum duration)
 - ALL scenes should be type "veo" (we'll generate video clips for everything)
-- Each visual_prompt should be a CINEMATIC description: dark moody aesthetic, dramatic lighting, Indian business/philosophy theme
-- Include motion in prompts (camera pan, zoom in, person walking, text appearing)
-- Match the visual to what's being spoken in that segment
+
+**CHANAKYA AESTHETIC REQUIRED (CRITICAL - MUST FOLLOW):**
+Every visual_prompt MUST include Ancient India / Mauryan era elements:
+  - Setting: Mauryan palace courtyard, dimly lit study, war council chamber, ornate treasury, throne room with stone pillars
+  - Character: Ancient Indian sage with white beard and saffron dhoti, OR traditional advisor/philosopher
+  - Props: Ancient scrolls, palm leaf manuscripts, oil lamps, gold coins, chess board, ornate carvings
+  - Lighting: Golden hour lighting, dramatic shadows, warm amber tones
+  - Style: Cinematic 4K, Bollywood epic cinematography, Indian aesthetic
+  - Motion: Camera zoom, pan, person walking, hand gesturing dramatically
+
+**FORBIDDEN (NEVER INCLUDE):**
+  ❌ Modern elements: suits, offices, smartphones, laptops, cars, skyscrapers
+  ❌ Wrong historical periods: medieval Europe, Game of Thrones, HBO style, castles, knights
+  ❌ Wrong geography: Western settings, non-Indian architecture
+
+**EXAMPLES OF CORRECT VISUAL PROMPTS:**
+  ✅ "Ancient Indian sage with white beard and saffron dhoti, standing in Mauryan palace courtyard with stone pillars, pointing at ancient scroll, golden hour lighting, dramatic shadows, cinematic 4K, Bollywood epic style, camera slowly zooms in"
+  ✅ "Dimly lit study in ancient India, philosopher reading from palm leaf manuscript, oil lamps flickering, ornate wooden carvings on walls, warm amber lighting, camera pans across scrolls"
+  ✅ "War council chamber, traditional advisor in dhoti explaining strategy using chess pieces on ancient board, dramatic side lighting, camera circles around table"
+
+**EXAMPLES OF WRONG PROMPTS (DO NOT GENERATE):**
+  ❌ "Professional businessman in modern office" (too modern)
+  ❌ "Medieval castle throne room with European architecture" (wrong period/geography)
+  ❌ "Game of Thrones style war council" (wrong aesthetic reference)
+
+- Include motion in every prompt (camera pan, zoom in, person walking, hand gesturing)
+- Match the visual to what's being spoken in that script segment
 
 Return ONLY a valid JSON array with exactly 5 scenes, no other text:
 [
@@ -108,7 +132,7 @@ Return ONLY a valid JSON array with exactly 5 scenes, no other text:
     "type": "veo",
     "duration_seconds": 10,
     "script_segment": "exact words spoken during this scene",
-    "visual_prompt": "cinematic prompt for video generation",
+    "visual_prompt": "Ancient India scene description following rules above",
     "is_hero": true
   }}
 ]"""
@@ -125,10 +149,16 @@ Rules:
 - Exactly 3 scenes should be type "veo" (the most impactful/important moments only)
 - Remaining 33 scenes should be type "image" (AI image + Ken Burns zoom/pan effect)
 - Each scene = 10 seconds (both image and veo scenes)
-- "image" scenes: dramatic still composition, business/philosophy theme, Indian aesthetic, Chanakya wisdom
-- "veo" scenes: cinematic motion, dramatic action, storytelling climax moment
 - Mark the 3 most important moments as "is_hero": true, "type": "veo"
 - All other scenes: "is_hero": false, "type": "image"
+
+**CHANAKYA AESTHETIC REQUIRED (ALL SCENES):**
+- "veo" scenes: Ancient Indian sage with saffron dhoti, Mauryan palace/courtyard/study, golden hour lighting, cinematic 4K, Bollywood epic style, dramatic motion
+- "image" scenes: Minimalist Indian art style, gold and black color scheme, ancient India symbols (lotus, coins, scrolls, chess pieces), Chanakya wisdom theme
+
+**FORBIDDEN:**
+  ❌ Modern elements (suits, offices, technology)
+  ❌ Non-Indian settings (medieval Europe, GOT, HBO style)
 
 Return ONLY a valid JSON array with exactly 36 scenes, no other text:
 [
@@ -137,7 +167,7 @@ Return ONLY a valid JSON array with exactly 36 scenes, no other text:
     "type": "image",
     "duration_seconds": 10,
     "script_segment": "words spoken during this 10-second segment",
-    "visual_prompt": "prompt for image/video generation",
+    "visual_prompt": "Ancient India themed scene following rules above",
     "is_hero": false
   }}
 ]"""

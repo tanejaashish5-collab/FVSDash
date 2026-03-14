@@ -88,6 +88,50 @@ const getCadenceWatermark = (dayOfWeek) => {
   return CADENCE_CONFIG[dayOfWeek] || null;
 };
 
+// Automated Schedule Generator
+// Generates system-scheduled Chanakya posts for next 30 days
+// Shorts: Sat (6), Mon (1), Wed (3), Fri (5) at 8 PM IST
+// Long-form: Sun (0), Tue (2), Thu (4) at 8 PM IST
+const generateAutomatedSchedule = (startDate, days = 30) => {
+  const schedule = [];
+  const shortDays = [6, 1, 3, 5]; // Sat, Mon, Wed, Fri
+  const longDays = [0, 2, 4]; // Sun, Tue, Thu
+
+  for (let i = 0; i < days; i++) {
+    const date = addDays(startDate, i);
+    const dayOfWeek = getDay(date);
+    const dateStr = format(date, 'yyyy-MM-dd');
+
+    if (shortDays.includes(dayOfWeek)) {
+      schedule.push({
+        id: `auto-short-${dateStr}`,
+        title: 'Chanakya Short (Auto)',
+        contentType: 'Short',
+        status: 'SCHEDULED',
+        releaseDate: dateStr,
+        scheduledTime: '8:00 PM IST',
+        isAutomated: true,
+        description: 'Automated Chanakya Sutra Short - 50 sec, 9:16 format',
+        clientId: 'chanakya-sutra'
+      });
+    } else if (longDays.includes(dayOfWeek)) {
+      schedule.push({
+        id: `auto-long-${dateStr}`,
+        title: 'Chanakya Long-form (Auto)',
+        contentType: 'Podcast',
+        status: 'SCHEDULED',
+        releaseDate: dateStr,
+        scheduledTime: '8:00 PM IST',
+        isAutomated: true,
+        description: 'Automated Chanakya Sutra Long-form - 6 min, 16:9 format',
+        clientId: 'chanakya-sutra'
+      });
+    }
+  }
+
+  return schedule;
+};
+
 // Draggable Pipeline Card
 function DraggablePipelineCard({ submission, isDragging }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
@@ -139,12 +183,15 @@ function DraggablePipelineCard({ submission, isDragging }) {
   );
 }
 
-// Draggable Calendar Event
+// Draggable Calendar Event (or static for automated items)
 function DraggableCalendarEvent({ submission, isToday, onClick }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `calendar-${submission.id}`,
-    data: { submission, source: 'calendar' },
-  });
+  // Automated items are NOT draggable
+  const { attributes, listeners, setNodeRef, transform, isDragging } = submission.isAutomated
+    ? { attributes: {}, listeners: {}, setNodeRef: () => {}, transform: null, isDragging: false }
+    : useDraggable({
+        id: `calendar-${submission.id}`,
+        data: { submission, source: 'calendar' },
+      });
 
   const borderColor = TYPE_BORDER_COLORS[submission.contentType] || TYPE_BORDER_COLORS.Other;
 
@@ -154,7 +201,7 @@ function DraggableCalendarEvent({ submission, isToday, onClick }) {
   } : undefined;
 
   // Format IST time if available
-  const releaseTime = submission.releaseTime || null;
+  const releaseTime = submission.scheduledTime || submission.releaseTime || null;
 
   return (
     <motion.button
@@ -168,16 +215,29 @@ function DraggableCalendarEvent({ submission, isToday, onClick }) {
           onClick(submission);
         }
       }}
-      className={`w-full text-left min-h-[52px] p-2 rounded bg-[#0B1120] border border-[#1F2933] border-l-[3px] ${borderColor} hover:border-indigo-500/30 transition-all cursor-grab active:cursor-grabbing group ${
-        isToday ? 'ring-1 ring-amber-400/30' : ''
-      } ${isDragging ? 'opacity-50 scale-95' : ''}`}
+      className={`w-full text-left min-h-[52px] p-2 rounded border border-l-[3px] ${borderColor} transition-all group ${
+        submission.isAutomated
+          ? 'bg-teal-500/5 border-teal-500/20 cursor-default'
+          : 'bg-[#0B1120] border-[#1F2933] hover:border-indigo-500/30 cursor-grab active:cursor-grabbing'
+      } ${isToday ? 'ring-1 ring-amber-400/30' : ''} ${isDragging ? 'opacity-50 scale-95' : ''}`}
       data-testid={`event-${submission.id}`}
-      whileHover={{ scale: 1.01 }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={submission.isAutomated ? {} : { scale: 1.01 }}
+      whileTap={submission.isAutomated ? {} : { scale: 0.98 }}
     >
-      <p className="text-[12px] text-zinc-200 leading-tight line-clamp-2 font-medium">{submission.title}</p>
+      <div className="flex items-center gap-1.5">
+        <p className={`text-[12px] leading-tight line-clamp-2 font-medium flex-1 ${
+          submission.isAutomated ? 'text-teal-300' : 'text-zinc-200'
+        }`}>
+          {submission.title}
+        </p>
+        {submission.isAutomated && (
+          <Sparkles className="h-3 w-3 text-teal-400 shrink-0" />
+        )}
+      </div>
       {releaseTime && (
-        <p className="text-[10px] text-zinc-500 mt-1">{releaseTime} IST</p>
+        <p className={`text-[10px] mt-1 ${submission.isAutomated ? 'text-teal-500' : 'text-zinc-500'}`}>
+          {releaseTime}
+        </p>
       )}
     </motion.button>
   );
@@ -366,6 +426,17 @@ export default function CalendarPage() {
   }, [authHeaders, buildApiUrl, currentDate]);
 
   useEffect(() => { fetchCalendar(); }, [fetchCalendar]);
+
+  // Generate automated schedule and merge with manual submissions
+  const automatedSchedule = useMemo(() => {
+    const monthStart = startOfMonth(currentDate);
+    return generateAutomatedSchedule(monthStart, 60); // 60 days ahead
+  }, [currentDate]);
+
+  // Merge manual submissions with automated schedule
+  const allSubmissions = useMemo(() => {
+    return [...submissions, ...automatedSchedule];
+  }, [submissions, automatedSchedule]);
 
   const handlePrevMonth = () => setCurrentDate(subMonths(currentDate, 1));
   const handleNextMonth = () => setCurrentDate(addMonths(currentDate, 1));
@@ -604,8 +675,8 @@ export default function CalendarPage() {
     await scheduleSubmission(rescheduleConfirm.submission.id, rescheduleConfirm.newDate);
   };
 
-  // Filter submissions
-  const filteredSubmissions = submissions.filter(sub => {
+  // Filter submissions (includes automated schedule)
+  const filteredSubmissions = allSubmissions.filter(sub => {
     if (filterType !== 'all' && sub.contentType !== filterType) return false;
     if (filterStatus !== 'all' && sub.status !== filterStatus) return false;
     return true;
@@ -635,20 +706,20 @@ export default function CalendarPage() {
     return submissions.find(s => `calendar-${s.id}` === activeId);
   }, [activeId, pipeline, submissions]);
 
-  // Upcoming view data (next 14 days)
+  // Upcoming view data (next 14 days) - includes automated schedule
   const upcomingDays = useMemo(() => {
     const today = new Date();
     const result = [];
     for (let i = 0; i < 14; i++) {
       const day = addDays(today, i);
       const dateStr = format(day, 'yyyy-MM-dd');
-      const daySubmissions = submissions.filter(s => s.releaseDate === dateStr);
+      const daySubmissions = allSubmissions.filter(s => s.releaseDate === dateStr);
       if (daySubmissions.length > 0) {
         result.push({ date: day, submissions: daySubmissions });
       }
     }
     return result;
-  }, [submissions]);
+  }, [allSubmissions]);
 
   // Agenda view data (grouped by date)
   const agendaData = useMemo(() => {
@@ -730,7 +801,9 @@ export default function CalendarPage() {
                   </SelectContent>
                 </Select>
                 <span className="text-[10px] text-zinc-600 ml-auto">
-                  {filteredSubmissions.length} scheduled · {pipeline.length} in pipeline
+                  {filteredSubmissions.filter(s => !s.isAutomated).length} manual ·
+                  <span className="text-teal-500 mx-1">{filteredSubmissions.filter(s => s.isAutomated).length} auto</span> ·
+                  {pipeline.length} pipeline
                 </span>
               </div>
             </CardContent>

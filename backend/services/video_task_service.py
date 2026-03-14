@@ -256,6 +256,145 @@ async def check_veo_job(job_id: str) -> VideoStatusResult:
 
 
 # =============================================================================
+# KLING INTEGRATION (REAL via fal.ai)
+# =============================================================================
+
+async def create_kling_job(task_data: dict) -> VideoJobResult:
+    """
+    Create a video generation job with Kling via fal.ai.
+
+    Uses video_production_service.generate_kling_clip() for real generation.
+    Falls back to mock if FAL_KEY not configured or on error.
+    """
+    fal_key = os.environ.get("FAL_KEY")
+
+    if not fal_key:
+        logger.warning("FAL_KEY not set. Using mocked Kling video generation.")
+        mock_job_id = f"kling-mock-{int(_time.time())}-{uuid.uuid4().hex[:8]}"
+        return VideoJobResult(
+            job_id=mock_job_id,
+            provider="mock_kling",
+            is_mocked=True,
+            warning="Kling not configured. Set FAL_KEY environment variable."
+        )
+
+    try:
+        from services.video_production_service import generate_kling_clip
+
+        # Build prompt from task data
+        prompt = task_data.get("prompt", "")
+        if task_data.get("scriptText"):
+            # Enhance prompt with script context
+            script_preview = task_data.get("scriptText", "")[:300]
+            prompt = f"{prompt}. Context: {script_preview}"
+
+        # Map aspect ratio
+        aspect_ratio = task_data.get("aspectRatio", "9:16")
+
+        # Determine quality based on output profile
+        output_profile = task_data.get("outputProfile", "shorts")
+        quality = "pro"  # Always use Kling 2.6 Pro for best results
+
+        logger.info(f"Generating Kling video: prompt='{prompt[:80]}...', aspect={aspect_ratio}, quality={quality}")
+
+        # Generate video clip (this is async and will take 2-4 minutes)
+        # We'll return immediately with a job ID and check status later
+        job_id = f"kling-{uuid.uuid4().hex[:12]}"
+
+        # Start generation in background (for now, generate synchronously)
+        # TODO: Make this truly async with background task queue
+        video_path = await generate_kling_clip(
+            prompt=prompt,
+            duration=10,  # Kling minimum
+            aspect=aspect_ratio,
+            quality=quality
+        )
+
+        # Since we generated synchronously, mark as READY immediately
+        # Store the video path in a temp location or upload to storage
+        from services.storage_service import get_storage_service
+        storage = get_storage_service()
+
+        # Upload the generated video
+        with open(video_path, "rb") as f:
+            video_data = f.read()
+
+        upload_result = await storage.upload_file(
+            file_data=video_data,
+            folder="video_tasks",
+            filename=f"kling_{job_id}.mp4",
+            content_type="video/mp4"
+        )
+
+        logger.info(f"Kling video generated and uploaded: {upload_result['url']}")
+
+        # Return with video URL ready
+        return VideoJobResult(
+            job_id=job_id,
+            provider="kling",
+            is_mocked=False,
+            video_url=upload_result["url"]  # Include URL for immediate READY status
+        )
+
+    except ImportError as e:
+        logger.error(f"fal-client SDK not installed: {e}")
+        mock_job_id = f"kling-mock-{int(_time.time())}-{uuid.uuid4().hex[:8]}"
+        return VideoJobResult(
+            job_id=mock_job_id,
+            provider="mock_kling",
+            is_mocked=True,
+            warning="fal-client not installed. Run: pip install fal-client>=0.5.0"
+        )
+    except Exception as e:
+        logger.error(f"Kling video generation failed: {e}")
+        mock_job_id = f"kling-mock-{int(_time.time())}-{uuid.uuid4().hex[:8]}"
+        return VideoJobResult(
+            job_id=mock_job_id,
+            provider="mock_kling",
+            is_mocked=True,
+            warning=f"Kling generation failed: {str(e)}"
+        )
+
+
+async def check_kling_job(job_id: str) -> VideoStatusResult:
+    """
+    Check status of a Kling video job.
+
+    Since we generate synchronously for now, jobs are immediately READY.
+    """
+    # If job_id starts with "kling-mock", handle as mock
+    if job_id.startswith("kling-mock"):
+        parts = job_id.split("-")
+        try:
+            created_ts = int(parts[2])
+            # Mock completes after 30 seconds
+            if _time.time() - created_ts >= 30:
+                hash_val = int(hashlib.md5(job_id.encode()).hexdigest()[:8], 16)
+                mock_url = MOCK_VIDEO_URLS[hash_val % len(MOCK_VIDEO_URLS)]
+                return VideoStatusResult(
+                    status="READY",
+                    video_url=mock_url,
+                    is_mocked=True,
+                    warning="Using mock video (FAL_KEY not configured)"
+                )
+        except (ValueError, IndexError):
+            pass
+
+        return VideoStatusResult(
+            status="PROCESSING",
+            is_mocked=True
+        )
+
+    # Real Kling jobs are already READY (synchronous generation)
+    # In future: check actual async job status from fal.ai
+    return VideoStatusResult(
+        status="READY",
+        is_mocked=False,
+        warning="Video generated, check video_url in task record"
+    )
+
+
+# =============================================================================
 # PROVIDER ROUTING
 # =============================================================================
 
@@ -278,13 +417,8 @@ async def create_video_job(provider: str, task_data: dict) -> VideoJobResult:
     if provider == "veo":
         return await create_veo_job(task_data)
     elif provider == "kling":
-        # Kling remains mocked - TODO: P2 integrate real API
-        return VideoJobResult(
-            job_id=f"kling-mock-{int(_time.time())}-{uuid.uuid4().hex[:8]}",
-            provider="mock_kling",
-            is_mocked=True,
-            warning="Kling integration is mocked (P2)"
-        )
+        # Kling via video_production_service (real fal.ai integration)
+        return await create_kling_job(task_data)
     elif provider == "runway":
         # Runway remains mocked - TODO: P2 integrate real API
         return VideoJobResult(
@@ -313,12 +447,7 @@ async def check_video_job(provider: str, job_id: str) -> VideoStatusResult:
     if provider == "veo":
         return await check_veo_job(job_id)
     elif provider == "kling":
-        # Kling mock - always ready
-        return VideoStatusResult(
-            status="READY",
-            video_url=MOCK_VIDEO_URLS[0],
-            is_mocked=True
-        )
+        return await check_kling_job(job_id)
     elif provider == "runway":
         # Runway mock - time-based: complete 30s after creation timestamp in job_id
         hash_val = int(hashlib.md5(job_id.encode()).hexdigest()[:8], 16)

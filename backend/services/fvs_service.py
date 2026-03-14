@@ -714,17 +714,47 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
             del audio_asset["_id"]
         
         # =================================================================
-        # STEP 8: Create Video Task (MOCKED - video providers P2)
+        # STEP 8: Generate Real Video using Kling (via video_production_service)
         # =================================================================
-        video_prompt = f"Create a {idea.get('format', 'short')}-form video for: {title}"
+        logger.info(f"FVS Step 8: Generating real video using Kling for {idea.get('format', 'short')}")
+
+        from services.video_production_service import produce_short, produce_longform
+
+        try:
+            if idea.get("format") == "short":
+                video_result = await produce_short(
+                    script=script_text,
+                    title=title,
+                    voice_id=None,  # Uses default from channel profile
+                    job_id=None
+                )
+            else:
+                video_result = await produce_longform(
+                    script=script_text,
+                    title=title,
+                    voice_id=None
+                )
+
+            video_url = video_result["url"]
+            video_duration = video_result.get("duration", 0)
+            is_mocked = False
+            logger.info(f"Real Kling video generated: {video_url} ({video_duration}s)")
+
+        except Exception as e:
+            logger.error(f"Kling video generation failed: {e}, falling back to mock")
+            # Fallback to mock if Kling fails (safety net)
+            video_url = "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+            video_duration = 60
+            is_mocked = True
+
+        # Create video task record
         provider_job_id = f"fvs-kling-{uuid.uuid4()}"
-        
         video_task = {
             "id": str(uuid.uuid4()),
             "clientId": client_id,
             "provider": "kling",
             "providerJobId": provider_job_id,
-            "prompt": video_prompt,
+            "prompt": f"Generated via produce_{idea.get('format', 'short')}",
             "mode": "audio",
             "scriptText": script_text[:1000],
             "audioAssetId": audio_asset["id"],
@@ -733,9 +763,10 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
             "outputProfile": "shorts" if idea.get("format") == "short" else "youtube_long",
             "submissionId": submission_id,
             "status": "READY",
-            "videoUrl": "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+            "videoUrl": video_url,
             "fvsGenerated": True,
-            "isMocked": True,
+            "isMocked": is_mocked,
+            "durationSeconds": video_duration,
             "createdAt": now,
             "updatedAt": now
         }
@@ -743,9 +774,9 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
         completed_steps.append(("video_task", video_task["id"]))
         if "_id" in video_task:
             del video_task["_id"]
-        
+
         # =================================================================
-        # STEP 9: Create Video Asset (from mocked video task)
+        # STEP 9: Create Video Asset (from real Kling or mock fallback)
         # =================================================================
         video_asset = {
             "id": str(uuid.uuid4()),
@@ -753,12 +784,13 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
             "submissionId": submission_id,
             "name": f"FVS Video - {title[:40]}",
             "type": "Video",
-            "url": video_task["videoUrl"],
+            "url": video_url,
             "status": "Draft",
             "provider": "kling",
             "sourceVideoTaskId": video_task["id"],
             "fvsGenerated": True,
-            "isMocked": True,
+            "isMocked": is_mocked,
+            "durationSeconds": video_duration,
             "createdAt": now,
             "updatedAt": now
         }
@@ -827,17 +859,20 @@ async def produce_episode(client_id: str, idea_id: str, mode: str) -> dict:
             "id": str(uuid.uuid4()),
             "clientId": client_id,
             "action": "produce_episode",
-            "description": f"FVS produced episode '{title}' with script ({channel_profile.get('languageStyle')}), audio, video, and {len(thumbnail_assets)} thumbnail(s)",
+            "description": f"FVS produced episode '{title}' with script ({channel_profile.get('languageStyle')}), audio, {'REAL Kling video' if not is_mocked else 'mock video'}, and {len(thumbnail_assets)} thumbnail(s)",
             "metadata": {
                 "ideaId": idea_id,
                 "submissionId": submission_id,
                 "videoTaskId": video_task["id"],
                 "audioProvider": audio_result.provider,
                 "thumbnailProvider": primary_thumbnail.provider,
+                "videoProvider": "kling" if not is_mocked else "mock",
                 "audioMocked": audio_result.is_mocked,
                 "thumbnailMocked": primary_thumbnail.is_mocked,
+                "videoMocked": is_mocked,
                 "languageStyle": channel_profile.get("languageStyle"),
-                "thumbnailCount": len(thumbnail_assets)
+                "thumbnailCount": len(thumbnail_assets),
+                "videoDuration": video_duration
             },
             "createdAt": now
         }

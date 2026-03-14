@@ -256,6 +256,67 @@ async def check_veo_job(job_id: str) -> VideoStatusResult:
 
 
 # =============================================================================
+# CHANAKYA AESTHETIC ENFORCEMENT
+# =============================================================================
+
+def enforce_chanakya_aesthetic(prompt: str) -> str:
+    """
+    Ensure any prompt follows Chanakya/Mauryan/Ancient India aesthetic.
+
+    Prevents:
+    - Modern settings (offices, suits, smartphones)
+    - Wrong historical periods (GOT, medieval Europe, HBO)
+    - Generic business footage
+
+    Args:
+        prompt: User's raw prompt (could be title or partial description)
+
+    Returns:
+        Enhanced prompt with Mauryan aesthetic enforced
+    """
+    import random
+
+    # Base Chanakya archetype (from CHANAKYA_CONTENT_ARCHETYPE.md)
+    chanakya_base = "Ancient Indian sage with white beard and saffron dhoti"
+
+    setting_options = {
+        "wealth": "ornate treasury room with gold coins and ancient scrolls",
+        "enemy": "war council chamber with strategic maps and chess board",
+        "wisdom": "scholar's study with palm leaf manuscripts and oil lamps",
+        "power": "grand throne room with ornate Indian carvings",
+        "strategy": "Mauryan palace courtyard with stone pillars",
+        "default": "dimly lit study with ancient scrolls"
+    }
+
+    # Pick setting based on prompt theme
+    prompt_lower = prompt.lower()
+    if any(word in prompt_lower for word in ['wealth', 'money', 'tax', 'economy', 'coin']):
+        setting = setting_options["wealth"]
+    elif any(word in prompt_lower for word in ['enemy', 'rival', 'war', 'battle', 'fight']):
+        setting = setting_options["enemy"]
+    elif any(word in prompt_lower for word in ['wisdom', 'knowledge', 'learn', 'teach']):
+        setting = setting_options["wisdom"]
+    elif any(word in prompt_lower for word in ['power', 'king', 'leader', 'rule']):
+        setting = setting_options["power"]
+    elif any(word in prompt_lower for word in ['strategy', 'plan', 'tactic']):
+        setting = setting_options["strategy"]
+    else:
+        setting = setting_options["default"]
+
+    # Build enhanced prompt with Mauryan aesthetic
+    enhanced = (
+        f"{chanakya_base}, {setting}, "
+        f"theme: {prompt}, "
+        f"golden hour lighting, dramatic shadows, "
+        f"cinematic 4K quality, Bollywood epic cinematography, "
+        f"Indian aesthetic, traditional elements, "
+        f"camera slowly zooms in"
+    )
+
+    return enhanced
+
+
+# =============================================================================
 # KLING INTEGRATION (REAL via fal.ai)
 # =============================================================================
 
@@ -279,62 +340,101 @@ async def create_kling_job(task_data: dict) -> VideoJobResult:
         )
 
     try:
-        from services.video_production_service import generate_kling_clip
-
-        # Build prompt from task data
-        prompt = task_data.get("prompt", "")
-        if task_data.get("scriptText"):
-            # Enhance prompt with script context
-            script_preview = task_data.get("scriptText", "")[:300]
-            prompt = f"{prompt}. Context: {script_preview}"
-
-        # Map aspect ratio
+        # Get task data
+        raw_prompt = task_data.get("prompt", "")
+        script_text = task_data.get("scriptText", "")
         aspect_ratio = task_data.get("aspectRatio", "9:16")
 
-        # Determine quality based on output profile
-        output_profile = task_data.get("outputProfile", "shorts")
-        quality = "pro"  # Always use Kling 2.6 Pro for best results
-
-        logger.info(f"Generating Kling video: prompt='{prompt[:80]}...', aspect={aspect_ratio}, quality={quality}")
-
-        # Generate video clip (this is async and will take 2-4 minutes)
-        # We'll return immediately with a job ID and check status later
         job_id = f"kling-{uuid.uuid4().hex[:12]}"
 
-        # Start generation in background (for now, generate synchronously)
-        # TODO: Make this truly async with background task queue
-        video_path = await generate_kling_clip(
-            prompt=prompt,
-            duration=10,  # Kling minimum
-            aspect=aspect_ratio,
-            quality=quality
-        )
+        # DECISION POINT: Full pipeline (script) vs Single clip (prompt only)
+        if script_text and len(script_text) > 100:
+            # ================================================================
+            # PATH A: FULL PRODUCTION PIPELINE (when script is provided)
+            # ================================================================
+            # Use the SAME pipeline as FVS automation:
+            # - Gemini splits script into 5 visual scenes with Mauryan aesthetic
+            # - Generates 5 Kling clips (one per scene)
+            # - Concatenates into full Short/Long-form
+            # - Adds voiceover, captions, background music
 
-        # Since we generated synchronously, mark as READY immediately
-        # Store the video path in a temp location or upload to storage
-        from services.storage_service import get_storage_service
-        storage = get_storage_service()
+            logger.info(f"Script provided ({len(script_text)} chars), using full production pipeline")
 
-        # Upload the generated video
-        with open(video_path, "rb") as f:
-            video_data = f.read()
+            from services.video_production_service import produce_short, produce_longform
 
-        upload_result = await storage.upload_file(
-            file_data=video_data,
-            folder="video_tasks",
-            filename=f"kling_{job_id}.mp4",
-            content_type="video/mp4"
-        )
+            if aspect_ratio == "9:16":
+                result = await produce_short(
+                    script=script_text,
+                    title=raw_prompt or "Chanakya Short",
+                    voice_id=None,
+                    job_id=job_id
+                )
+            else:
+                result = await produce_longform(
+                    script=script_text,
+                    title=raw_prompt or "Chanakya Long-form",
+                    voice_id=None,
+                    job_id=job_id
+                )
 
-        logger.info(f"Kling video generated and uploaded: {upload_result['url']}")
+            video_url = result["url"]
+            logger.info(f"Full pipeline video generated: {video_url} ({result.get('duration')}s)")
 
-        # Return with video URL ready
-        return VideoJobResult(
-            job_id=job_id,
-            provider="kling",
-            is_mocked=False,
-            video_url=upload_result["url"]  # Include URL for immediate READY status
-        )
+            return VideoJobResult(
+                job_id=job_id,
+                provider="kling",
+                is_mocked=False,
+                video_url=video_url
+            )
+
+        else:
+            # ================================================================
+            # PATH B: SINGLE CLIP MODE (when only prompt, no script)
+            # ================================================================
+            # Used for: stock footage, b-roll, supplemental clips
+            # Enforce Mauryan aesthetic on the prompt before sending to Kling
+
+            logger.info(f"No script provided, generating single clip from prompt: '{raw_prompt}'")
+
+            from services.video_production_service import generate_kling_clip
+
+            # Enforce Chanakya aesthetic to prevent HBO/GOT/modern content
+            enhanced_prompt = enforce_chanakya_aesthetic(raw_prompt)
+            logger.info(f"Enhanced prompt with Chanakya aesthetic: '{enhanced_prompt[:100]}...'")
+
+            quality = "pro"  # Always use Kling 2.6 Pro
+
+            # Generate single 10-second clip
+            video_path = await generate_kling_clip(
+                prompt=enhanced_prompt,
+                duration=10,
+                aspect=aspect_ratio,
+                quality=quality
+            )
+
+            # Upload to storage
+            from services.storage_service import get_storage_service
+            storage = get_storage_service()
+
+            with open(video_path, "rb") as f:
+                video_data = f.read()
+
+            upload_result = await storage.upload_file(
+                file_data=video_data,
+                folder="video_tasks",
+                filename=f"kling_{job_id}.mp4",
+                content_type="video/mp4"
+            )
+
+            video_url = upload_result["url"]
+            logger.info(f"Single Kling clip generated: {video_url}")
+
+            return VideoJobResult(
+                job_id=job_id,
+                provider="kling",
+                is_mocked=False,
+                video_url=video_url
+            )
 
     except ImportError as e:
         logger.error(f"fal-client SDK not installed: {e}")

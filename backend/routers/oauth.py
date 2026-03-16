@@ -12,6 +12,9 @@ import secrets
 import hashlib
 import base64
 import json
+import logging
+
+_logging = logging.getLogger(__name__)
 
 from services.auth_service import get_current_user, get_client_id_from_user
 from db.mongo import oauth_tokens_collection, publish_jobs_collection
@@ -371,7 +374,8 @@ async def oauth_callback(
         """)
     
     client_id = token_record.get("clientId")
-    
+    _logging.info(f"[OAuth Callback] Starting callback for platform: {platform}, client_id: {client_id}, code: {code[:20]}...")
+
     # Mock token exchange
     if MOCK_OAUTH_ENABLED or code.startswith("mock_"):
         mock_data = MOCK_ACCOUNTS.get(platform, {})
@@ -458,7 +462,6 @@ async def oauth_callback(
     
     # Real OAuth: Exchange code for tokens
     import httpx
-    import logging as _logging
 
     code_verifier = token_record.get("codeVerifier")
     base_url = os.environ.get("BACKEND_PUBLIC_URL", os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001"))
@@ -526,45 +529,62 @@ async def oauth_callback(
 
             tokens = token_response.json()
             now = datetime.now(timezone.utc)
+            _logging.info(f"[OAuth Callback] Token exchange successful for platform: {platform}, got tokens: {list(tokens.keys())}")
 
             # ── Platform-specific account info fetch ──────────────────────
             if platform == "youtube":
+                _logging.info(f"[YouTube OAuth] Processing YouTube platform for client_id: {client_id}")
                 access_token = tokens.get("access_token")
                 refresh_token_value = tokens.get("refresh_token")
                 expires_in = tokens.get("expires_in", 3600)
                 expires_at = (now + timedelta(seconds=expires_in)).isoformat()
+
+                _logging.info(f"[YouTube OAuth] Tokens received - access: {access_token[:20] if access_token else 'None'}..., refresh: {'Present' if refresh_token_value else 'None'}")
 
                 channel_info = None
                 try:
                     from services.youtube_sync_service import get_youtube_service_with_credentials, get_channel_info
                     youtube = get_youtube_service_with_credentials(access_token, refresh_token_value)
                     channel_info = await get_channel_info(youtube)
+                    _logging.info(f"[YouTube OAuth] Channel info fetched: {channel_info}")
                 except Exception as e:
-                    _logging.error(f"Failed to fetch YouTube channel info: {e}")
+                    _logging.error(f"[YouTube OAuth] Failed to fetch YouTube channel info: {e}")
 
                 account_name = channel_info.get("title", "YouTube Channel") if channel_info else "YouTube Channel"
                 account_handle = channel_info.get("customUrl", "@channel") if channel_info else "@channel"
 
-                await db.update_one(
-                    {"clientId": client_id, "platform": platform},
-                    {"$set": {
-                        "connected": True,
-                        "accessToken": access_token,
-                        "refreshToken": refresh_token_value,
-                        "expiresAt": expires_at,
-                        "accountName": account_name,
-                        "accountHandle": account_handle,
-                        "accountMeta": {
-                            "subscriberCount": f"{channel_info.get('subscriberCount', 0):,}" if channel_info else "0",
+                _logging.info(f"[YouTube OAuth] Attempting database update for clientId: {client_id}, platform: {platform}")
+                _logging.info(f"[YouTube OAuth] Database collection: {db.name}")
+
+                try:
+                    result = await db.update_one(
+                        {"clientId": client_id, "platform": platform},
+                        {"$set": {
+                            "connected": True,
+                            "accessToken": access_token,
+                            "refreshToken": refresh_token_value,
+                            "expiresAt": expires_at,
+                            "accountName": account_name,
+                            "accountHandle": account_handle,
+                            "accountMeta": {
+                                "subscriberCount": f"{channel_info.get('subscriberCount', 0):,}" if channel_info else "0",
+                                "channelId": channel_info.get("channelId") if channel_info else None,
+                                "uploadsPlaylistId": channel_info.get("uploadsPlaylistId") if channel_info else None
+                            },
                             "channelId": channel_info.get("channelId") if channel_info else None,
-                            "uploadsPlaylistId": channel_info.get("uploadsPlaylistId") if channel_info else None
-                        },
-                        "channelId": channel_info.get("channelId") if channel_info else None,
-                        "connectedAt": now.isoformat(),
-                        "updatedAt": now.isoformat(),
-                        "oauthState": None, "codeVerifier": None
-                    }}
-                )
+                            "channelName": account_name,
+                            "connectedAt": now.isoformat(),
+                            "updatedAt": now.isoformat(),
+                            "oauthState": None, "codeVerifier": None
+                        }},
+                        upsert=True
+                    )
+                    _logging.info(f"[YouTube OAuth] Database update result - matched: {result.matched_count}, modified: {result.modified_count}, upserted_id: {result.upserted_id}")
+                except Exception as e:
+                    _logging.error(f"[YouTube OAuth] Database update FAILED: {e}")
+                    _logging.error(f"[YouTube OAuth] Exception type: {type(e).__name__}")
+                    import traceback
+                    _logging.error(f"[YouTube OAuth] Traceback: {traceback.format_exc()}")
 
             elif platform == "tiktok":
                 access_token = tokens.get("access_token")

@@ -342,6 +342,16 @@ async def check_veo_job(job_id: str) -> VideoStatusResult:
                     has_error = True
                     error_msg = str(operation.get('error'))
 
+                # Check for RAI (Responsible AI) filtering
+                response = operation.get('response', {})
+                if 'generateVideoResponse' in response:
+                    gen_response = response['generateVideoResponse']
+                    if gen_response.get('raiMediaFilteredCount', 0) > 0:
+                        has_error = True
+                        reasons = gen_response.get('raiMediaFilteredReasons', [])
+                        error_msg = reasons[0] if reasons else "Content was filtered by safety checks"
+                        logger.warning(f"Video filtered by RAI: {error_msg}")
+
             if has_error:
                 # Operation failed with error
                 logger.error(f"Veo operation failed. Job ID: {job_id}, Error: {error_msg}")

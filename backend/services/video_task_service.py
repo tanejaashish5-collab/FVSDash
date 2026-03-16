@@ -156,24 +156,58 @@ async def create_veo_job(task_data: dict) -> VideoJobResult:
         aspect_ratio = task_data.get("aspectRatio", "16:9")
         veo_aspect = "16:9" if aspect_ratio == "16:9" else "9:16"
 
-        # ALWAYS use Veo 3.1 Fast model for consistent performance
-        # Fast mode: 2x faster generation, still excellent quality
-        model_name = "veo-3.1-fast-generate-preview"
-        logger.info("Using Veo 3.1 Fast model (enforced default)")
+        # Model fallback strategy - try multiple models if quota exceeded
+        models_to_try = [
+            "veo-3.1-fast-generate-preview",  # Fastest, best quality
+            "veo-3.1-generate-preview",       # Standard quality
+            "veo-3.0-generate-001",           # Older model, separate quota
+            "veo-3.0-fast-generate-001",      # Older fast model
+        ]
 
-        # Submit video generation job
-        logger.info(f"Submitting Veo 3.1 video generation: model={model_name}, aspect={veo_aspect}")
+        # Submit video generation job with fallback
+        operation = None
+        last_error = None
 
-        operation = client.models.generate_videos(
-            model=model_name,
-            prompt=enhanced_prompt,
-            config=types.GenerateVideosConfig(
-                aspect_ratio=veo_aspect,
-                number_of_videos=1,
-                # Veo 3.1 requires duration between 4-8 seconds
-                duration_seconds=8,  # Maximum allowed by Veo 3.1
-            ),
-        )
+        for model_name in models_to_try:
+            logger.info(f"Trying Veo model: {model_name}")
+            try:
+                operation = client.models.generate_videos(
+                    model=model_name,
+                    prompt=enhanced_prompt,
+                    config=types.GenerateVideosConfig(
+                        aspect_ratio=veo_aspect,
+                        number_of_videos=1,
+                        # Veo requires duration between 4-8 seconds
+                        duration_seconds=8,  # Maximum allowed
+                    ),
+                )
+                logger.info(f"✅ Successfully using model: {model_name}")
+                break  # Success! Exit the loop
+
+            except Exception as e:
+                error_str = str(e)
+                if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+                    logger.warning(f"Model {model_name} quota exceeded, trying next...")
+                    last_error = e
+                    continue  # Try next model
+                elif "404" in error_str or "not found" in error_str.lower():
+                    logger.warning(f"Model {model_name} not available, trying next...")
+                    last_error = e
+                    continue
+                else:
+                    # Non-quota error, fail immediately
+                    logger.error(f"Model {model_name} failed: {error_str}")
+                    raise e
+
+        if not operation:
+            # All models failed
+            logger.error("All Veo models quota exceeded or unavailable")
+            if last_error:
+                raise last_error
+            raise HTTPException(
+                status_code=500,
+                detail="All Veo models have exceeded quota. Please try again later."
+            )
 
         # Return the operation name as our job ID
         operation_name = operation.name if hasattr(operation, 'name') else str(uuid.uuid4())

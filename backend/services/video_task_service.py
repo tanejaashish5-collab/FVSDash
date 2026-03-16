@@ -227,56 +227,73 @@ async def check_veo_job(job_id: str) -> VideoStatusResult:
 
         client = genai.Client(api_key=api_key)
 
-        # Get operation status
-        operation = client.operations.get(job_id)
+        # Get operation status - use the video-specific method
+        operation = client.operations._get_videos_operation(operation_name=job_id)
 
-        if operation.done:
+        # Check if operation is done (it's a dict)
+        if isinstance(operation, dict):
+            is_done = operation.get('done', False)
+        else:
+            is_done = getattr(operation, 'done', False)
+
+        if is_done:
             # Job completed - check for video
-            if hasattr(operation, 'response') and operation.response:
-                if hasattr(operation.response, 'generated_videos') and operation.response.generated_videos:
-                    video = operation.response.generated_videos[0]
-                    video_url = None
+            video_url = None
 
-                    # Extract video URL from response
-                    if hasattr(video, 'video'):
-                        if hasattr(video.video, 'uri'):
-                            video_url = video.video.uri
-                        elif hasattr(video.video, 'url'):
-                            video_url = video.video.url
+            if isinstance(operation, dict):
+                # Handle dict response from API
+                response = operation.get('response', {})
+                generated_videos = response.get('generatedVideos', [])
 
-                    if video_url:
-                        logger.info(f"Veo 3.1 video ready: {video_url[:100]}...")
+                if generated_videos:
+                    video = generated_videos[0]
+                    video_data = video.get('video', {})
+                    video_url = video_data.get('uri') or video_data.get('url')
+            else:
+                # Handle object response (if API changes)
+                if hasattr(operation, 'response') and operation.response:
+                    if hasattr(operation.response, 'generated_videos') and operation.response.generated_videos:
+                        video = operation.response.generated_videos[0]
+                        if hasattr(video, 'video'):
+                            if hasattr(video.video, 'uri'):
+                                video_url = video.video.uri
+                            elif hasattr(video.video, 'url'):
+                                video_url = video.video.url
 
-                        # Upload to first-party storage if configured
-                        from services.storage_service import get_storage_service
-                        try:
-                            storage = get_storage_service()
-                            # Download video from Veo URL
-                            import httpx
-                            async with httpx.AsyncClient() as http_client:
-                                response = await http_client.get(video_url)
-                                video_data = response.content
+            if video_url:
+                logger.info(f"Veo 3.1 video ready: {video_url[:100]}...")
 
-                            # Upload to our storage
-                            upload_result = await storage.upload_file(
-                                file_data=video_data,
-                                folder="video_tasks",
-                                filename=f"veo_{job_id[-12:]}.mp4",
-                                content_type="video/mp4"
-                            )
-                            video_url = upload_result["url"]
-                            logger.info(f"Video uploaded to storage: {video_url}")
-                        except Exception as e:
-                            logger.warning(f"Could not upload to storage, using Veo URL: {e}")
+                # Upload to first-party storage if configured
+                from services.storage_service import get_storage_service
+                try:
+                    storage = get_storage_service()
+                    # Download video from Veo URL
+                    import httpx
+                    async with httpx.AsyncClient() as http_client:
+                        response = await http_client.get(video_url)
+                        video_data = response.content
 
-                        return VideoStatusResult(
-                            status="READY",
-                            video_url=video_url,
-                            is_mocked=False
-                        )
+                    # Upload to our storage
+                    upload_result = await storage.upload_file(
+                        file_data=video_data,
+                        folder="video_tasks",
+                        filename=f"veo_{job_id[-12:]}.mp4",
+                        content_type="video/mp4"
+                    )
+                    video_url = upload_result["url"]
+                    logger.info(f"Video uploaded to storage: {video_url}")
+                except Exception as e:
+                    logger.warning(f"Could not upload to storage, using Veo URL: {e}")
 
-            # Operation done but no video - treat as failed
-            logger.warning(f"Veo operation completed but no video in response: {job_id}")
+                return VideoStatusResult(
+                    status="READY",
+                    video_url=video_url,
+                    is_mocked=False
+                )
+
+            # Operation done but no video - log full response for debugging
+            logger.warning(f"Veo operation completed but no video found. Job ID: {job_id}")
+            logger.warning(f"Full operation response: {operation}")
             return VideoStatusResult(
                 status="FAILED",
                 is_mocked=False,

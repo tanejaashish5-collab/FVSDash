@@ -514,8 +514,48 @@ async def _chanakya_generate_longform(day: str):
             {"$set": {"status": "completed", "submissionId": submission["id"]}}
         )
 
-        # TODO: Wire to YouTube API scheduler (long-form only, not suitable for TikTok/IG)
-        # await schedule_youtube_upload(submission_id=submission["id"], scheduled_at="tomorrow 03:30 UTC", platform="youtube")
+        # Upload to YouTube
+        logger.info(f"[Chanakya {day}] Uploading long-form video to YouTube...")
+        try:
+            from services.youtube_upload_service import upload_video_to_youtube
+            import httpx
+            import tempfile
+
+            # Download video from storage to local temp file
+            async with httpx.AsyncClient(timeout=300) as http:  # 5 min timeout for long videos
+                video_response = await http.get(long_result["url"])
+
+                with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+                    tmp.write(video_response.content)
+                    local_video_path = tmp.name
+
+            # Upload to YouTube as regular video (not Shorts)
+            youtube_result = await upload_video_to_youtube(
+                user_id=CLIENT_ID,
+                video_file_path=local_video_path,
+                title=long_idea["topic"][:100],  # YouTube title limit
+                description=f"{long_idea['topic']}\n\n{script_data['text'][:4500]}\n\n#Chanakya #Leadership #Business #Wisdom #IndianPhilosophy #Strategy",
+                category_id="22",  # People & Blogs
+                privacy_status="public",
+                is_short=False  # Long-form, not Shorts
+            )
+
+            if youtube_result.get("success"):
+                logger.info(f"[Chanakya {day}] ✅ Long-form uploaded to YouTube: {youtube_result.get('video_id')}")
+
+                # Update submission with YouTube video ID
+                await subs_db.update_one(
+                    {"id": submission["id"]},
+                    {"$set": {"youtubeVideoId": youtube_result.get('video_id')}}
+                )
+            else:
+                logger.error(f"[Chanakya {day}] ❌ YouTube upload failed: {youtube_result.get('error')}")
+
+            # Clean up temp file
+            os.unlink(local_video_path)
+
+        except Exception as e:
+            logger.error(f"[Chanakya {day}] ❌ YouTube upload error: {e}")
 
         logger.info(f"[Chanakya {day}] ✅ Long-form completed: {submission['title']}")
 

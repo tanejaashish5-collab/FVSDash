@@ -502,7 +502,7 @@ export default function ContentStudioPage() {
       const res = await axios.post(`${API}/video-tasks`, {
         provider: 'veo', mode: 'script',  // Always use Veo 3.1
         prompt: topic, scriptText: script.slice(0, 500),
-        aspectRatio: '9:16', quality: 'standard',  // or 'fast' for quicker generation
+        aspectRatio: '9:16', quality: 'fast',  // Always use fast mode
       }, { headers: authHeaders });
       const taskId = res.data.id || res.data.task_id;
       setVideoTaskId(taskId);
@@ -1132,8 +1132,8 @@ export default function ContentStudioPage() {
                     <div className="flex gap-2">
                       {/* Veo 3.1 is the only provider - no selection needed */}
                       <div className="flex-1 h-9 px-3 bg-zinc-950 border border-zinc-800 text-zinc-400 text-xs flex items-center">
-                        <span className="text-violet-400 font-medium">Veo 3.1</span>
-                        <span className="ml-2 text-zinc-600">• 4K • 20 sec</span>
+                        <span className="text-violet-400 font-medium">Veo 3.1 Fast</span>
+                        <span className="ml-2 text-zinc-600">• 4K • 8 sec • Chanakya</span>
                       </div>
                       <Button onClick={handleGenerateVideo}
                         disabled={(!hasIdea && !hasScript) || videoStatus === 'processing'} size="sm"

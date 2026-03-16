@@ -156,14 +156,10 @@ async def create_veo_job(task_data: dict) -> VideoJobResult:
         aspect_ratio = task_data.get("aspectRatio", "16:9")
         veo_aspect = "16:9" if aspect_ratio == "16:9" else "9:16"
 
-        # Choose model based on quality preference
-        quality = task_data.get("quality", "standard")
-        if quality == "fast":
-            model_name = "veo-3.1-fast-generate-preview"
-            logger.info("Using Veo 3.1 Fast model for quick generation")
-        else:
-            model_name = "veo-3.1-generate-preview"
-            logger.info("Using Veo 3.1 Standard model for best quality")
+        # ALWAYS use Veo 3.1 Fast model for consistent performance
+        # Fast mode: 2x faster generation, still excellent quality
+        model_name = "veo-3.1-fast-generate-preview"
+        logger.info("Using Veo 3.1 Fast model (enforced default)")
 
         # Submit video generation job
         logger.info(f"Submitting Veo 3.1 video generation: model={model_name}, aspect={veo_aspect}")

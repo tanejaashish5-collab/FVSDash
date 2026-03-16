@@ -243,7 +243,15 @@ async def check_veo_job(job_id: str) -> VideoStatusResult:
             if isinstance(operation, dict):
                 # Handle dict response from API
                 response = operation.get('response', {})
-                generated_videos = response.get('generatedVideos', [])
+
+                # Check for generateVideoResponse structure (Veo 3.1 response format)
+                if 'generateVideoResponse' in response:
+                    gen_response = response['generateVideoResponse']
+                    # Veo returns generatedSamples, not generatedVideos
+                    generated_videos = gen_response.get('generatedSamples', [])
+                else:
+                    # Fallback to direct generatedVideos (older format)
+                    generated_videos = response.get('generatedVideos', [])
 
                 if generated_videos:
                     video = generated_videos[0]

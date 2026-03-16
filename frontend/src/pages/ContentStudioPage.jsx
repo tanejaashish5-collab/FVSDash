@@ -40,6 +40,12 @@ const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
 function resolveUrl(url) {
   if (!url) return '';
   if (url.startsWith('/api/files/')) return `${BACKEND}${url}`;
+
+  // Proxy Google Veo videos to bypass CORS
+  if (url.includes('googleapis.com')) {
+    return `${BACKEND}/api/proxy/video?url=${encodeURIComponent(url)}`;
+  }
+
   return url;
 }
 

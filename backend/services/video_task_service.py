@@ -57,8 +57,10 @@ def enforce_chanakya_aesthetic(prompt: str) -> str:
     """
     import random
 
-    # Base Chanakya archetype (from CHANAKYA_CONTENT_ARCHETYPE.md)
-    chanakya_base = "Ancient Indian sage Chanakya with white beard and saffron dhoti"
+    # COMPLETE Chanakya archetype - MUST be consistent across all videos
+    chanakya_base = """Chanakya — bald head, sharp defined jawline, long white beard,
+saffron-orange robe, intense piercing eyes, calm but commanding expression,
+ancient Indian strategist aesthetic, age ~55, lean build, photorealistic"""
 
     setting_options = {
         "wealth": "ornate treasury room with gold coins and ancient scrolls",

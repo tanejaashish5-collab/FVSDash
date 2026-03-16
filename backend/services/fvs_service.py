@@ -87,6 +87,37 @@ def generate_mock_ideas(target_format: str, channel_profile: dict = None) -> lis
 
 
 async def generate_ideas_with_llm(client_id: str, analytics_data: dict, brand_voice: str, target_format: str, channel_profile: dict = None, trending_topics: list = None) -> list:
+    """Generate ideas using LLM or content calendar for Chanakya Sutra."""
+
+    # Special handling for Chanakya Sutra - use structured content calendar
+    if client_id == "chanakya-sutra":
+        from datetime import datetime
+        from services.chanakya_content_calendar import get_topic_for_day, get_next_high_priority_topic
+
+        # Get day of week (0=Monday, 6=Sunday)
+        day_of_week = datetime.now().weekday()
+
+        # Get topic from calendar
+        calendar_topic = get_topic_for_day(day_of_week)
+
+        # For long-form, use high-priority topics
+        if target_format == "longform":
+            high_priority = get_next_high_priority_topic()
+            topic = high_priority
+            hypothesis = f"Deep dive into {high_priority} using Chanakya's timeless wisdom"
+        else:
+            topic = calendar_topic["topic"]
+            hypothesis = calendar_topic["hypothesis"]
+
+        return [{
+            "topic": topic,
+            "hypothesis": hypothesis,
+            "format": target_format,
+            "source": "content_calendar",
+            "pillar": calendar_topic.get("pillar", "Chanakya Wisdom")
+        }]
+
+    # Original LLM generation for other clients follows...
     """Use LLM to generate FVS ideas based on channel profile, real trends, and analytics."""
     from services.ai_service import call_gemini
 
@@ -365,6 +396,52 @@ async def propose_ideas(client_id: str, format: str, range: str) -> dict:
 # PRODUCTION PIPELINE STEPS (Refactored)
 # =============================================================================
 
+def clean_script_for_production(script_text: str) -> str:
+    """
+    Clean script text for production - remove all meta-labels and instructions.
+
+    Removes:
+    - Hook: labels
+    - Title: labels
+    - Scene: labels
+    - [Stage directions in brackets]
+    - (Parenthetical instructions)
+    - Timestamps like 00:00
+
+    Returns only the pure narration text ready for voiceover.
+    """
+    import re
+
+    # Remove common meta-labels (case-insensitive)
+    patterns_to_remove = [
+        r'(?i)^hook:\s*',           # Hook: at start of line
+        r'(?i)^title:\s*',          # Title: at start of line
+        r'(?i)^scene \d+:\s*',      # Scene 1:, Scene 2:, etc
+        r'(?i)^intro:\s*',          # Intro:
+        r'(?i)^outro:\s*',          # Outro:
+        r'\[.*?\]',                 # [Anything in square brackets]
+        r'\(.*?\)',                 # (Anything in parentheses)
+        r'^\d{1,2}:\d{2}\s*',       # Timestamps like 0:00 or 00:00
+        r'(?i)^narrator:\s*',       # Narrator:
+        r'(?i)^voiceover:\s*',      # Voiceover:
+        r'(?i)^v\.o\.\s*',          # V.O.
+    ]
+
+    cleaned = script_text
+
+    # Apply each pattern
+    for pattern in patterns_to_remove:
+        cleaned = re.sub(pattern, '', cleaned, flags=re.MULTILINE)
+
+    # Remove multiple consecutive newlines
+    cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
+
+    # Strip leading/trailing whitespace
+    cleaned = cleaned.strip()
+
+    return cleaned
+
+
 async def generate_script_for_idea(idea: dict, brand_voice: str, channel_profile: dict = None) -> dict:
     """
     Step 1: Generate script from idea using LLM.
@@ -413,11 +490,13 @@ Write an engaging script that:
 
 Write the full script text only. No stage directions or timestamps unless performance cues are specified above."""
 
-            script_text = await call_gemini(
+            raw_script = await call_gemini(
                 script_prompt,
                 max_tokens=4096,
                 system_message="You are an expert scriptwriter. Follow the language and style instructions exactly."
             )
+            # Clean the script for production
+            script_text = clean_script_for_production(raw_script)
             provider = "gemini"
         else:
             script_text = f"[Auto-generated script for: {idea.get('topic')}]\n\nHey everyone! Today we're talking about {idea.get('topic')}.\n\n{idea.get('hypothesis')}\n\nLet's dive in...\n\n[Main content would go here]\n\nThat's it for today! Don't forget to like and subscribe."

@@ -203,17 +203,25 @@ def build_thumbnail_prompt(
 ) -> str:
     """
     Build an engaging thumbnail generation prompt from episode metadata.
-    
+
     Args:
         topic: The episode topic
         brand_voice: Client's brand voice description
         title: The episode title
         format: Episode format (short/long)
-        
+
     Returns:
         Optimized prompt for image generation
     """
-    # Extract key style hints from brand voice
+    # Check if this is for Chanakya Sutra channel
+    if "chanakya" in brand_voice.lower() or "chanakya" in topic.lower():
+        # Use specific Chanakya thumbnail template
+        return f"""Pure black background, bold white text saying "{title[:30]}",
+single gold accent line, no faces or characters, extremely high contrast,
+dramatic lighting, minimalist design, ancient Indian wisdom aesthetic,
+lotus symbol or scroll in gold, professional YouTube thumbnail, 16:9 aspect ratio"""
+
+    # Extract key style hints from brand voice for other channels
     style_hints = []
     brand_lower = brand_voice.lower() if brand_voice else ""
     

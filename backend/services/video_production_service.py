@@ -100,8 +100,8 @@ Rules:
 
 **CHANAKYA AESTHETIC REQUIRED (CRITICAL - MUST FOLLOW):**
 Every visual_prompt MUST include Ancient India / Mauryan era elements:
+  - Character (EXACT): Chanakya — bald head, sharp defined jawline, long white beard, saffron-orange robe, intense piercing eyes, calm but commanding expression, ancient Indian strategist aesthetic, age ~55, lean build, photorealistic
   - Setting: Mauryan palace courtyard, dimly lit study, war council chamber, ornate treasury, throne room with stone pillars
-  - Character: Ancient Indian sage with white beard and saffron dhoti, OR traditional advisor/philosopher
   - Props: Ancient scrolls, palm leaf manuscripts, oil lamps, gold coins, chess board, ornate carvings
   - Lighting: Golden hour lighting, dramatic shadows, warm amber tones
   - Style: Cinematic 4K, Bollywood epic cinematography, Indian aesthetic
@@ -153,8 +153,8 @@ Rules:
 - All other scenes: "is_hero": false, "type": "image"
 
 **CHANAKYA AESTHETIC REQUIRED (ALL SCENES):**
-- "veo" scenes: Ancient Indian sage with saffron dhoti, Mauryan palace/courtyard/study, golden hour lighting, cinematic 4K, Bollywood epic style, dramatic motion
-- "image" scenes: Minimalist Indian art style, gold and black color scheme, ancient India symbols (lotus, coins, scrolls, chess pieces), Chanakya wisdom theme
+- "veo" scenes: Chanakya — bald head, sharp defined jawline, long white beard, saffron-orange robe, intense piercing eyes, calm but commanding expression, ancient Indian strategist aesthetic, age ~55, lean build, photorealistic. Mauryan palace/courtyard/study, golden hour lighting, cinematic 4K
+- "image" scenes: Minimalist Indian art style featuring Chanakya (same appearance), gold and black color scheme, ancient India symbols (lotus, coins, scrolls, chess pieces), Chanakya wisdom theme
 
 **FORBIDDEN:**
   ❌ Modern elements (suits, offices, technology)

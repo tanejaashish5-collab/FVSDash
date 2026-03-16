@@ -11,7 +11,7 @@ from fastapi.responses import StreamingResponse
 from urllib.parse import urlparse, parse_qs
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/proxy", tags=["proxy"])
+router = APIRouter(prefix="/proxy", tags=["proxy"])
 
 
 @router.get("/video")

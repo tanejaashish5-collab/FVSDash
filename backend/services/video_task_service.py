@@ -291,14 +291,33 @@ async def check_veo_job(job_id: str) -> VideoStatusResult:
                     is_mocked=False
                 )
 
-            # Operation done but no video - log full response for debugging
-            logger.warning(f"Veo operation completed but no video found. Job ID: {job_id}")
-            logger.warning(f"Full operation response: {operation}")
-            return VideoStatusResult(
-                status="FAILED",
-                is_mocked=False,
-                warning="Video generation completed but no video data returned"
-            )
+            # Check if there's an error in the response
+            has_error = False
+            error_msg = None
+
+            if isinstance(operation, dict):
+                if operation.get('error'):
+                    has_error = True
+                    error_msg = str(operation.get('error'))
+
+            if has_error:
+                # Operation failed with error
+                logger.error(f"Veo operation failed. Job ID: {job_id}, Error: {error_msg}")
+                return VideoStatusResult(
+                    status="FAILED",
+                    is_mocked=False,
+                    warning=f"Video generation failed: {error_msg}"
+                )
+            else:
+                # Operation done but no video yet - might still be processing
+                logger.info(f"Veo operation done but no video URL yet. Job ID: {job_id}")
+                logger.debug(f"Operation response: {operation}")
+                # Return PROCESSING to keep polling
+                return VideoStatusResult(
+                    status="PROCESSING",
+                    is_mocked=False,
+                    warning="Video is being finalized..."
+                )
         else:
             # Still processing
             logger.info(f"Veo 3.1 job still processing: {job_id}")

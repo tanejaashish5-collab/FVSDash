@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>FVS Environment Check</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 40px;
+      background: #18181b;
+      color: #fafafa;
+    }
+    .ok { color: #22c55e; }
+    .error { color: #ef4444; }
+    pre {
+      background: #27272a;
+      padding: 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>FVS Environment Check</h1>
+  <div id="result"></div>
+
+  <script>
+    const EXPECTED_BACKEND = 'https://fvsdash-production.up.railway.app';
+
+    // This won't work in static HTML - we need to check from the actual React build
+    // Let's test the API instead
+
+    async function checkBackend() {
+      const result = document.getElementById('result');
+
+      // Try to fetch from expected backend
+      try {
+        const response = await fetch(`${EXPECTED_BACKEND}/api/health`);
+        const data = await response.json();
+
+        result.innerHTML = `
+          <h2 class="ok">✓ Backend is reachable</h2>
+          <pre>${JSON.stringify(data, null, 2)}</pre>
+          <p>Expected backend: <strong>${EXPECTED_BACKEND}</strong></p>
+          <p>Response status: <span class="ok">${response.status}</span></p>
+        `;
+      } catch (err) {
+        result.innerHTML = `
+          <h2 class="error">✗ Backend NOT reachable</h2>
+          <pre>${err.message}</pre>
+          <p>Trying to reach: <strong>${EXPECTED_BACKEND}/api/health</strong></p>
+        `;
+      }
+    }
+
+    checkBackend();
+  </script>
+</body>
+</html>

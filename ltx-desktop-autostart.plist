@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.fvs.ltxdesktop</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Applications/LTX Desktop.app/Contents/MacOS/LTX Desktop</string>
+    </array>
+
+    <!-- Start on boot -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Keep running (auto-restart if crashes) -->
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+        <key>Crashed</key>
+        <true/>
+    </dict>
+
+    <!-- Restart delay after crash (10 seconds) -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <!-- Log files for debugging -->
+    <key>StandardOutPath</key>
+    <string>/Users/ashishtaneja/Library/Logs/LTXDesktop.stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/ashishtaneja/Library/Logs/LTXDesktop.stderr.log</string>
+
+    <!-- Environment variables -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>LTX_PORT</key>
+        <string>8080</string>
+        <key>LTX_HOST</key>
+        <string>0.0.0.0</string>
+    </dict>
+</dict>
+</plist>

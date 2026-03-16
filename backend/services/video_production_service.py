@@ -201,97 +201,107 @@ Return ONLY a valid JSON array with exactly 36 scenes, no other text:
 # VIDEO CLIP GENERATION (Veo)
 # ─────────────────────────────────────────────
 
-async def generate_kling_clip(prompt: str, duration: int = 10, aspect: str = "9:16", quality: str = "pro") -> str:
+async def generate_veo_clip(prompt: str, duration: int = 8, aspect: str = "9:16", quality: str = "standard") -> str:
     """
-    Generate a single video clip using Kling AI via fal.ai.
+    Generate a single video clip using Google Veo 3.1.
 
     Args:
         prompt: Cinematic description for video generation
-        duration: Video duration in seconds (10 is minimum, will be capped at 10)
+        duration: Video duration in seconds (4-8 supported by Veo 3.1)
         aspect: Aspect ratio ("9:16" for shorts, "16:9" for long-form)
-        quality: "pro" (Kling 2.6 Pro, $0.70/clip) or "standard" (Kling 2.1, $0.25/clip)
+        quality: "standard" (veo-3.1-generate-preview) or "fast" (veo-3.1-fast-generate-preview)
 
     Returns:
         Local file path to the downloaded .mp4
 
-    Cost per 10-second clip:
-        - Pro: $0.70 (highest quality, use for all shorts + long-form hero clips)
-        - Standard: $0.25 (good quality, not currently used)
+    Cost per 8-second clip:
+        - Standard: ~$0.16 (best quality)
+        - Fast: ~$0.08 (faster generation, slightly lower quality)
     """
-    fal_key = os.environ.get("FAL_KEY")
-    if not fal_key:
-        logger.warning("FAL_KEY not set, using mock video clip")
-        return await _get_mock_video_clip(aspect)
+    # Import required modules
+    from services.video_task_service import create_veo_job, check_veo_job
+    import asyncio
+    import httpx
 
     try:
-        # Force 10-second duration (Kling minimum, tested at $0.70/clip)
-        duration = 10
+        # Enforce Chanakya aesthetic on the prompt
+        from services.video_task_service import enforce_chanakya_aesthetic
+        enhanced_prompt = enforce_chanakya_aesthetic(prompt)
 
-        # Choose model based on quality tier
-        if quality == "pro":
-            model = "fal-ai/kling-video/v2.6/pro/text-to-video"
-            logger.info(f"Using Kling 2.6 Pro ($0.70/clip) for {duration}sec clip")
-        else:  # standard
-            model = "fal-ai/kling-video/v2.1/standard/text-to-video"
-            logger.info(f"Using Kling 2.1 Standard ($0.25/clip) for {duration}sec clip")
+        # Veo 3.1 supports 4-8 seconds only
+        duration = min(max(4, duration), 8)
 
-        # Import fal_client
-        try:
-            import fal_client
-        except ImportError:
-            logger.error("fal-client not installed. Run: pip install fal-client>=0.5.0")
+        logger.info(f"Generating Veo 3.1 video ({quality}, {duration}s): {enhanced_prompt[:60]}...")
+
+        # Create Veo job
+        job_result = await create_veo_job({
+            "prompt": enhanced_prompt,
+            "aspectRatio": aspect,
+            "quality": quality
+        })
+
+        if job_result.is_mocked:
+            logger.warning("Veo returned mocked result, using fallback")
             return await _get_mock_video_clip(aspect)
 
-        # Set API key
-        fal_client.api_key = fal_key
+        # Poll for completion (Veo is async)
+        job_id = job_result.job_id
+        max_wait = 300  # 5 minutes max
+        poll_interval = 10  # Check every 10 seconds
+        elapsed = 0
 
-        # Generate video
-        logger.info(f"Generating Kling video: {prompt[:60]}...")
-        result = await fal_client.run_async(
-            model,
-            arguments={
-                "prompt": prompt,
-                "duration": str(min(duration, 10)),  # Max 10 sec per clip
-                "aspect_ratio": aspect,
-                "negative_prompt": "blurry, low quality, distorted, watermark, text overlay"
-            }
-        )
+        while elapsed < max_wait:
+            status_result = await check_veo_job(job_id)
 
-        # Get video URL from result
-        video_url = result.get("video", {}).get("url")
-        if not video_url:
-            logger.error(f"Kling returned no video URL. Result: {result}")
-            return await _get_mock_video_clip(aspect)
+            if status_result.status == "READY":
+                video_url = status_result.video_url
+                if video_url:
+                    # Download video to local temp
+                    local_job_id = str(uuid.uuid4())[:8]
+                    local_path = str(TEMP_DIR / f"veo_{quality}_{local_job_id}.mp4")
 
-        # Download video to local temp
-        job_id = str(uuid.uuid4())[:8]
-        local_path = str(TEMP_DIR / f"kling_{quality}_{job_id}.mp4")
+                    async with httpx.AsyncClient(timeout=180) as http:
+                        logger.info(f"Downloading Veo video from: {video_url[:50]}...")
+                        resp = await http.get(video_url)
 
-        import httpx
-        async with httpx.AsyncClient(timeout=180) as http:
-            logger.info(f"Downloading Kling video from: {video_url[:50]}...")
-            resp = await http.get(video_url)
+                        if resp.status_code != 200:
+                            logger.error(f"Failed to download Veo video: HTTP {resp.status_code}")
+                            return await _get_mock_video_clip(aspect)
 
-            if resp.status_code != 200:
-                logger.error(f"Failed to download Kling video: HTTP {resp.status_code}")
+                        with open(local_path, "wb") as f:
+                            f.write(resp.content)
+
+                    logger.info(f"Veo video downloaded: {local_path} ({len(resp.content) // 1024}KB)")
+                    return local_path
+
+            elif status_result.status == "FAILED":
+                logger.error(f"Veo job failed: {status_result.warning}")
                 return await _get_mock_video_clip(aspect)
 
-            with open(local_path, "wb") as f:
-                f.write(resp.content)
+            # Still processing
+            await asyncio.sleep(poll_interval)
+            elapsed += poll_interval
+            logger.info(f"Waiting for Veo video... ({elapsed}s elapsed)")
 
-        logger.info(f"Kling video downloaded: {local_path} ({len(resp.content) // 1024}KB)")
-        return local_path
+        logger.error(f"Veo video generation timed out after {max_wait}s")
+        return await _get_mock_video_clip(aspect)
 
     except Exception as e:
-        logger.error(f"Kling clip generation failed: {e}", exc_info=True)
+        logger.error(f"Veo clip generation failed: {e}", exc_info=True)
         return await _get_mock_video_clip(aspect)
 
 
-# Backward compatibility alias
-async def generate_veo_clip(prompt: str, duration: int = 8, aspect: str = "9:16") -> str:
-    """Legacy function name - redirects to Kling. Use generate_kling_clip() instead."""
-    logger.warning("generate_veo_clip() is deprecated, using Kling instead")
-    return await generate_kling_clip(prompt, duration, aspect, quality="pro")
+# Keep the old function name for backward compatibility
+async def generate_kling_clip(prompt: str, duration: int = 10, aspect: str = "9:16", quality: str = "pro") -> str:
+    """
+    Legacy function - now uses Veo 3.1 instead of Kling.
+    Kept for backward compatibility with existing code.
+    """
+    # Map Kling quality to Veo quality
+    veo_quality = "standard" if quality == "pro" else "fast"
+    return await generate_veo_clip(prompt, duration, aspect, veo_quality)
+
+
 
 
 async def _get_mock_video_clip(aspect: str = "9:16") -> str:

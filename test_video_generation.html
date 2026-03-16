@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FVS Video Generation Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 10px 5px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+        input, textarea { width: 100%; padding: 8px; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <h1>🧪 FVS Video Generation Test Tool</h1>
+
+    <div class="section">
+        <h2>Step 1: Check Backend Connection</h2>
+        <button onclick="testBackend()">Test Railway Backend</button>
+        <div id="backendResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>Step 2: Generate Test Video</h2>
+        <p><strong>Settings:</strong></p>
+        <label>Prompt/Topic:</label>
+        <input type="text" id="prompt" value="Chanakya's Rivalry Playbook" />
+
+        <label>Script (leave empty for single clip):</label>
+        <textarea id="script" rows="3" placeholder="Leave empty for $0.70 test, or add script for $3.50 test"></textarea>
+
+        <label>Auth Token (from FVS Settings page):</label>
+        <input type="password" id="token" placeholder="Paste your JWT token here" />
+
+        <button onclick="generateVideo()">🎬 Generate Video (Check Cost First!)</button>
+        <div id="videoResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>Diagnostic Logs</h2>
+        <pre id="logs"></pre>
+    </div>
+
+    <script>
+        const BACKEND_URL = 'https://fvsdash-production.up.railway.app';
+        let logs = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            logs.push(logEntry);
+            document.getElementById('logs').textContent = logs.join('\n');
+            console.log(logEntry);
+        }
+
+        async function testBackend() {
+            const resultDiv = document.getElementById('backendResult');
+            resultDiv.innerHTML = '<p class="info">Testing backend connection...</p>';
+            log('Testing backend: ' + BACKEND_URL + '/api/health');
+
+            try {
+                const response = await fetch(BACKEND_URL + '/api/health');
+                const data = await response.json();
+
+                if (response.ok && data.status === 'ok') {
+                    resultDiv.innerHTML = `
+                        <p class="success">✅ Backend is reachable!</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    log('✅ Backend health check passed');
+                } else {
+                    resultDiv.innerHTML = `<p class="error">❌ Backend returned unexpected response</p>`;
+                    log('❌ Backend health check failed: ' + JSON.stringify(data));
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">❌ Cannot reach backend: ${error.message}</p>`;
+                log('❌ Backend connection error: ' + error.message);
+            }
+        }
+
+        async function generateVideo() {
+            const resultDiv = document.getElementById('videoResult');
+            const prompt = document.getElementById('prompt').value;
+            const script = document.getElementById('script').value;
+            const token = document.getElementById('token').value;
+
+            if (!token) {
+                resultDiv.innerHTML = '<p class="error">❌ Please enter your auth token first!</p>';
+                return;
+            }
+
+            if (!prompt) {
+                resultDiv.innerHTML = '<p class="error">❌ Please enter a prompt!</p>';
+                return;
+            }
+
+            const cost = script.length > 20 ? '$3.50 (5 clips)' : '$0.70 (1 clip)';
+            resultDiv.innerHTML = `<p class="info">⏳ Generating video... (Cost: ${cost})</p>`;
+            log(`Starting video generation - Prompt: "${prompt}", Script length: ${script.length} chars`);
+
+            const requestBody = {
+                provider: 'kling',
+                prompt: prompt,
+                mode: 'script',
+                scriptText: script || null,
+                aspectRatio: '9:16',
+                outputProfile: 'shorts'
+            };
+
+            log('Request body: ' + JSON.stringify(requestBody));
+
+            try {
+                const response = await fetch(BACKEND_URL + '/api/video-tasks', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                log(`Response status: ${response.status} ${response.statusText}`);
+
+                const data = await response.json();
+                log('Response data: ' + JSON.stringify(data));
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <p class="success">✅ Video task created!</p>
+                        <p><strong>Task ID:</strong> ${data.id}</p>
+                        <p><strong>Status:</strong> ${data.status}</p>
+                        <p><strong>Provider:</strong> ${data.provider} ${data.isMocked ? '(MOCKED)' : '(REAL)'}</p>
+                        ${data.warnings ? `<p class="error">⚠️ Warning: ${data.warnings.join(', ')}</p>` : ''}
+                        ${data.videoUrl ? `<p class="success">✅ Video URL: <a href="${data.videoUrl}" target="_blank">${data.videoUrl}</a></p>` : '<p class="info">⏳ Video is generating...</p>'}
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    log('✅ Video task created successfully');
+                } else {
+                    resultDiv.innerHTML = `
+                        <p class="error">❌ Error: ${data.detail || 'Unknown error'}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    log('❌ Error creating video task: ' + (data.detail || 'Unknown'));
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">❌ Request failed: ${error.message}</p>`;
+                log('❌ Request error: ' + error.message);
+            }
+        }
+
+        // Auto-test backend on load
+        window.addEventListener('load', () => {
+            log('=== FVS Video Generation Test Tool Loaded ===');
+            log('Backend URL: ' + BACKEND_URL);
+            testBackend();
+        });
+    </script>
+</body>
+</html>

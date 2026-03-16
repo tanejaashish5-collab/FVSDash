@@ -174,8 +174,8 @@ async def create_veo_job(task_data: dict) -> VideoJobResult:
             config=types.GenerateVideosConfig(
                 aspect_ratio=veo_aspect,
                 number_of_videos=1,
-                # Veo 3.1 requires duration between 4-8 seconds
-                duration_seconds=8,  # Maximum allowed by Veo 3.1
+                # Veo 3.1 can generate up to 20 seconds
+                duration_seconds=10,  # Start with 10 seconds for cost efficiency
             ),
         )
 

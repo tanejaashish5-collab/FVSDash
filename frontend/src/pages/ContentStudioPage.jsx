@@ -61,11 +61,9 @@ function dataUrlToBlobUrl(dataUrl) {
   }
 }
 
-const VIDEO_PROVIDERS = [
-  { value: 'veo', label: 'Veo (Google)' },
-  { value: 'kling', label: 'Kling' },
-  { value: 'runway', label: 'Runway' },
-];
+// Veo 3.1 is the only video provider now (clean architecture)
+// Released January 2026 - best quality and price
+const VIDEO_PROVIDER = 'veo';
 
 function StepLabel({ num, color, label, icon: Icon }) {
   return (
@@ -112,8 +110,8 @@ export default function ContentStudioPage() {
 
   // AI provider
   const [aiProvider, setAiProvider] = useState('gemini');
-  const [videoProvider, setVideoProvider] = useState('veo');
-  const [capabilities, setCapabilities] = useState({ llmProviders: [], videoProviders: [] });
+  // Veo 3.1 is the only video provider - no need for selection
+  const [capabilities, setCapabilities] = useState({ llmProviders: [] });
 
   // Channel voice ID (from channel profile — persisted ElevenLabs voice preference)
   const [channelVoiceId, setChannelVoiceId] = useState('');
@@ -187,7 +185,7 @@ export default function ContentStudioPage() {
       } catch {}
     }
     Promise.all([
-      axios.get(`${API}/ai/capabilities`, { headers: authHeaders }).catch(() => ({ data: { llmProviders: [], videoProviders: [] } })),
+      axios.get(`${API}/ai/capabilities`, { headers: authHeaders }).catch(() => ({ data: { llmProviders: [] } })),
       axios.get(`${API}/channel-profile`, { headers: authHeaders }).catch(() => ({ data: null })),
     ]).then(([capRes, profileRes]) => {
       setCapabilities(capRes.data || {});
@@ -502,9 +500,9 @@ export default function ContentStudioPage() {
     try {
       const sid = await ensureSession();
       const res = await axios.post(`${API}/video-tasks`, {
-        provider: videoProvider, mode: 'script',
+        provider: 'veo', mode: 'script',  // Always use Veo 3.1
         prompt: topic, scriptText: script.slice(0, 500),
-        aspectRatio: '9:16', outputProfile: 'shorts',
+        aspectRatio: '9:16', quality: 'standard',  // or 'fast' for quicker generation
       }, { headers: authHeaders });
       const taskId = res.data.id || res.data.task_id;
       setVideoTaskId(taskId);
@@ -1132,16 +1130,11 @@ export default function ContentStudioPage() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Select value={videoProvider} onValueChange={setVideoProvider}>
-                        <SelectTrigger className="h-9 flex-1 bg-zinc-950 border-zinc-800 text-white text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-zinc-900 border-zinc-700">
-                          {VIDEO_PROVIDERS.map(p => (
-                            <SelectItem key={p.value} value={p.value} className="text-xs text-zinc-300">{p.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {/* Veo 3.1 is the only provider - no selection needed */}
+                      <div className="flex-1 h-9 px-3 bg-zinc-950 border border-zinc-800 text-zinc-400 text-xs flex items-center">
+                        <span className="text-violet-400 font-medium">Veo 3.1</span>
+                        <span className="ml-2 text-zinc-600">• 4K • 20 sec</span>
+                      </div>
                       <Button onClick={handleGenerateVideo}
                         disabled={(!hasIdea && !hasScript) || videoStatus === 'processing'} size="sm"
                         className="h-9 px-4 bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/20 text-violet-400 text-xs">

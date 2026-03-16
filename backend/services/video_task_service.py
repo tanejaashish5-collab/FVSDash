@@ -1,12 +1,12 @@
-"""Video task service - multi-provider video generation.
+"""Video task service - Google Veo 3.1 only implementation.
 
-Supports real integration with Google Veo and mocked providers (Runway, Kling).
+Clean architecture with only Veo 3.1 for video generation.
+All other providers (Kling, Runway, LTX) removed for simplicity.
 """
 import os
 import uuid
-import hashlib
 import logging
-import time as _time
+import asyncio
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
@@ -16,13 +16,6 @@ from db.mongo import video_tasks_collection, assets_collection
 
 logger = logging.getLogger(__name__)
 
-# Mock video URLs for fallback/testing
-MOCK_VIDEO_URLS = [
-    "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-    "https://storage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-    "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-]
-
 
 @dataclass
 class VideoJobResult:
@@ -31,7 +24,7 @@ class VideoJobResult:
     provider: str
     is_mocked: bool
     warning: Optional[str] = None
-    video_url: Optional[str] = None  # For synchronous providers like Kling
+    video_url: Optional[str] = None
 
 
 @dataclass
@@ -41,219 +34,6 @@ class VideoStatusResult:
     video_url: Optional[str] = None
     is_mocked: bool = False
     warning: Optional[str] = None
-
-
-# =============================================================================
-# GOOGLE VEO INTEGRATION (REAL)
-# =============================================================================
-
-async def create_veo_job(task_data: dict) -> VideoJobResult:
-    """
-    Create a video generation job with Google Veo.
-
-    Supports two credential paths (tried in order):
-      1. VEO_API_KEY  — Google AI Studio API key (ai.google.dev)
-      2. GOOGLE_CLOUD_PROJECT + GOOGLE_APPLICATION_CREDENTIALS — Vertex AI
-
-    Falls back to mock if neither is configured or on error.
-    """
-    # Accept all common aliases — user may have set GEMINI_API_KEY or GOOGLE_API_KEY
-    api_key = (
-        os.environ.get("VEO_API_KEY")
-        or os.environ.get("GEMINI_API_KEY")
-        or os.environ.get("GOOGLE_API_KEY")
-    )
-    gcp_project = os.environ.get("GOOGLE_CLOUD_PROJECT")
-
-    if not api_key and not gcp_project:
-        logger.warning("No Veo credentials (VEO_API_KEY / GEMINI_API_KEY / GOOGLE_API_KEY / GOOGLE_CLOUD_PROJECT). Using mocked video generation.")
-        # Embed creation timestamp so check_veo_job can complete mock after 30 seconds
-        mock_job_id = f"veo-mock-{int(_time.time())}-{uuid.uuid4().hex[:8]}"
-        return VideoJobResult(
-            job_id=mock_job_id,
-            provider="mock_veo",
-            is_mocked=True,
-            warning="Veo not configured. Set VEO_API_KEY (Google AI Studio) or GOOGLE_CLOUD_PROJECT (Vertex AI)."
-        )
-
-    try:
-        from google import genai
-        from google.genai import types
-
-        # Initialize client — prefer API key, fall back to Vertex AI
-        if api_key:
-            client = genai.Client(api_key=api_key)
-        else:
-            gcp_location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
-            client = genai.Client(vertexai=True, project=gcp_project, location=gcp_location)
-            logger.info(f"Using Vertex AI for Veo: project={gcp_project}, location={gcp_location}")
-        
-        # Build prompt from task data
-        prompt = task_data.get("prompt", "")
-        if task_data.get("scriptText"):
-            # If there's script text, enhance the prompt
-            prompt = f"{prompt}\n\nScript context: {task_data.get('scriptText', '')[:500]}"
-        
-        # Map aspect ratio to Veo format
-        aspect_ratio = task_data.get("aspectRatio", "16:9")
-        veo_aspect = "16:9" if aspect_ratio == "16:9" else "9:16"
-        
-        logger.info(f"Submitting Veo video generation: prompt='{prompt[:100]}...', aspect={veo_aspect}")
-        
-        # Submit video generation job
-        # NOTE: Using latest available Veo model
-        operation = client.models.generate_videos(
-            model="veo-2.0-generate-001",  # Use available Veo model
-            prompt=prompt,
-            config=types.GenerateVideosConfig(
-                aspect_ratio=veo_aspect,
-                number_of_videos=1,
-            ),
-        )
-        
-        # Return the operation name as our job ID
-        operation_name = operation.name if hasattr(operation, 'name') else str(uuid.uuid4())
-        
-        logger.info(f"Veo job submitted successfully: {operation_name}")
-        
-        return VideoJobResult(
-            job_id=operation_name,
-            provider="veo",
-            is_mocked=False
-        )
-        
-    except ImportError as e:
-        logger.error(f"google-genai SDK not installed: {e}")
-        mock_job_id = f"veo-mock-{int(_time.time())}-{uuid.uuid4().hex[:8]}"
-        return VideoJobResult(
-            job_id=mock_job_id,
-            provider="mock_veo",
-            is_mocked=True,
-            warning="Google GenAI SDK not available. Using mock video generation."
-        )
-    except Exception as e:
-        logger.error(f"Veo video generation failed: {e}")
-        mock_job_id = f"veo-mock-{int(_time.time())}-{uuid.uuid4().hex[:8]}"
-        return VideoJobResult(
-            job_id=mock_job_id,
-            provider="mock_veo",
-            is_mocked=True,
-            warning=f"Veo generation failed: {str(e)}. Using mock video."
-        )
-
-
-async def check_veo_job(job_id: str) -> VideoStatusResult:
-    """
-    Check status of a Google Veo video generation job.
-    
-    Args:
-        job_id: The operation name/ID from Veo
-        
-    Returns:
-        VideoStatusResult with status and video URL if ready
-    """
-    api_key = (
-        os.environ.get("VEO_API_KEY")
-        or os.environ.get("GEMINI_API_KEY")
-        or os.environ.get("GOOGLE_API_KEY")
-    )
-    gcp_project = os.environ.get("GOOGLE_CLOUD_PROJECT")
-
-    # If it's a mock job or no credentials, simulate completion via time-based approach.
-    # Job IDs created by this service embed creation timestamp: veo-mock-{ts}-{hex}
-    # After 30 seconds have elapsed, the mock completes deterministically.
-    if job_id.startswith("veo-mock-"):
-        hash_val = int(hashlib.md5(job_id.encode()).hexdigest()[:8], 16)
-        mock_url = MOCK_VIDEO_URLS[hash_val % len(MOCK_VIDEO_URLS)]
-        parts = job_id.split("-")
-        try:
-            # Format: veo-mock-{timestamp}-{hex}  → parts[2] is the timestamp
-            created_ts = int(parts[2])
-            elapsed = _time.time() - created_ts
-            if elapsed >= 30:
-                return VideoStatusResult(
-                    status="READY",
-                    video_url=mock_url,
-                    is_mocked=True,
-                    warning="Using mock video (configure VEO_API_KEY for real Veo)"
-                )
-        except (ValueError, IndexError):
-            # Old format job ID without timestamp — complete immediately
-            return VideoStatusResult(
-                status="READY",
-                video_url=mock_url,
-                is_mocked=True,
-                warning="Using mock video (configure VEO_API_KEY for real Veo)"
-            )
-        return VideoStatusResult(status="PROCESSING", is_mocked=True)
-
-    try:
-        from google import genai
-
-        if api_key:
-            client = genai.Client(api_key=api_key)
-        else:
-            gcp_location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
-            client = genai.Client(vertexai=True, project=gcp_project, location=gcp_location)
-        
-        # Get operation status
-        operation = client.operations.get(job_id)
-        
-        if operation.done:
-            # Job completed - check for video
-            if hasattr(operation, 'response') and operation.response:
-                if hasattr(operation.response, 'generated_videos') and operation.response.generated_videos:
-                    video = operation.response.generated_videos[0]
-                    video_url = None
-                    
-                    # Extract video URL from response
-                    if hasattr(video, 'video'):
-                        if hasattr(video.video, 'uri'):
-                            video_url = video.video.uri
-                        elif hasattr(video.video, 'url'):
-                            video_url = video.video.url
-                    
-                    if video_url:
-                        logger.info(f"Veo video ready: {video_url[:100]}...")
-                        # TODO: P2 - Upload video to first-party storage (S3/GCS) 
-                        # and return permanent URL instead of provider URL
-                        return VideoStatusResult(
-                            status="READY",
-                            video_url=video_url,
-                            is_mocked=False
-                        )
-                
-            # Operation done but no video - treat as failed
-            logger.warning(f"Veo operation completed but no video in response: {job_id}")
-            return VideoStatusResult(
-                status="FAILED",
-                is_mocked=False,
-                warning="Video generation completed but no video data returned"
-            )
-        else:
-            # Still processing
-            logger.info(f"Veo job still processing: {job_id}")
-            return VideoStatusResult(
-                status="PROCESSING",
-                is_mocked=False
-            )
-            
-    except Exception as e:
-        logger.error(f"Failed to check Veo job status: {e}")
-        # On error, fall back to time-based mock using same logic as above
-        hash_val = int(hashlib.md5(job_id.encode()).hexdigest()[:8], 16)
-        mock_url = MOCK_VIDEO_URLS[hash_val % len(MOCK_VIDEO_URLS)]
-        parts = job_id.split("-")
-        try:
-            created_ts = int(parts[2])
-            if _time.time() - created_ts >= 30:
-                return VideoStatusResult(status="READY", video_url=mock_url, is_mocked=True,
-                                         warning=f"Veo error, using mock: {str(e)}")
-        except (ValueError, IndexError):
-            return VideoStatusResult(status="READY", video_url=mock_url, is_mocked=True,
-                                     warning=f"Veo error, using mock: {str(e)}")
-        return VideoStatusResult(status="PROCESSING", is_mocked=True,
-                                 warning=f"Veo status check failed: {str(e)}")
 
 
 # =============================================================================
@@ -278,7 +58,7 @@ def enforce_chanakya_aesthetic(prompt: str) -> str:
     import random
 
     # Base Chanakya archetype (from CHANAKYA_CONTENT_ARCHETYPE.md)
-    chanakya_base = "Ancient Indian sage with white beard and saffron dhoti"
+    chanakya_base = "Ancient Indian sage Chanakya with white beard and saffron dhoti"
 
     setting_options = {
         "wealth": "ornate treasury room with gold coins and ancient scrolls",
@@ -318,402 +98,359 @@ def enforce_chanakya_aesthetic(prompt: str) -> str:
 
 
 # =============================================================================
-# KLING INTEGRATION (REAL via fal.ai)
+# GOOGLE VEO 3.1 INTEGRATION (January 2026 Release)
 # =============================================================================
 
-async def create_kling_job(task_data: dict) -> VideoJobResult:
+async def create_veo_job(task_data: dict) -> VideoJobResult:
     """
-    Create a video generation job with Kling via fal.ai.
+    Create a video generation job with Google Veo 3.1.
 
-    Uses video_production_service.generate_kling_clip() for real generation.
-    Falls back to mock if FAL_KEY not configured or on error.
-    """
-    fal_key = os.environ.get("FAL_KEY")
+    Uses the latest Veo 3.1 models released in January 2026:
+    - veo-3.1-generate-preview (Standard quality)
+    - veo-3.1-fast-generate-preview (Fast generation)
 
-    if not fal_key:
-        logger.warning("FAL_KEY not set. Using mocked Kling video generation.")
-        mock_job_id = f"kling-mock-{int(_time.time())}-{uuid.uuid4().hex[:8]}"
-        return VideoJobResult(
-            job_id=mock_job_id,
-            provider="mock_kling",
-            is_mocked=True,
-            warning="Kling not configured. Set FAL_KEY environment variable."
-        )
-
-    try:
-        # Get task data
-        raw_prompt = task_data.get("prompt", "")
-        script_text = task_data.get("scriptText", "")
-        aspect_ratio = task_data.get("aspectRatio", "9:16")
-
-        job_id = f"kling-{uuid.uuid4().hex[:12]}"
-
-        # DECISION POINT: Full pipeline (script) vs Single clip (prompt only)
-        # Threshold lowered to 20 chars (was 100) - allows shorter scripts for full Shorts
-        if script_text and len(script_text) > 20:
-            # ================================================================
-            # PATH A: FULL PRODUCTION PIPELINE (when script is provided)
-            # ================================================================
-            # Use the SAME pipeline as FVS automation:
-            # - Gemini splits script into 5 visual scenes with Mauryan aesthetic
-            # - Generates 5 Kling clips (one per scene)
-            # - Concatenates into full Short/Long-form
-            # - Adds voiceover, captions, background music
-
-            logger.info(f"Script provided ({len(script_text)} chars), using full production pipeline")
-
-            from services.video_production_service import produce_short, produce_longform
-
-            if aspect_ratio == "9:16":
-                result = await produce_short(
-                    script=script_text,
-                    title=raw_prompt or "Chanakya Short",
-                    voice_id=None,
-                    job_id=job_id
-                )
-            else:
-                result = await produce_longform(
-                    script=script_text,
-                    title=raw_prompt or "Chanakya Long-form",
-                    voice_id=None,
-                    job_id=job_id
-                )
-
-            video_url = result["url"]
-            logger.info(f"Full pipeline video generated: {video_url} ({result.get('duration')}s)")
-
-            return VideoJobResult(
-                job_id=job_id,
-                provider="kling",
-                is_mocked=False,
-                video_url=video_url
-            )
-
-        else:
-            # ================================================================
-            # PATH B: SINGLE CLIP MODE (when only prompt, no script)
-            # ================================================================
-            # Used for: stock footage, b-roll, supplemental clips
-            # Enforce Mauryan aesthetic on the prompt before sending to Kling
-
-            logger.info(f"No script provided, generating single clip from prompt: '{raw_prompt}'")
-
-            from services.video_production_service import generate_kling_clip
-
-            # Enforce Chanakya aesthetic to prevent HBO/GOT/modern content
-            enhanced_prompt = enforce_chanakya_aesthetic(raw_prompt)
-            logger.info(f"Enhanced prompt with Chanakya aesthetic: '{enhanced_prompt[:100]}...'")
-
-            quality = "pro"  # Always use Kling 2.6 Pro
-
-            # Generate single 10-second clip
-            video_path = await generate_kling_clip(
-                prompt=enhanced_prompt,
-                duration=10,
-                aspect=aspect_ratio,
-                quality=quality
-            )
-
-            # Upload to storage
-            from services.storage_service import get_storage_service
-            storage = get_storage_service()
-
-            with open(video_path, "rb") as f:
-                video_data = f.read()
-
-            upload_result = await storage.upload_file(
-                file_data=video_data,
-                folder="video_tasks",
-                filename=f"kling_{job_id}.mp4",
-                content_type="video/mp4"
-            )
-
-            video_url = upload_result["url"]
-            logger.info(f"Single Kling clip generated: {video_url}")
-
-            return VideoJobResult(
-                job_id=job_id,
-                provider="kling",
-                is_mocked=False,
-                video_url=video_url
-            )
-
-    except ImportError as e:
-        logger.error(f"fal-client SDK not installed: {e}")
-        mock_job_id = f"kling-mock-{int(_time.time())}-{uuid.uuid4().hex[:8]}"
-        return VideoJobResult(
-            job_id=mock_job_id,
-            provider="mock_kling",
-            is_mocked=True,
-            warning="fal-client not installed. Run: pip install fal-client>=0.5.0"
-        )
-    except Exception as e:
-        logger.error(f"Kling video generation failed: {e}")
-        mock_job_id = f"kling-mock-{int(_time.time())}-{uuid.uuid4().hex[:8]}"
-        return VideoJobResult(
-            job_id=mock_job_id,
-            provider="mock_kling",
-            is_mocked=True,
-            warning=f"Kling generation failed: {str(e)}"
-        )
-
-
-async def check_kling_job(job_id: str) -> VideoStatusResult:
-    """
-    Check status of a Kling video job.
-
-    Since we generate synchronously for now, jobs are immediately READY.
-    """
-    # If job_id starts with "kling-mock", handle as mock
-    if job_id.startswith("kling-mock"):
-        parts = job_id.split("-")
-        try:
-            created_ts = int(parts[2])
-            # Mock completes after 30 seconds
-            if _time.time() - created_ts >= 30:
-                hash_val = int(hashlib.md5(job_id.encode()).hexdigest()[:8], 16)
-                mock_url = MOCK_VIDEO_URLS[hash_val % len(MOCK_VIDEO_URLS)]
-                return VideoStatusResult(
-                    status="READY",
-                    video_url=mock_url,
-                    is_mocked=True,
-                    warning="Using mock video (FAL_KEY not configured)"
-                )
-        except (ValueError, IndexError):
-            pass
-
-        return VideoStatusResult(
-            status="PROCESSING",
-            is_mocked=True
-        )
-
-    # Real Kling jobs are already READY (synchronous generation)
-    # In future: check actual async job status from fal.ai
-    return VideoStatusResult(
-        status="READY",
-        is_mocked=False,
-        warning="Video generated, check video_url in task record"
-    )
-
-
-# =============================================================================
-# PROVIDER ROUTING
-# =============================================================================
-
-async def create_video_job(provider: str, task_data: dict) -> VideoJobResult:
-    """
-    Create a video generation job with the specified provider.
-    
-    Supports:
-    - veo: Google Veo (REAL with VEO_API_KEY, or mocked fallback)
-    - runway: MOCKED
-    - kling: MOCKED
-    
     Args:
-        provider: Video provider name
-        task_data: Dict with prompt, mode, scriptText, aspectRatio
-        
+        task_data: Dict with prompt, scriptText, aspectRatio, quality
+
     Returns:
         VideoJobResult with job ID and metadata
     """
-    if provider == "veo":
-        return await create_veo_job(task_data)
-    elif provider == "kling":
-        # Kling via video_production_service (real fal.ai integration)
-        return await create_kling_job(task_data)
-    elif provider == "runway":
-        # Runway remains mocked - TODO: P2 integrate real API
-        return VideoJobResult(
-            job_id=f"runway-mock-{int(_time.time())}-{uuid.uuid4().hex[:8]}",
-            provider="mock_runway",
-            is_mocked=True,
-            warning="Runway integration is mocked (P2)"
+    # Get API key (supports multiple env var names)
+    api_key = (
+        os.environ.get("VEO_API_KEY")
+        or os.environ.get("GEMINI_API_KEY")
+        or os.environ.get("GOOGLE_API_KEY")
+    )
+
+    if not api_key:
+        logger.error("No Google API key found. Set GEMINI_API_KEY or VEO_API_KEY environment variable.")
+        raise HTTPException(
+            status_code=500,
+            detail="Veo not configured. Set GEMINI_API_KEY environment variable."
         )
-    else:
-        raise HTTPException(status_code=400, detail=f"Unknown video provider: {provider}")
+
+    try:
+        from google import genai
+        from google.genai import types
+
+        # Initialize client with API key
+        client = genai.Client(api_key=api_key)
+        logger.info("Initialized Google GenAI client for Veo 3.1")
+
+        # Build prompt from task data
+        raw_prompt = task_data.get("prompt", "")
+        script_text = task_data.get("scriptText", "")
+
+        # Use script if available, otherwise use prompt
+        if script_text and len(script_text) > 20:
+            # For longer scripts, use first 500 chars as context
+            base_prompt = f"{raw_prompt}\n\nScript: {script_text[:500]}"
+        else:
+            base_prompt = raw_prompt
+
+        # Enforce Chanakya aesthetic for all videos
+        enhanced_prompt = enforce_chanakya_aesthetic(base_prompt)
+        logger.info(f"Enhanced prompt with Chanakya aesthetic: {enhanced_prompt[:150]}...")
+
+        # Map aspect ratio to Veo format
+        aspect_ratio = task_data.get("aspectRatio", "16:9")
+        veo_aspect = "16:9" if aspect_ratio == "16:9" else "9:16"
+
+        # Choose model based on quality preference
+        quality = task_data.get("quality", "standard")
+        if quality == "fast":
+            model_name = "veo-3.1-fast-generate-preview"
+            logger.info("Using Veo 3.1 Fast model for quick generation")
+        else:
+            model_name = "veo-3.1-generate-preview"
+            logger.info("Using Veo 3.1 Standard model for best quality")
+
+        # Submit video generation job
+        logger.info(f"Submitting Veo 3.1 video generation: model={model_name}, aspect={veo_aspect}")
+
+        operation = client.models.generate_videos(
+            model=model_name,
+            prompt=enhanced_prompt,
+            config=types.GenerateVideosConfig(
+                aspect_ratio=veo_aspect,
+                number_of_videos=1,
+                # Veo 3.1 can generate up to 20 seconds
+                duration_seconds=10,  # Start with 10 seconds for cost efficiency
+            ),
+        )
+
+        # Return the operation name as our job ID
+        operation_name = operation.name if hasattr(operation, 'name') else str(uuid.uuid4())
+
+        logger.info(f"Veo 3.1 job submitted successfully: {operation_name}")
+
+        return VideoJobResult(
+            job_id=operation_name,
+            provider="veo",
+            is_mocked=False
+        )
+
+    except ImportError as e:
+        logger.error(f"google-genai SDK not installed: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Google GenAI SDK not available. Run: pip install google-genai==1.62.0"
+        )
+    except Exception as e:
+        logger.error(f"Veo 3.1 video generation failed: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Veo generation failed: {str(e)}"
+        )
 
 
-async def check_video_job(provider: str, job_id: str) -> VideoStatusResult:
+async def check_veo_job(job_id: str) -> VideoStatusResult:
     """
-    Check status of a video generation job.
-    
-    Routes to appropriate provider implementation.
-    
+    Check status of a Google Veo 3.1 video generation job.
+
     Args:
-        provider: Video provider name
-        job_id: Provider-specific job ID
-        
+        job_id: The operation name/ID from Veo
+
     Returns:
         VideoStatusResult with status and video URL if ready
     """
-    if provider == "veo":
-        return await check_veo_job(job_id)
-    elif provider == "kling":
-        return await check_kling_job(job_id)
-    elif provider == "runway":
-        # Runway mock - time-based: complete 30s after creation timestamp in job_id
-        hash_val = int(hashlib.md5(job_id.encode()).hexdigest()[:8], 16)
-        mock_url = MOCK_VIDEO_URLS[hash_val % len(MOCK_VIDEO_URLS)]
-        parts = job_id.split("-")
-        try:
-            created_ts = int(parts[2])
-            if _time.time() - created_ts >= 30:
-                return VideoStatusResult(status="READY", video_url=mock_url, is_mocked=True)
-        except (ValueError, IndexError):
-            return VideoStatusResult(status="READY", video_url=mock_url, is_mocked=True)
-        return VideoStatusResult(status="PROCESSING", is_mocked=True)
-    
-    return VideoStatusResult(
-        status="FAILED",
-        is_mocked=True,
-        warning=f"Unknown provider: {provider}"
+    api_key = (
+        os.environ.get("VEO_API_KEY")
+        or os.environ.get("GEMINI_API_KEY")
+        or os.environ.get("GOOGLE_API_KEY")
     )
 
+    if not api_key:
+        raise HTTPException(
+            status_code=500,
+            detail="Veo not configured. Set GEMINI_API_KEY environment variable."
+        )
+
+    try:
+        from google import genai
+
+        client = genai.Client(api_key=api_key)
+
+        # Get operation status
+        operation = client.operations.get(job_id)
+
+        if operation.done:
+            # Job completed - check for video
+            if hasattr(operation, 'response') and operation.response:
+                if hasattr(operation.response, 'generated_videos') and operation.response.generated_videos:
+                    video = operation.response.generated_videos[0]
+                    video_url = None
+
+                    # Extract video URL from response
+                    if hasattr(video, 'video'):
+                        if hasattr(video.video, 'uri'):
+                            video_url = video.video.uri
+                        elif hasattr(video.video, 'url'):
+                            video_url = video.video.url
+
+                    if video_url:
+                        logger.info(f"Veo 3.1 video ready: {video_url[:100]}...")
+
+                        # Upload to first-party storage if configured
+                        from services.storage_service import get_storage_service
+                        try:
+                            storage = get_storage_service()
+                            # Download video from Veo URL
+                            import httpx
+                            async with httpx.AsyncClient() as http_client:
+                                response = await http_client.get(video_url)
+                                video_data = response.content
+
+                            # Upload to our storage
+                            upload_result = await storage.upload_file(
+                                file_data=video_data,
+                                folder="video_tasks",
+                                filename=f"veo_{job_id[-12:]}.mp4",
+                                content_type="video/mp4"
+                            )
+                            video_url = upload_result["url"]
+                            logger.info(f"Video uploaded to storage: {video_url}")
+                        except Exception as e:
+                            logger.warning(f"Could not upload to storage, using Veo URL: {e}")
+
+                        return VideoStatusResult(
+                            status="READY",
+                            video_url=video_url,
+                            is_mocked=False
+                        )
+
+            # Operation done but no video - treat as failed
+            logger.warning(f"Veo operation completed but no video in response: {job_id}")
+            return VideoStatusResult(
+                status="FAILED",
+                is_mocked=False,
+                warning="Video generation completed but no video data returned"
+            )
+        else:
+            # Still processing
+            logger.info(f"Veo 3.1 job still processing: {job_id}")
+            return VideoStatusResult(
+                status="PROCESSING",
+                is_mocked=False
+            )
+
+    except Exception as e:
+        logger.error(f"Failed to check Veo job status: {e}")
+        return VideoStatusResult(
+            status="FAILED",
+            is_mocked=False,
+            warning=f"Status check failed: {str(e)}"
+        )
+
+
+# =============================================================================
+# PUBLIC API
+# =============================================================================
 
 async def create_video_task(client_id: str, data: dict) -> dict:
-    """Create a new video generation task.
-    
-    Supports real Veo integration and mocked providers with graceful fallbacks.
-    """
-    valid_providers = ["runway", "veo", "kling"]
-    valid_modes = ["script", "audio", "remix"]
-    valid_aspects = ["16:9", "9:16", "1:1"]
-    valid_profiles = ["youtube_long", "shorts", "reel"]
-    
-    if data["provider"] not in valid_providers:
-        raise HTTPException(status_code=400, detail=f"Invalid provider. Must be one of: {valid_providers}")
-    if data["mode"] not in valid_modes:
-        raise HTTPException(status_code=400, detail=f"Invalid mode. Must be one of: {valid_modes}")
-    if data.get("aspectRatio", "16:9") not in valid_aspects:
-        raise HTTPException(status_code=400, detail=f"Invalid aspect ratio. Must be one of: {valid_aspects}")
-    if data.get("outputProfile", "youtube_long") not in valid_profiles:
-        raise HTTPException(status_code=400, detail=f"Invalid output profile. Must be one of: {valid_profiles}")
-    
-    now = datetime.now(timezone.utc).isoformat()
-    warnings = []
-    
-    # Create video job with provider
-    job_result = await create_video_job(data["provider"], {
-        "prompt": data["prompt"],
-        "mode": data["mode"],
-        "scriptText": data.get("scriptText"),
-        "aspectRatio": data.get("aspectRatio", "16:9")
-    })
-    
-    if job_result.warning:
-        warnings.append(job_result.warning)
+    """Create a new video generation task with Veo 3.1.
 
-    # IMPORTANT: Kling generates synchronously → video_url available immediately
-    # Check if video is already ready (Kling returns video_url in job_result)
+    Simplified API with only Veo support for clean architecture.
+    """
+    valid_modes = ["script", "prompt"]
+    valid_aspects = ["16:9", "9:16", "1:1"]
+    valid_quality = ["standard", "fast"]
+
+    # Validate input
+    mode = data.get("mode", "prompt")
+    if mode not in valid_modes:
+        raise HTTPException(status_code=400, detail=f"Invalid mode. Must be one of: {valid_modes}")
+
+    aspect_ratio = data.get("aspectRatio", "16:9")
+    if aspect_ratio not in valid_aspects:
+        raise HTTPException(status_code=400, detail=f"Invalid aspect ratio. Must be one of: {valid_aspects}")
+
+    quality = data.get("quality", "standard")
+    if quality not in valid_quality:
+        raise HTTPException(status_code=400, detail=f"Invalid quality. Must be one of: {valid_quality}")
+
+    now = datetime.now(timezone.utc).isoformat()
+
+    # Create video job with Veo 3.1
+    job_result = await create_veo_job({
+        "prompt": data.get("prompt", ""),
+        "scriptText": data.get("scriptText"),
+        "aspectRatio": aspect_ratio,
+        "quality": quality
+    })
+
+    # Check if video is ready (unlikely for Veo, usually async)
     if job_result.video_url:
         status = "READY"
         video_url = job_result.video_url
-        logger.info(f"Video generated synchronously, marking as READY: {video_url}")
+        logger.info(f"Video generated synchronously: {video_url}")
     else:
         status = "PROCESSING"
         video_url = None
-        logger.info(f"Video generation started, status=PROCESSING (job_id={job_result.job_id})")
+        logger.info(f"Video generation started: {job_result.job_id}")
 
     task = {
         "id": str(uuid.uuid4()),
         "clientId": client_id,
-        "provider": data["provider"],
+        "provider": "veo",
         "providerJobId": job_result.job_id,
-        "actualProvider": job_result.provider,  # Track actual provider used (may be mock)
-        "prompt": data["prompt"],
-        "mode": data["mode"],
+        "prompt": data.get("prompt", ""),
+        "mode": mode,
         "scriptText": data.get("scriptText"),
-        "audioAssetId": data.get("audioAssetId"),
-        "sourceAssetId": data.get("sourceAssetId"),
-        "aspectRatio": data.get("aspectRatio", "16:9"),
-        "outputProfile": data.get("outputProfile", "youtube_long"),
-        "submissionId": data.get("submissionId"),
+        "aspectRatio": aspect_ratio,
+        "quality": quality,
         "status": status,
         "videoUrl": video_url,
-        "isMocked": job_result.is_mocked,
-        "warnings": warnings if warnings else None,
         "createdAt": now,
         "updatedAt": now
     }
-    
+
     db = video_tasks_collection()
     await db.insert_one(task)
     if "_id" in task:
         del task["_id"]
-    
-    logger.info(f"Created video task: provider={data['provider']}, mocked={job_result.is_mocked}")
-    
+
+    logger.info(f"Created Veo 3.1 video task: {task['id']}")
+
     return task
 
 
 async def get_video_task(client_id: str, task_id: str) -> dict:
-    """Get a video task and refresh its status from the provider.
-    
-    Polls the provider for status updates if task is still processing.
+    """Get a video task and refresh its status from Veo.
+
+    Polls Veo for status updates if task is still processing.
     """
     db = video_tasks_collection()
     query = {"id": task_id}
     if client_id:
         query["clientId"] = client_id
-    
+
     task = await db.find_one(query, {"_id": 0})
     if not task:
         raise HTTPException(status_code=404, detail="Video task not found")
-    
-    # Check status with provider if still processing
+
+    # Check status with Veo if still processing
     if task.get("status") == "PROCESSING":
-        status_result = await check_video_job(
-            task.get("provider"), 
-            task.get("providerJobId")
-        )
-        
+        status_result = await check_veo_job(task.get("providerJobId"))
+
         # Update task if status changed
         if status_result.status != task["status"]:
             now = datetime.now(timezone.utc).isoformat()
             update = {
                 "status": status_result.status,
                 "videoUrl": status_result.video_url,
-                "isMocked": status_result.is_mocked,
                 "updatedAt": now
             }
-            
-            # Append any warnings
+
+            # Add any warnings
             if status_result.warning:
-                existing_warnings = task.get("warnings") or []
-                if status_result.warning not in existing_warnings:
-                    update["warnings"] = existing_warnings + [status_result.warning]
-            
+                update["warning"] = status_result.warning
+
             await db.update_one({"id": task_id}, {"$set": update})
             task.update(update)
-            
+
             logger.info(f"Video task {task_id} status updated: {status_result.status}")
-    
+
     return task
+
+
+async def list_video_tasks(client_id: str, limit: int = 10) -> list:
+    """List recent video tasks for a client."""
+    db = video_tasks_collection()
+    cursor = db.find(
+        {"clientId": client_id},
+        {"_id": 0}
+    ).sort("createdAt", -1).limit(limit)
+
+    tasks = []
+    async for task in cursor:
+        tasks.append(task)
+
+    return tasks
 
 
 async def save_video_as_asset(client_id: str, task_id: str) -> dict:
     """Save a completed video task as an asset."""
     db = video_tasks_collection()
     assets_db = assets_collection()
-    
+
     query = {"id": task_id}
     if client_id:
         query["clientId"] = client_id
-    
+
     task = await db.find_one(query, {"_id": 0})
     if not task:
         raise HTTPException(status_code=404, detail="Video task not found")
-    
+
     if task.get("status") != "READY" or not task.get("videoUrl"):
         raise HTTPException(status_code=400, detail="Video is not ready yet")
-    
+
     now = datetime.now(timezone.utc).isoformat()
-    
+
     asset = {
         "id": str(uuid.uuid4()),
         "clientId": client_id,
-        "submissionId": task.get("submissionId"),
-        "name": f"AI Video - {task.get('prompt', 'Untitled')[:50]}",
+        "name": f"Veo 3.1 Video - {task.get('prompt', 'Untitled')[:50]}",
         "type": "Video",
         "url": task.get("videoUrl"),
         "status": "Draft",
@@ -721,9 +458,9 @@ async def save_video_as_asset(client_id: str, task_id: str) -> dict:
         "createdAt": now,
         "updatedAt": now
     }
-    
+
     await assets_db.insert_one(asset)
     if "_id" in asset:
         del asset["_id"]
-    
+
     return asset

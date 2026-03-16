@@ -40,8 +40,9 @@ async def proxy_video(url: str):
         # Stream the video
         response = requests.get(url, headers=headers, stream=True)
 
-        if response.status_code == 404:
+        if response.status_code in [400, 401, 403, 404]:
             # Try with API key as query parameter instead
+            logger.info(f"Bearer auth failed with {response.status_code}, trying API key in URL")
             separator = "&" if "?" in url else "?"
             url_with_key = f"{url}{separator}key={api_key}"
             response = requests.get(url_with_key, stream=True)

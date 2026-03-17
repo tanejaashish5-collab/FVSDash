@@ -129,6 +129,7 @@ def start_scheduler():
     # 8 PM IST = 2:30 PM UTC (14:30)
 
     # SHORTS (4x/week): Sat, Mon, Wed, Fri
+    logger.info("[Scheduler] Adding Chanakya Saturday Short job...")
     _scheduler.add_job(
         chanakya_short_content,
         trigger=CronTrigger(day_of_week="sat", hour=14, minute=30),
@@ -136,7 +137,9 @@ def start_scheduler():
         name="Chanakya Saturday Short",
         replace_existing=True
     )
+    logger.info("[Scheduler] ✅ Added Chanakya Saturday Short")
 
+    logger.info("[Scheduler] Adding Chanakya Monday Short job...")
     _scheduler.add_job(
         chanakya_short_content,
         trigger=CronTrigger(day_of_week="mon", hour=14, minute=30),
@@ -144,7 +147,9 @@ def start_scheduler():
         name="Chanakya Monday Short",
         replace_existing=True
     )
+    logger.info("[Scheduler] ✅ Added Chanakya Monday Short")
 
+    logger.info("[Scheduler] Adding Chanakya Wednesday Short job...")
     _scheduler.add_job(
         chanakya_short_content,
         trigger=CronTrigger(day_of_week="wed", hour=14, minute=30),
@@ -152,7 +157,9 @@ def start_scheduler():
         name="Chanakya Wednesday Short",
         replace_existing=True
     )
+    logger.info("[Scheduler] ✅ Added Chanakya Wednesday Short")
 
+    logger.info("[Scheduler] Adding Chanakya Friday Short job...")
     _scheduler.add_job(
         chanakya_short_content,
         trigger=CronTrigger(day_of_week="fri", hour=14, minute=30),
@@ -160,8 +167,10 @@ def start_scheduler():
         name="Chanakya Friday Short",
         replace_existing=True
     )
+    logger.info("[Scheduler] ✅ Added Chanakya Friday Short")
 
     # LONG-FORM (3x/week): Sun, Tue, Thu
+    logger.info("[Scheduler] Adding Chanakya Sunday Long-form job...")
     _scheduler.add_job(
         chanakya_longform_content,
         trigger=CronTrigger(day_of_week="sun", hour=14, minute=30),
@@ -169,7 +178,9 @@ def start_scheduler():
         name="Chanakya Sunday Long-form",
         replace_existing=True
     )
+    logger.info("[Scheduler] ✅ Added Chanakya Sunday Long-form")
 
+    logger.info("[Scheduler] Adding Chanakya Tuesday Long-form job...")
     _scheduler.add_job(
         chanakya_longform_content,
         trigger=CronTrigger(day_of_week="tue", hour=14, minute=30),
@@ -177,7 +188,9 @@ def start_scheduler():
         name="Chanakya Tuesday Long-form",
         replace_existing=True
     )
+    logger.info("[Scheduler] ✅ Added Chanakya Tuesday Long-form")
 
+    logger.info("[Scheduler] Adding Chanakya Thursday Long-form job...")
     _scheduler.add_job(
         chanakya_longform_content,
         trigger=CronTrigger(day_of_week="thu", hour=14, minute=30),
@@ -185,6 +198,7 @@ def start_scheduler():
         name="Chanakya Thursday Long-form",
         replace_existing=True
     )
+    logger.info("[Scheduler] ✅ Added Chanakya Thursday Long-form")
 
     # Weekly digest every Monday at 08:00 UTC
     from services.email_service import build_and_send_weekly_digests
@@ -203,6 +217,14 @@ def start_scheduler():
     logger.info("Chanakya Sutra 7x/week content scheduled at 8 PM IST (2:30 PM UTC):")
     logger.info("  SHORTS (4x): Saturday, Monday, Wednesday, Friday")
     logger.info("  LONG-FORM (3x): Sunday, Tuesday, Thursday")
+
+    # List all registered jobs
+    logger.info("[Scheduler] ========== REGISTERED JOBS ==========")
+    all_jobs = _scheduler.get_jobs()
+    logger.info(f"[Scheduler] Total jobs registered: {len(all_jobs)}")
+    for job in all_jobs:
+        logger.info(f"[Scheduler]   - {job.id}: {job.name} | Next run: {job.next_run_time}")
+    logger.info("[Scheduler] ======================================")
 
 
 async def daily_analytics_sync():

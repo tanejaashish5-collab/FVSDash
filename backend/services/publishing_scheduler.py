@@ -311,21 +311,22 @@ async def _chanakya_generate_short(day: str):
     """
     Generate and produce 1 YouTube Short for Chanakya Sutra.
 
-    Cost: $3.50 (5 Kling clips × 10 sec × $0.70)
-    Duration: 50 seconds
+    Cost: ~$0.50-1.00 (Veo clips + ElevenLabs voice)
+    Duration: 50-60 seconds
     """
-    from services.fvs_service import generate_ideas, produce_episode
+    from services.fvs_service import propose_ideas, produce_episode
 
     CLIENT_ID = "chanakya-sutra"
 
     logger.info(f"[Chanakya {day}] Generating Short...")
 
     try:
-        short_ideas = await generate_ideas(
+        result = await propose_ideas(
             client_id=CLIENT_ID,
-            target_format="short",
-            count=1
+            format="short",
+            range="30d"
         )
+        short_ideas = result.get("ideas", [])
 
         if not short_ideas:
             logger.error(f"[Chanakya {day}] No short ideas generated!")
@@ -454,7 +455,8 @@ async def _chanakya_generate_longform(day: str):
     Duration: 6 minutes (360 seconds)
     """
     from db.mongo import submissions_collection, fvs_ideas_collection
-    from services.fvs_service import generate_ideas, generate_script_for_idea, get_channel_profile
+    from services.fvs_service import propose_ideas, generate_script_for_idea
+    from services.channel_profile_service import get_channel_profile
     from services.video_production_service import produce_longform
 
     CLIENT_ID = "chanakya-sutra"
@@ -462,11 +464,12 @@ async def _chanakya_generate_longform(day: str):
     logger.info(f"[Chanakya {day}] Generating Long-form...")
 
     try:
-        long_ideas = await generate_ideas(
+        result = await propose_ideas(
             client_id=CLIENT_ID,
-            target_format="longform",
-            count=1
+            format="longform",
+            range="30d"
         )
+        long_ideas = result.get("ideas", [])
 
         if not long_ideas:
             logger.error(f"[Chanakya {day}] No long-form ideas generated!")

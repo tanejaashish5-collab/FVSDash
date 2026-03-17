@@ -210,3 +210,39 @@ async def clear_seed_data(user: dict = Depends(require_admin)):
         "deleted_video_tasks": videos_result.deleted_count,
         "seed_submission_ids": seed_ids,
     }
+
+
+@router.post("/chanakya/trigger")
+async def trigger_chanakya_now(
+    format: str = "short",
+    user: dict = Depends(require_admin)
+):
+    """
+    Manually trigger Chanakya automation right now.
+    format: "short" (default) or "longform"
+    Runs the same pipeline as the scheduled job — no re-deploy needed.
+    """
+    import asyncio
+    from datetime import datetime, timezone
+    from services.publishing_scheduler import _chanakya_generate_short, _chanakya_generate_longform
+
+    if format not in ("short", "longform"):
+        raise HTTPException(status_code=400, detail="format must be 'short' or 'longform'")
+
+    day = datetime.now(timezone.utc).strftime("%A")
+
+    # Fire and forget — returns immediately, job runs in background
+    if format == "short":
+        asyncio.create_task(_chanakya_generate_short(day))
+        return {
+            "status": "triggered",
+            "format": "short",
+            "message": f"Chanakya Short generation started for {day}. Check Railway logs to follow progress."
+        }
+    else:
+        asyncio.create_task(_chanakya_generate_longform(day))
+        return {
+            "status": "triggered",
+            "format": "longform",
+            "message": f"Chanakya Long-form generation started for {day}. Check Railway logs to follow progress."
+        }

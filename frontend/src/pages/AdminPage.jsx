@@ -9,9 +9,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { 
+import {
   ShieldCheck, Users, Eye, UserCheck, HelpCircle, X, Plus, Pencil, Ban,
-  FileText, Download, BarChart3, CreditCard, Youtube, Check
+  FileText, Download, BarChart3, CreditCard, Youtube, Check, Zap, Video, Film
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -48,6 +48,10 @@ export default function AdminPage() {
     channel_description: ''
   });
   const [pillarInput, setPillarInput] = useState('');
+
+  // Chanakya automation trigger
+  const [chanakyaTriggerLoading, setChanakyaTriggerLoading] = useState(null); // 'short' | 'longform' | null
+  const [chanakyaLastRun, setChanakyaLastRun] = useState(null);
 
   useEffect(() => {
     fetchClients();
@@ -175,6 +179,24 @@ export default function AdminPage() {
     }
   };
 
+  const triggerChanakya = async (format) => {
+    setChanakyaTriggerLoading(format);
+    try {
+      const res = await axios.post(
+        `${API}/admin/chanakya/trigger?format=${format}`,
+        {},
+        { headers: authHeaders }
+      );
+      setChanakyaLastRun({ format, time: new Date().toLocaleTimeString(), message: res.data.message });
+      toast.success(`Chanakya ${format} triggered — check Railway logs`);
+    } catch (err) {
+      console.error('Chanakya trigger failed:', err);
+      toast.error(err.response?.data?.detail || 'Failed to trigger automation');
+    } finally {
+      setChanakyaTriggerLoading(null);
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       full_name: '',
@@ -261,6 +283,65 @@ export default function AdminPage() {
           </button>
         </div>
       </div>
+
+      {/* Chanakya Automation Card */}
+      <Card className="bg-zinc-900/50 border-zinc-800">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <Zap className="h-4 w-4 text-amber-400" />
+            <CardTitle className="text-sm font-semibold text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>
+              Chanakya Automation
+            </CardTitle>
+            <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-xs ml-1">
+              chanakya-sutra
+            </Badge>
+          </div>
+          <p className="text-xs text-zinc-500 mt-1">
+            Trigger video production now — same pipeline as the scheduled job (Tue/Thu/Sun long-form · Sat/Mon/Wed/Fri short)
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-3 flex-wrap">
+            <Button
+              onClick={() => triggerChanakya('short')}
+              disabled={chanakyaTriggerLoading !== null}
+              className="bg-amber-500 hover:bg-amber-600 text-black font-semibold"
+            >
+              {chanakyaTriggerLoading === 'short' ? (
+                <div className="h-4 w-4 border-2 border-black border-t-transparent rounded-full animate-spin mr-2" />
+              ) : (
+                <Video className="h-4 w-4 mr-2" />
+              )}
+              Trigger Short Now
+            </Button>
+            <Button
+              onClick={() => triggerChanakya('longform')}
+              disabled={chanakyaTriggerLoading !== null}
+              variant="outline"
+              className="border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
+            >
+              {chanakyaTriggerLoading === 'longform' ? (
+                <div className="h-4 w-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mr-2" />
+              ) : (
+                <Film className="h-4 w-4 mr-2" />
+              )}
+              Trigger Long-form Now
+            </Button>
+            {chanakyaLastRun && (
+              <div className="flex items-center gap-2 text-xs text-zinc-400 bg-zinc-800/60 rounded px-3 py-2">
+                <Check className="h-3 w-3 text-teal-400 flex-shrink-0" />
+                <span>
+                  <span className="text-teal-400 font-medium capitalize">{chanakyaLastRun.format}</span>
+                  {' '}triggered at {chanakyaLastRun.time} — running in background
+                </span>
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-zinc-600 mt-3">
+            Returns immediately. Follow progress in Railway → Logs.
+          </p>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Client List */}

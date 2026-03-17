@@ -522,7 +522,8 @@ async def generate_voiceover(script_text: str, voice_id: Optional[str] = None) -
 
     result = await generate_voice_for_script(script_text=script_text, voice_id=voice_id)
 
-    if result.get("warning"):
+    # Check if result is an AudioGenerationResult object (has warning attribute)
+    if hasattr(result, 'warning') and result.warning:
         # Mock mode - create a silent audio file
         job_id = str(uuid.uuid4())[:8]
         silent_path = str(TEMP_DIR / f"voice_{job_id}.mp3")
@@ -538,8 +539,8 @@ async def generate_voiceover(script_text: str, voice_id: Optional[str] = None) -
         ])
         return silent_path
 
-    # Result has file_path or url
-    file_path = result.get("file_path") or result.get("url", "")
+    # Result has url attribute (AudioGenerationResult object)
+    file_path = result.url if hasattr(result, 'url') else ""
 
     if file_path.startswith("http"):
         # Download the audio

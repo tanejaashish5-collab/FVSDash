@@ -260,7 +260,7 @@ async def generate_veo_clip(prompt: str, duration: int = 8, aspect: str = "9:16"
                     local_job_id = str(uuid.uuid4())[:8]
                     local_path = str(TEMP_DIR / f"veo_{quality}_{local_job_id}.mp4")
 
-                    async with httpx.AsyncClient(timeout=180) as http:
+                    async with httpx.AsyncClient(timeout=180, follow_redirects=True) as http:
                         logger.info(f"Downloading Veo video from: {video_url[:50]}...")
                         resp = await http.get(video_url)
 

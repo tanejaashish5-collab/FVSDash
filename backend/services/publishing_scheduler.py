@@ -449,6 +449,7 @@ async def _chanakya_generate_short(day: str):
             logger.error(f"[Chanakya {day}] ❌ YouTube upload error: {e}")
 
         # TikTok (only if credentials configured)
+        import os
         if os.environ.get("TIKTOK_CLIENT_KEY"):
             try:
                 from services.tiktok_upload_service import upload_video_to_tiktok

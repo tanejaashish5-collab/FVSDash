@@ -390,18 +390,33 @@ async def _chanakya_generate_short(day: str):
                     local_video_path = tmp.name
 
             # Upload to YouTube
+            import uuid
             youtube_result = await upload_video_to_youtube(
                 user_id=CLIENT_ID,
+                job_id=str(uuid.uuid4()),  # Generate job ID for tracking
                 video_file_path=local_video_path,
                 title=title[:100],  # YouTube title limit
                 description=f"{title}\n\nChanakya Niti wisdom for modern leaders.\n\n#Chanakya #Leadership #Business #Strategy #Wisdom",
+                tags=["Chanakya", "Leadership", "Business", "Strategy", "Wisdom", "Shorts"],
                 category_id="22",  # People & Blogs
-                privacy_status="public",
-                is_short=True
+                privacy_status="public"
             )
 
             if youtube_result.get("success"):
                 logger.info(f"[Chanakya {day}] ✅ Posted to YouTube: {youtube_result.get('video_id')}")
+
+                # Update submission with YouTube video ID
+                from db.mongo import submissions_collection
+                subs_db = submissions_collection()
+                await subs_db.update_one(
+                    {"id": submission_id},
+                    {"$set": {
+                        "youtubeVideoId": youtube_result.get('video_id'),
+                        "youtubeUrl": youtube_result.get('url'),
+                        "status": "PUBLISHED",
+                        "updatedAt": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
             else:
                 logger.error(f"[Chanakya {day}] ❌ YouTube upload failed: {youtube_result.get('error')}")
 
@@ -556,14 +571,16 @@ async def _chanakya_generate_longform(day: str):
                     local_video_path = tmp.name
 
             # Upload to YouTube as regular video (not Shorts)
+            import uuid
             youtube_result = await upload_video_to_youtube(
                 user_id=CLIENT_ID,
+                job_id=str(uuid.uuid4()),  # Generate job ID for tracking
                 video_file_path=local_video_path,
                 title=long_idea["topic"][:100],  # YouTube title limit
                 description=f"{long_idea['topic']}\n\n{script_data['text'][:4500]}\n\n#Chanakya #Leadership #Business #Wisdom #IndianPhilosophy #Strategy",
+                tags=["Chanakya", "Leadership", "Business", "Wisdom", "IndianPhilosophy", "Strategy", "Entrepreneurship"],
                 category_id="22",  # People & Blogs
-                privacy_status="public",
-                is_short=False  # Long-form, not Shorts
+                privacy_status="public"
             )
 
             if youtube_result.get("success"):
@@ -572,7 +589,12 @@ async def _chanakya_generate_longform(day: str):
                 # Update submission with YouTube video ID
                 await subs_db.update_one(
                     {"id": submission["id"]},
-                    {"$set": {"youtubeVideoId": youtube_result.get('video_id')}}
+                    {"$set": {
+                        "youtubeVideoId": youtube_result.get('video_id'),
+                        "youtubeUrl": youtube_result.get('url'),
+                        "status": "PUBLISHED",
+                        "updatedAt": datetime.now(timezone.utc).isoformat()
+                    }}
                 )
             else:
                 logger.error(f"[Chanakya {day}] ❌ YouTube upload failed: {youtube_result.get('error')}")

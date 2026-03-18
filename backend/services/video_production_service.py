@@ -34,7 +34,8 @@ from datetime import datetime, timezone
 logger = logging.getLogger(__name__)
 
 # Local temp dir for video processing
-TEMP_DIR = Path(os.environ.get("VIDEO_TEMP_DIR", "/tmp/fvs_video"))
+_default_temp = str(Path(tempfile.gettempdir()) / "fvs_video")
+TEMP_DIR = Path(os.environ.get("VIDEO_TEMP_DIR") or _default_temp)
 TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
 # Background music directory (royalty-free, committed to repo)
@@ -304,6 +305,7 @@ Return ONLY a valid JSON array with exactly 36 scenes, no other text:
 async def generate_veo_clip(prompt: str, duration: int = 8, aspect: str = "9:16", quality: str = "standard") -> str:
     """
     Generate a single video clip using Google Veo 3.1.
+    Set VEO_ENABLED=false to disable and use mock video instead.
 
     Args:
         prompt: Cinematic description for video generation
@@ -318,6 +320,11 @@ async def generate_veo_clip(prompt: str, duration: int = 8, aspect: str = "9:16"
         - Standard: ~$0.16 (best quality)
         - Fast: ~$0.08 (faster generation, slightly lower quality)
     """
+    # Check if Veo is disabled (cost control)
+    if os.environ.get("VEO_ENABLED", "true").lower() == "false":
+        logger.info("Veo disabled via VEO_ENABLED=false — using mock video")
+        return await _get_mock_video_clip(aspect)
+
     # Import required modules
     from services.video_task_service import create_veo_job, check_veo_job
     import asyncio

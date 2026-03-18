@@ -130,9 +130,13 @@ async def process_scheduled_tasks():
 
 
 def start_scheduler():
-    """Start the background scheduler."""
+    """Start the background scheduler. Set SCHEDULER_ENABLED=false to disable."""
     global _scheduler
-    
+
+    if os.environ.get("SCHEDULER_ENABLED", "true").lower() == "false":
+        logger.info("Scheduler disabled via SCHEDULER_ENABLED=false")
+        return
+
     if _scheduler is not None:
         logger.warning("Scheduler already running")
         return

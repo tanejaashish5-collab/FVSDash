@@ -344,10 +344,10 @@ async def generate_veo_clip(prompt: str, duration: int = 8, aspect: str = "9:16"
             logger.warning("Veo returned mocked result, using fallback")
             return await _get_mock_video_clip(aspect)
 
-        # Poll for completion (Veo is async)
+        # Poll for completion with backoff (Veo is async)
         job_id = job_result.job_id
         max_wait = 300  # 5 minutes max
-        poll_interval = 10  # Check every 10 seconds
+        poll_interval = 15  # Start at 15s
         elapsed = 0
 
         while elapsed < max_wait:
@@ -356,31 +356,33 @@ async def generate_veo_clip(prompt: str, duration: int = 8, aspect: str = "9:16"
             if status_result.status == "READY":
                 video_url = status_result.video_url
                 if video_url:
-                    # Download video to local temp
                     local_job_id = str(uuid.uuid4())[:8]
                     local_path = str(TEMP_DIR / f"veo_{quality}_{local_job_id}.mp4")
 
                     async with httpx.AsyncClient(timeout=180, follow_redirects=True) as http:
                         logger.info(f"Downloading Veo video from: {video_url[:50]}...")
-                        resp = await http.get(video_url)
+                        async with http.stream("GET", video_url) as resp:
+                            if resp.status_code != 200:
+                                logger.error(f"Failed to download Veo video: HTTP {resp.status_code}")
+                                return await _get_mock_video_clip(aspect)
 
-                        if resp.status_code != 200:
-                            logger.error(f"Failed to download Veo video: HTTP {resp.status_code}")
-                            return await _get_mock_video_clip(aspect)
+                            total = 0
+                            with open(local_path, "wb") as f:
+                                async for chunk in resp.aiter_bytes(chunk_size=256 * 1024):
+                                    f.write(chunk)
+                                    total += len(chunk)
 
-                        with open(local_path, "wb") as f:
-                            f.write(resp.content)
-
-                    logger.info(f"Veo video downloaded: {local_path} ({len(resp.content) // 1024}KB)")
+                    logger.info(f"Veo video downloaded: {local_path} ({total // 1024}KB)")
                     return local_path
 
             elif status_result.status == "FAILED":
                 logger.error(f"Veo job failed: {status_result.warning}")
                 return await _get_mock_video_clip(aspect)
 
-            # Still processing
+            # Backoff: 15s, 25s, 35s, 45s, 55s (caps at 55s)
             await asyncio.sleep(poll_interval)
             elapsed += poll_interval
+            poll_interval = min(poll_interval + 10, 55)
             logger.info(f"Waiting for Veo video... ({elapsed}s elapsed)")
 
         logger.error(f"Veo video generation timed out after {max_wait}s")
@@ -851,33 +853,33 @@ async def produce_short(
         clip_paths = await asyncio.gather(*clip_tasks)
         await update_status("Video clips generated", 50)
 
-        # Resize all clips to 9:16
+        # Resize all clips to 9:16 (FFmpeg — run off event loop)
         await update_status("Normalising aspect ratios", 55)
         resized_paths = []
         for path in clip_paths:
             try:
-                resized = resize_clip_to_aspect(path, "9:16")
+                resized = await asyncio.to_thread(resize_clip_to_aspect, path, "9:16")
                 resized_paths.append(resized)
             except Exception as e:
                 logger.warning(f"Resize failed for {path}: {e}, using original")
                 resized_paths.append(path)
 
-        # Concatenate all clips
+        # Concatenate all clips (FFmpeg — run off event loop)
         await update_status("Stitching clips together", 60)
         raw_video = str(TEMP_DIR / f"raw_{job_id}.mp4")
-        concatenate_clips(resized_paths, raw_video)
+        await asyncio.to_thread(concatenate_clips, resized_paths, raw_video)
 
-        # Merge voiceover
+        # Merge voiceover (FFmpeg — run off event loop)
         await update_status("Merging voiceover", 70)
         with_audio = str(TEMP_DIR / f"audio_{job_id}.mp4")
         music_path = get_background_music("motivational")
-        mix_audio(raw_video, voiceover_path, with_audio, background_music_path=music_path)
+        await asyncio.to_thread(mix_audio, raw_video, voiceover_path, with_audio, background_music_path=music_path)
 
-        # Burn captions
+        # Burn captions (FFmpeg — run off event loop)
         await update_status("Burning captions", 80)
         with_captions = str(TEMP_DIR / f"captions_{job_id}.mp4")
         try:
-            burn_captions(with_audio, script, with_captions, style="shorts")
+            await asyncio.to_thread(burn_captions, with_audio, script, with_captions, style="shorts")
             final_local = with_captions
         except Exception as e:
             logger.warning(f"Caption burning failed: {e}, skipping captions")
@@ -889,7 +891,7 @@ async def produce_short(
         filename = f"short_{safe_title}_{job_id}.mp4"
         upload_result = await upload_final_video(final_local, filename)
 
-        duration = _get_video_duration(final_local)
+        duration = await asyncio.to_thread(_get_video_duration, final_local)
 
         # Cleanup temp files
         _cleanup_temp_files(clip_paths + resized_paths + [raw_video, voiceover_path])
@@ -986,30 +988,30 @@ async def produce_longform(
 
         await update_status("Stitching scenes in order", 65)
 
-        # Assemble clips in scene_index order
+        # Assemble clips in scene_index order (FFmpeg — run off event loop)
         ordered_paths = []
         for scene in sorted(scenes, key=lambda x: x["scene_index"]):
             idx = scene["scene_index"]
             if idx in veo_map:
-                resized = resize_clip_to_aspect(veo_map[idx], "16:9")
+                resized = await asyncio.to_thread(resize_clip_to_aspect, veo_map[idx], "16:9")
                 ordered_paths.append(resized)
             elif idx in img_map:
                 ordered_paths.append(img_map[idx])
 
         raw_video = str(TEMP_DIR / f"raw_{job_id}.mp4")
-        concatenate_clips(ordered_paths, raw_video)
+        await asyncio.to_thread(concatenate_clips, ordered_paths, raw_video)
 
-        # Mix voiceover
+        # Mix voiceover (FFmpeg — run off event loop)
         await update_status("Merging voiceover and music", 75)
         with_audio = str(TEMP_DIR / f"audio_{job_id}.mp4")
         music_path = get_background_music("ambient")
-        mix_audio(raw_video, voiceover_path, with_audio, background_music_path=music_path)
+        await asyncio.to_thread(mix_audio, raw_video, voiceover_path, with_audio, background_music_path=music_path)
 
-        # Burn captions
+        # Burn captions (FFmpeg — run off event loop)
         await update_status("Burning subtitles", 85)
         with_captions = str(TEMP_DIR / f"captions_{job_id}.mp4")
         try:
-            burn_captions(with_audio, script, with_captions, style="longform")
+            await asyncio.to_thread(burn_captions, with_audio, script, with_captions, style="longform")
             final_local = with_captions
         except Exception as e:
             logger.warning(f"Caption burning failed: {e}")
@@ -1021,7 +1023,7 @@ async def produce_longform(
         filename = f"longform_{safe_title}_{job_id}.mp4"
         upload_result = await upload_final_video(final_local, filename)
 
-        duration = _get_video_duration(final_local)
+        duration = await asyncio.to_thread(_get_video_duration, final_local)
 
         _cleanup_temp_files(
             list(veo_map.values()) + list(img_map.values()) +

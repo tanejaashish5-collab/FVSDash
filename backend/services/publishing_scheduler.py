@@ -368,10 +368,31 @@ async def _chanakya_generate_short(day: str):
 
         # Auto-post to all connected platforms
         submission_id = short_result["submission"]["id"]
-        video_url = short_result["submission"].get("sourceFileUrl")
         title = short_idea["topic"]
 
         logger.info(f"[Chanakya {day}] 🚀 Starting auto-posting to platforms...")
+
+        # Get video URL from assets collection
+        from db.mongo import assets_collection
+        assets_db = assets_collection()
+
+        # Find the video asset for this submission
+        video_asset = await assets_db.find_one({
+            "submissionId": submission_id,
+            "$or": [
+                {"type": "Video"},
+                {"assetType": "Video"},
+                {"type": "video"},
+                {"assetType": "video"}
+            ]
+        })
+
+        if not video_asset or not video_asset.get("url"):
+            logger.error(f"[Chanakya {day}] ❌ No video asset found for submission {submission_id}")
+            return
+
+        video_url = video_asset["url"]
+        logger.info(f"[Chanakya {day}] Found video asset: {video_asset['id']}")
 
         # YouTube Shorts
         try:
@@ -432,7 +453,7 @@ async def _chanakya_generate_short(day: str):
             try:
                 from services.tiktok_upload_service import upload_video_to_tiktok
 
-                # Download video again for TikTok
+                # Download video again for TikTok (reuse same video_url from assets)
                 async with httpx.AsyncClient(timeout=180) as http:
                     video_response = await http.get(video_url)
 

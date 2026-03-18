@@ -417,15 +417,26 @@ async def _get_mock_video_clip(aspect: str = "9:16") -> str:
     else:
         size = "1920x1080"
 
-    # Generate a plain color bar (no drawtext — fonts not available on slim containers)
-    _run_ffmpeg([
-        "-f", "lavfi",
-        "-i", f"color=c=0x0a0a0f:size={size}:rate=30",
-        "-t", "8",
-        "-c:v", "libx264",
-        "-pix_fmt", "yuv420p",
-        local_path
-    ])
+    # Generate a plain color bar — use mpeg4 encoder (always available, libx264 may not be)
+    try:
+        _run_ffmpeg([
+            "-f", "lavfi",
+            "-i", f"color=c=0x0a0a0f:size={size}:rate=30",
+            "-t", "8",
+            "-c:v", "libx264",
+            "-pix_fmt", "yuv420p",
+            local_path
+        ])
+    except RuntimeError:
+        # libx264 not available on slim containers — fall back to mpeg4
+        _run_ffmpeg([
+            "-f", "lavfi",
+            "-i", f"color=c=0x0a0a0f:size={size}:rate=30",
+            "-t", "8",
+            "-c:v", "mpeg4",
+            "-q:v", "5",
+            local_path
+        ])
     return local_path
 
 

@@ -85,7 +85,7 @@ async def get_youtube_credentials(user_id: str) -> Optional[Credentials]:
                 client_secret=os.environ.get("YOUTUBE_CLIENT_SECRET")
             )
             
-            creds.refresh(Request())
+            await asyncio.to_thread(creds.refresh, Request())
             
             # Update token in database
             new_expiry = datetime.now(timezone.utc) + timedelta(seconds=creds.expiry.timestamp() - datetime.now().timestamp() if creds.expiry else 3600)
@@ -172,8 +172,9 @@ async def upload_video_to_youtube(
                 "error_code": "auth_error"
             }
 
-        # Build YouTube service
-        youtube = build(
+        # Build YouTube service (synchronous — run off event loop)
+        youtube = await asyncio.to_thread(
+            build,
             YOUTUBE_API_SERVICE_NAME,
             YOUTUBE_API_VERSION,
             credentials=credentials,
@@ -220,11 +221,12 @@ async def upload_video_to_youtube(
         )
         
         # Execute upload with progress tracking
+        # next_chunk() is synchronous — run each chunk off the event loop
         response = None
         while response is None:
             try:
-                status, response = insert_request.next_chunk()
-                
+                status, response = await asyncio.to_thread(insert_request.next_chunk)
+
                 if status:
                     progress = int(status.progress() * 100)
                     await jobs_db.update_one(
@@ -235,7 +237,7 @@ async def upload_video_to_youtube(
                         }}
                     )
                     logger.info(f"Upload progress: {progress}%")
-                
+
             except HttpError as e:
                 if e.resp.status == 403:
                     # Quota exceeded
@@ -256,7 +258,7 @@ async def upload_video_to_youtube(
         
         # Upload successful
         video_id = response.get("id")
-        video_url = f"https://youtube.com/shorts/{video_id}"
+        video_url = f"https://youtube.com/watch?v={video_id}"
         
         logger.info(f"Video uploaded successfully: {video_id}")
         
@@ -343,7 +345,7 @@ async def get_video_asset_path(asset_id: str, client_id: str) -> Optional[str]:
             # External URL — download via httpx
             if url.startswith("http"):
                 import httpx
-                async with httpx.AsyncClient(timeout=120) as client:
+                async with httpx.AsyncClient(timeout=120, follow_redirects=True) as client:
                     resp = await client.get(url)
                     if resp.status_code == 200:
                         tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4",

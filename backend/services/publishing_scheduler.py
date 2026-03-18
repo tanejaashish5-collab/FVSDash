@@ -403,12 +403,19 @@ async def _chanakya_generate_short(day: str):
             import httpx
             import tempfile
 
-            async with httpx.AsyncClient(timeout=180) as http:
+            async with httpx.AsyncClient(timeout=180, follow_redirects=True) as http:
                 video_response = await http.get(video_url)
+                video_response.raise_for_status()
+
+                if len(video_response.content) < 10000:
+                    logger.error(f"[Chanakya {day}] ❌ Downloaded file too small ({len(video_response.content)} bytes) — likely not a video")
+                    return
 
                 with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
                     tmp.write(video_response.content)
                     local_video_path = tmp.name
+
+            logger.info(f"[Chanakya {day}] Downloaded video: {len(video_response.content)} bytes → {local_video_path}")
 
             # Upload to YouTube
             import uuid
@@ -455,8 +462,9 @@ async def _chanakya_generate_short(day: str):
                 from services.tiktok_upload_service import upload_video_to_tiktok
 
                 # Download video again for TikTok (reuse same video_url from assets)
-                async with httpx.AsyncClient(timeout=180) as http:
+                async with httpx.AsyncClient(timeout=180, follow_redirects=True) as http:
                     video_response = await http.get(video_url)
+                    video_response.raise_for_status()
 
                     with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
                         tmp.write(video_response.content)
@@ -585,12 +593,19 @@ async def _chanakya_generate_longform(day: str):
             import tempfile
 
             # Download video from storage to local temp file
-            async with httpx.AsyncClient(timeout=300) as http:  # 5 min timeout for long videos
+            async with httpx.AsyncClient(timeout=300, follow_redirects=True) as http:  # 5 min timeout for long videos
                 video_response = await http.get(long_result["url"])
+                video_response.raise_for_status()
+
+                if len(video_response.content) < 10000:
+                    logger.error(f"[Chanakya {day}] ❌ Downloaded file too small ({len(video_response.content)} bytes) — likely not a video")
+                    return
 
                 with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
                     tmp.write(video_response.content)
                     local_video_path = tmp.name
+
+            logger.info(f"[Chanakya {day}] Downloaded long-form video: {len(video_response.content)} bytes → {local_video_path}")
 
             # Upload to YouTube as regular video (not Shorts)
             import uuid

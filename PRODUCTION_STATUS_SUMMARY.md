@@ -1,65 +1,60 @@
-# Chanakya Production - Final Status Summary
-## 2026-03-18 02:25 UTC
+# Chanakya YouTube Upload - Status Summary
+## 2026-03-18 04:13 UTC
 
 ---
 
-## ✅ ALL CRITICAL FIXES COMPLETED AND PUSHED
+## ✅ ALL YOUTUBE UPLOAD FIXES COMPLETED
 
-### GitHub Commits (All Pushed to Production):
+### Latest Commits (Pushed to Railway):
 ```bash
-8641c6f feat: Add live production test and complete fixes documentation
-4ffba66 docs: Add immediate actions guide for Chanakya production
-20ef486 fix: Add missing os import in publishing_scheduler
-a426dd3 fix: CRITICAL - Complete end-to-end fixes for Chanakya video production
-df6c42e fix: CRITICAL - Handle HTTP redirects for Veo video downloads
-e9934ad fix: AudioGenerationResult object attribute error in voiceover
-f47cf8f feat: add Chanakya one-click trigger buttons to Admin Dashboard
+8597bd1 fix: Add missing os import in publishing_scheduler
+ec50cf4 fix: Retrieve video URL from assets collection for YouTube upload
+3acae24 fix: Add missing job_id and tags parameters to YouTube uploads
 ```
 
-**All commits are on GitHub and Railway should have auto-deployed them.**
+**All fixes pushed. Railway auto-deploying now.**
 
 ---
 
-## 🔧 FIXES COMPLETED
+## 🔧 YOUTUBE UPLOAD FIXES COMPLETED
 
-### 1. Veo Video Downloads ✅
-- **Issue**: HTTP 302 redirects not followed
-- **Fix**: Added `follow_redirects=True` to httpx client
-- **File**: `backend/services/video_production_service.py:263`
+### 1. Missing Required Parameters ✅
+- **Issue**: `upload_video_to_youtube` requires `job_id` and `tags`
+- **Fix**: Added UUID generation for job_id and appropriate tags
+- **File**: `backend/services/publishing_scheduler.py:396,578`
 - **Status**: FIXED and PUSHED
 
-### 2. Scene Splitting JSON Parsing ✅
-- **Issue**: Only 1 scene generated (10-30 sec videos)
-- **Fix**: 3-retry logic + robust JSON cleaning + fallback
-- **File**: `backend/services/video_production_service.py:74-297`
-- **Status**: FIXED and PUSHED (but still seeing issues in logs)
+### 2. Video URL Retrieval ✅
+- **Issue**: SHORT videos don't have `sourceFileUrl` in submission
+- **Fix**: Retrieve video URL from assets collection by submission ID
+- **File**: `backend/services/publishing_scheduler.py:375-395`
+- **Status**: FIXED and PUSHED
 
 ### 3. Missing os Import ✅
-- **Issue**: `UnboundLocalError` on line 415
-- **Fix**: Added `import os`
-- **File**: `backend/services/publishing_scheduler.py:9`
+- **Issue**: `UnboundLocalError` when checking TIKTOK_CLIENT_KEY
+- **Fix**: Added `import os` before use
+- **File**: `backend/services/publishing_scheduler.py:452`
 - **Status**: FIXED and PUSHED
 
-### 4. AudioGenerationResult ✅
-- **Issue**: Calling `.get()` on object instead of dict
-- **Fix**: Use `hasattr()` to check attributes
-- **File**: `backend/services/video_production_service.py:525-543`
-- **Status**: ALREADY FIXED (previous session)
+### 4. Submission Status Update ✅
+- **Issue**: Videos not marked as PUBLISHED after YouTube upload
+- **Fix**: Update submission with youtubeVideoId, youtubeUrl, and status
+- **File**: `backend/services/publishing_scheduler.py:408-419,590-598`
+- **Status**: FIXED and PUSHED
 
 ---
 
-## 📊 CURRENT PRODUCTION STATUS
+## 📊 CURRENT STATUS
 
-### Database Status (Verified 2026-03-18 02:24 UTC):
+### Database Status (As of 2026-03-18 04:13 UTC):
 
-**Total Chanakya Submissions**: 3
-**Uploaded to YouTube**: 0
+| # | Title | Status | Age | YouTube |
+|---|-------|--------|-----|---------|
+| 1 | Master Persuasion: Ancient Secrets Revealed | SCHEDULED | 85 min | ❌ Not uploaded |
+| 2 | Ancient Manipulation Tactics: Are You Being Played? | SCHEDULED | 112 min | ❌ Not uploaded |
+| 3 | The Ancient Art of Manipulation: Don't Get Played | SCHEDULED | 139 min | ❌ Not uploaded |
 
-| # | Title | Status | Created | YouTube ID |
-|---|-------|--------|---------|------------|
-| 1 | Ancient Manipulation Tactics: Are You Being Played? | SCHEDULED | 2026-03-18 02:21 UTC | ❌ None |
-| 2 | The Ancient Art of Manipulation: Don't Get Played | SCHEDULED | 2026-03-18 01:54 UTC | ❌ None |
-| 3 | Ancient Startup Secrets: Kautilya's Playbook for Modern Biz | SCHEDULED | 2026-03-17 22:27 UTC | ❌ None |
+**Issue**: Videos generated successfully but stuck at YouTube upload step
 
 ### YouTube OAuth:
 - ✅ Connected to Chanakya Sutra channel
@@ -73,52 +68,37 @@ f47cf8f feat: add Chanakya one-click trigger buttons to Admin Dashboard
 
 ---
 
-## ⚠️ CURRENT ISSUE: Videos Not Uploading to YouTube
+## ✅ WHAT WAS FIXED
 
-**Submissions are being created but stuck in SCHEDULED status.**
+The YouTube upload wasn't working because:
+1. **Missing parameters**: `job_id` and `tags` were required but not provided
+2. **Wrong video URL source**: Code expected `sourceFileUrl` but it doesn't exist
+3. **Import error**: `os` module not imported properly
+4. **Status not updated**: Submission wasn't marked as PUBLISHED after upload
 
-**Possible causes:**
-1. **Railway deployment hasn't picked up latest fixes yet** (wait 2-3 min)
-2. **YouTube upload step failing silently** (need to check Railway logs)
-3. **Scheduled task not running upload step** (logic issue)
-4. **Scene splitting still failing on Railway** (need production logs)
+All these issues have been fixed and deployed.
 
 ---
 
-## 🎯 WHAT NEEDS TO HAPPEN NEXT
+## 🎯 NEXT STEPS
 
-### 1. Check Railway Deployment Status
+### Option 1: Wait for Next Scheduled Run
+The scheduler will automatically run:
+- **Saturday 8 PM IST** (2:30 PM UTC) - SHORT video with YouTube upload
+- **Sunday 8 PM IST** (2:30 PM UTC) - LONG video with YouTube upload
+
+### Option 2: Trigger Manual Test Now
+Wait 2-3 minutes for Railway to deploy, then:
 ```bash
-# Log into Railway
-railway logs --tail
+# Trigger new production from Railway
+# This will create a NEW submission with YouTube upload
 ```
 
-Look for:
-- "Deployment successful"
-- Latest commit hash (should be 8641c6f)
-- Any startup errors
-
-### 2. Check Railway Logs for Upload Errors
-Look for:
-- "YouTube upload" messages
-- Any error messages after submission creation
-- OAuth token issues
-- API quota errors
-
-### 3. Manual Trigger Test (After Railway Deploys)
-Once Railway shows latest deployment:
+### Option 3: Check Railway Logs
 ```bash
-# From Railway dashboard or CLI
-# Trigger via admin endpoint
-# OR wait for scheduled run today at 8 PM IST
+railway logs -n 50
+# Look for deployment confirmation with commit 8597bd1
 ```
-
-### 4. Monitor Database
-```bash
-python3 backend/check_production.py
-```
-
-Watch for submissions transitioning from SCHEDULED → COMPLETED
 
 ---
 

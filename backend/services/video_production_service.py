@@ -86,8 +86,10 @@ async def split_script_into_scenes(script: str, format_type: str = "short") -> l
     }
     """
     from services.ai_service import call_gemini
+    import re
 
     if format_type == "short":
+        target_scenes = 5
         prompt = f"""Split this YouTube Shorts script into exactly 5 visual scenes for AI video generation.
 
 Script:
@@ -125,6 +127,11 @@ Every visual_prompt MUST include Ancient India / Mauryan era elements:
 - Include motion in every prompt (camera pan, zoom in, person walking, hand gesturing)
 - Match the visual to what's being spoken in that script segment
 
+**CRITICAL JSON FORMATTING RULES:**
+- Use single quotes in text instead of double quotes (e.g. "Chanakya's wisdom" should be "Chanakya wisdom" or use apostrophe character)
+- Avoid special characters that break JSON: unescaped quotes, newlines, backslashes
+- Keep descriptions concise to avoid parsing issues
+
 Return ONLY a valid JSON array with exactly 5 scenes, no other text:
 [
   {{
@@ -139,6 +146,7 @@ Return ONLY a valid JSON array with exactly 5 scenes, no other text:
     else:
         # Long-form: mix of images and Kling clips to control cost
         # Target: 6 minutes (360 seconds) = 3 Kling hero clips (30 sec) + 33 AI images (330 sec)
+        target_scenes = 36
         prompt = f"""Split this long-form content script into exactly 36 visual scenes for a 6-minute video.
 
 Script:
@@ -160,6 +168,11 @@ Rules:
   ❌ Modern elements (suits, offices, technology)
   ❌ Non-Indian settings (medieval Europe, GOT, HBO style)
 
+**CRITICAL JSON FORMATTING RULES:**
+- Use single quotes in text instead of double quotes (e.g. "Chanakya's wisdom" should be "Chanakya wisdom" or use apostrophe character)
+- Avoid special characters that break JSON: unescaped quotes, newlines, backslashes
+- Keep descriptions concise to avoid parsing issues
+
 Return ONLY a valid JSON array with exactly 36 scenes, no other text:
 [
   {{
@@ -172,29 +185,116 @@ Return ONLY a valid JSON array with exactly 36 scenes, no other text:
   }}
 ]"""
 
-    try:
-        response = await call_gemini(prompt, max_tokens=3000)
-        # Strip markdown code blocks if present
-        response = response.strip()
-        if response.startswith("```"):
-            lines = response.split("\n")
-            response = "\n".join(lines[1:-1] if lines[-1] == "```" else lines[1:])
-        scenes = json.loads(response)
-        return scenes
-    except json.JSONDecodeError as e:
-        logger.error(f"Scene splitting JSON parse error: {e}\nResponse: {response[:500]}")
-        # Fallback: single scene
-        return [{
-            "scene_index": 0,
-            "type": "veo",
-            "duration_seconds": min(len(script.split()) * 0.4, 90),
-            "script_segment": script,
-            "visual_prompt": "Dramatic business leader silhouette against city skyline, dark moody cinematic",
-            "is_hero": True
-        }]
-    except Exception as e:
-        logger.error(f"Scene splitting failed: {e}")
-        raise
+    # Retry logic with multiple attempts
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = await call_gemini(prompt, max_tokens=3000 if format_type == "short" else 8000)
+
+            # Clean up the response
+            response = response.strip()
+
+            # Remove markdown code blocks
+            if response.startswith("```"):
+                lines = response.split("\n")
+                # Remove first line (```json or ```), and last line if it's ```
+                response = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+                response = response.strip()
+
+            # Try to extract JSON array if there's extra text
+            json_match = re.search(r'\[[\s\S]*\]', response)
+            if json_match:
+                response = json_match.group(0)
+
+            # Fix common JSON issues before parsing
+            # 1. Replace unescaped newlines within strings
+            response = response.replace('\n', ' ')
+
+            # 2. Try parsing with strict=False to be more lenient
+            try:
+                scenes = json.loads(response)
+            except json.JSONDecodeError:
+                # If that fails, try manually fixing quote issues
+                # Replace smart quotes with regular quotes
+                response = response.replace('"', '"').replace('"', '"')
+                response = response.replace("'", "'").replace("'", "'")
+                scenes = json.loads(response)
+
+            # Validate the result
+            if not isinstance(scenes, list):
+                raise ValueError(f"Expected JSON array, got {type(scenes)}")
+
+            if len(scenes) == 0:
+                raise ValueError("Empty scenes array returned")
+
+            # Check if we got the expected number of scenes
+            expected_scenes = target_scenes
+            if len(scenes) != expected_scenes:
+                logger.warning(f"Expected {expected_scenes} scenes, got {len(scenes)}. Attempt {attempt + 1}/{max_retries}")
+                if len(scenes) < expected_scenes // 2:
+                    # Too few scenes, retry
+                    if attempt < max_retries - 1:
+                        logger.info(f"Retrying scene split due to insufficient scenes...")
+                        await asyncio.sleep(2)  # Brief delay before retry
+                        continue
+
+            # Validate each scene has required fields
+            for i, scene in enumerate(scenes):
+                if not all(k in scene for k in ["scene_index", "type", "script_segment", "visual_prompt"]):
+                    logger.error(f"Scene {i} missing required fields: {scene}")
+                    raise ValueError(f"Scene {i} missing required fields")
+
+            logger.info(f"Scene splitting successful: {len(scenes)} scenes generated (expected {expected_scenes})")
+            return scenes
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Scene splitting JSON parse error (attempt {attempt + 1}/{max_retries}): {e}\nResponse preview: {response[:500]}")
+            if attempt < max_retries - 1:
+                # Try again with a more explicit prompt
+                logger.info("Retrying with stricter JSON formatting instructions...")
+                await asyncio.sleep(2)
+                continue
+            else:
+                # Last attempt failed, use fallback
+                logger.error("All retry attempts failed, using fallback single scene")
+                break
+
+        except Exception as e:
+            logger.error(f"Scene splitting error (attempt {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                await asyncio.sleep(2)
+                continue
+            else:
+                break
+
+    # Fallback: Generate simple scene split based on script length
+    logger.warning("Using fallback scene generation")
+    word_count = len(script.split())
+    target_scene_count = target_scenes if format_type == "longform" else 5
+    words_per_scene = word_count // target_scene_count
+
+    fallback_scenes = []
+    words = script.split()
+
+    for i in range(target_scene_count):
+        start_idx = i * words_per_scene
+        end_idx = (i + 1) * words_per_scene if i < target_scene_count - 1 else word_count
+        segment = " ".join(words[start_idx:end_idx])
+
+        scene_type = "veo" if (format_type == "short" or i < 3) else "image"
+        is_hero = (i < 3) if format_type == "longform" else True
+
+        fallback_scenes.append({
+            "scene_index": i,
+            "type": scene_type,
+            "duration_seconds": 10,
+            "script_segment": segment,
+            "visual_prompt": "Ancient Indian sage Chanakya with white beard and saffron robe in Mauryan palace, warm lighting, cinematic 4K",
+            "is_hero": is_hero
+        })
+
+    logger.info(f"Generated {len(fallback_scenes)} fallback scenes")
+    return fallback_scenes
 
 
 # ─────────────────────────────────────────────

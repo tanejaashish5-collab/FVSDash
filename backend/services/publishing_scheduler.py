@@ -19,25 +19,33 @@ logger = logging.getLogger(__name__)
 
 
 async def _download_video(url: str, day: str, timeout: int = 180) -> str | None:
-    """Download a video URL to a temp file. Returns path or None on failure."""
+    """Stream-download a video URL to a temp file. Returns path or None on failure."""
     import httpx
     import tempfile
 
+    tmp_path = None
     try:
         async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as http:
-            resp = await http.get(url)
-            resp.raise_for_status()
+            async with http.stream("GET", url) as resp:
+                resp.raise_for_status()
 
-            if len(resp.content) < 10_000:
-                logger.error(f"[Chanakya {day}] Downloaded file too small ({len(resp.content)} bytes) — not a video")
-                return None
+                with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+                    tmp_path = tmp.name
+                    total = 0
+                    async for chunk in resp.aiter_bytes(chunk_size=1024 * 256):
+                        tmp.write(chunk)
+                        total += len(chunk)
 
-            with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
-                tmp.write(resp.content)
-                logger.info(f"[Chanakya {day}] Downloaded video: {len(resp.content)} bytes -> {tmp.name}")
-                return tmp.name
+                if total < 10_000:
+                    logger.error(f"[Chanakya {day}] Downloaded file too small ({total} bytes) — not a video")
+                    _cleanup_temp(tmp_path)
+                    return None
+
+                logger.info(f"[Chanakya {day}] Downloaded video: {total} bytes -> {tmp_path}")
+                return tmp_path
     except Exception as e:
         logger.error(f"[Chanakya {day}] Video download failed: {e}")
+        _cleanup_temp(tmp_path)
         return None
 
 
@@ -129,8 +137,14 @@ def start_scheduler():
         logger.warning("Scheduler already running")
         return
     
-    _scheduler = AsyncIOScheduler()
-    
+    _scheduler = AsyncIOScheduler(
+        job_defaults={
+            "coalesce": True,           # If multiple misfires, run only once
+            "misfire_grace_time": 300,   # Accept jobs up to 5 min late (Railway restart)
+            "max_instances": 1,          # Never run same job concurrently
+        }
+    )
+
     # Run every 30 seconds to check for scheduled tasks
     _scheduler.add_job(
         process_scheduled_tasks,

@@ -20,7 +20,13 @@ def get_client() -> AsyncIOMotorClient:
     global _client
     if _client is None:
         mongo_url = os.environ['MONGO_URL']
-        _client = AsyncIOMotorClient(mongo_url)
+        _client = AsyncIOMotorClient(
+            mongo_url,
+            maxPoolSize=50,
+            minPoolSize=5,
+            maxIdleTimeMS=45000,       # Close idle connections after 45s
+            serverSelectionTimeoutMS=5000,
+        )
     return _client
 
 

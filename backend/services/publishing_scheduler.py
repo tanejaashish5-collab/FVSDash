@@ -17,6 +17,39 @@ from db.mongo import publishing_tasks_collection, platform_connections_collectio
 
 logger = logging.getLogger(__name__)
 
+
+async def _download_video(url: str, day: str, timeout: int = 180) -> str | None:
+    """Download a video URL to a temp file. Returns path or None on failure."""
+    import httpx
+    import tempfile
+
+    try:
+        async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as http:
+            resp = await http.get(url)
+            resp.raise_for_status()
+
+            if len(resp.content) < 10_000:
+                logger.error(f"[Chanakya {day}] Downloaded file too small ({len(resp.content)} bytes) — not a video")
+                return None
+
+            with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+                tmp.write(resp.content)
+                logger.info(f"[Chanakya {day}] Downloaded video: {len(resp.content)} bytes -> {tmp.name}")
+                return tmp.name
+    except Exception as e:
+        logger.error(f"[Chanakya {day}] Video download failed: {e}")
+        return None
+
+
+def _cleanup_temp(path: str | None):
+    """Safely remove a temp file."""
+    if path:
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
+
+
 # Global scheduler instance
 _scheduler: AsyncIOScheduler = None
 
@@ -395,45 +428,29 @@ async def _chanakya_generate_short(day: str):
         logger.info(f"[Chanakya {day}] Found video asset: {video_asset['id']}")
 
         # YouTube Shorts
+        local_video_path = None
         try:
             from services.youtube_upload_service import upload_video_to_youtube
-            from services.storage_service import get_storage_service
-
-            # Download video from storage to local temp file
             import httpx
             import tempfile
 
-            async with httpx.AsyncClient(timeout=180, follow_redirects=True) as http:
-                video_response = await http.get(video_url)
-                video_response.raise_for_status()
+            local_video_path = await _download_video(video_url, day)
+            if not local_video_path:
+                return
 
-                if len(video_response.content) < 10000:
-                    logger.error(f"[Chanakya {day}] ❌ Downloaded file too small ({len(video_response.content)} bytes) — likely not a video")
-                    return
-
-                with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
-                    tmp.write(video_response.content)
-                    local_video_path = tmp.name
-
-            logger.info(f"[Chanakya {day}] Downloaded video: {len(video_response.content)} bytes → {local_video_path}")
-
-            # Upload to YouTube
-            import uuid
             youtube_result = await upload_video_to_youtube(
                 user_id=CLIENT_ID,
-                job_id=str(uuid.uuid4()),  # Generate job ID for tracking
+                job_id=str(uuid.uuid4()),
                 video_file_path=local_video_path,
-                title=title[:100],  # YouTube title limit
+                title=title[:100],
                 description=f"{title}\n\nChanakya Niti wisdom for modern leaders.\n\n#Chanakya #Leadership #Business #Strategy #Wisdom",
                 tags=["Chanakya", "Leadership", "Business", "Strategy", "Wisdom", "Shorts"],
-                category_id="22",  # People & Blogs
+                category_id="22",
                 privacy_status="public"
             )
 
             if youtube_result.get("success"):
                 logger.info(f"[Chanakya {day}] ✅ Posted to YouTube: {youtube_result.get('video_id')}")
-
-                # Update submission with YouTube video ID
                 from db.mongo import submissions_collection
                 subs_db = submissions_collection()
                 await subs_db.update_one(
@@ -448,45 +465,37 @@ async def _chanakya_generate_short(day: str):
             else:
                 logger.error(f"[Chanakya {day}] ❌ YouTube upload failed: {youtube_result.get('error')}")
 
-            # Clean up temp file
-            import os
-            os.unlink(local_video_path)
-
         except Exception as e:
             logger.error(f"[Chanakya {day}] ❌ YouTube upload error: {e}")
+        finally:
+            _cleanup_temp(local_video_path)
 
         # TikTok (only if credentials configured)
-        import os
         if os.environ.get("TIKTOK_CLIENT_KEY"):
+            tiktok_video_path = None
             try:
                 from services.tiktok_upload_service import upload_video_to_tiktok
+                import httpx, tempfile
 
-                # Download video again for TikTok (reuse same video_url from assets)
-                async with httpx.AsyncClient(timeout=180, follow_redirects=True) as http:
-                    video_response = await http.get(video_url)
-                    video_response.raise_for_status()
+                tiktok_video_path = await _download_video(video_url, day)
+                if tiktok_video_path:
+                    tiktok_result = await upload_video_to_tiktok(
+                        client_id=CLIENT_ID,
+                        job_id=str(uuid.uuid4()),
+                        video_file_path=tiktok_video_path,
+                        title=title[:150],
+                        privacy_level="PUBLIC_TO_EVERYONE"
+                    )
 
-                    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
-                        tmp.write(video_response.content)
-                        local_video_path = tmp.name
-
-                tiktok_result = await upload_video_to_tiktok(
-                    client_id=CLIENT_ID,
-                    job_id=str(uuid.uuid4()),
-                    video_file_path=local_video_path,
-                    title=title[:150],  # TikTok title limit
-                    privacy_level="PUBLIC_TO_EVERYONE"
-                )
-
-                if tiktok_result.get("success"):
-                    logger.info(f"[Chanakya {day}] ✅ Posted to TikTok: {tiktok_result.get('video_id')}")
-                else:
-                    logger.error(f"[Chanakya {day}] ❌ TikTok upload failed: {tiktok_result.get('error')}")
-
-                os.unlink(local_video_path)
+                    if tiktok_result.get("success"):
+                        logger.info(f"[Chanakya {day}] ✅ Posted to TikTok: {tiktok_result.get('video_id')}")
+                    else:
+                        logger.error(f"[Chanakya {day}] ❌ TikTok upload failed: {tiktok_result.get('error')}")
 
             except Exception as e:
                 logger.error(f"[Chanakya {day}] ❌ TikTok upload error: {e}")
+            finally:
+                _cleanup_temp(tiktok_video_path)
         else:
             logger.info(f"[Chanakya {day}] ⏭️  TikTok skipped (no credentials configured)")
 
@@ -587,43 +596,27 @@ async def _chanakya_generate_longform(day: str):
 
         # Upload to YouTube
         logger.info(f"[Chanakya {day}] Uploading long-form video to YouTube...")
+        local_video_path = None
         try:
             from services.youtube_upload_service import upload_video_to_youtube
-            import httpx
-            import tempfile
 
-            # Download video from storage to local temp file
-            async with httpx.AsyncClient(timeout=300, follow_redirects=True) as http:  # 5 min timeout for long videos
-                video_response = await http.get(long_result["url"])
-                video_response.raise_for_status()
+            local_video_path = await _download_video(long_result["url"], day, timeout=300)
+            if not local_video_path:
+                return
 
-                if len(video_response.content) < 10000:
-                    logger.error(f"[Chanakya {day}] ❌ Downloaded file too small ({len(video_response.content)} bytes) — likely not a video")
-                    return
-
-                with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
-                    tmp.write(video_response.content)
-                    local_video_path = tmp.name
-
-            logger.info(f"[Chanakya {day}] Downloaded long-form video: {len(video_response.content)} bytes → {local_video_path}")
-
-            # Upload to YouTube as regular video (not Shorts)
-            import uuid
             youtube_result = await upload_video_to_youtube(
                 user_id=CLIENT_ID,
-                job_id=str(uuid.uuid4()),  # Generate job ID for tracking
+                job_id=str(uuid.uuid4()),
                 video_file_path=local_video_path,
-                title=long_idea["topic"][:100],  # YouTube title limit
+                title=long_idea["topic"][:100],
                 description=f"{long_idea['topic']}\n\n{script_data['text'][:4500]}\n\n#Chanakya #Leadership #Business #Wisdom #IndianPhilosophy #Strategy",
                 tags=["Chanakya", "Leadership", "Business", "Wisdom", "IndianPhilosophy", "Strategy", "Entrepreneurship"],
-                category_id="22",  # People & Blogs
+                category_id="22",
                 privacy_status="public"
             )
 
             if youtube_result.get("success"):
                 logger.info(f"[Chanakya {day}] ✅ Long-form uploaded to YouTube: {youtube_result.get('video_id')}")
-
-                # Update submission with YouTube video ID
                 await subs_db.update_one(
                     {"id": submission["id"]},
                     {"$set": {
@@ -636,11 +629,10 @@ async def _chanakya_generate_longform(day: str):
             else:
                 logger.error(f"[Chanakya {day}] ❌ YouTube upload failed: {youtube_result.get('error')}")
 
-            # Clean up temp file
-            os.unlink(local_video_path)
-
         except Exception as e:
             logger.error(f"[Chanakya {day}] ❌ YouTube upload error: {e}")
+        finally:
+            _cleanup_temp(local_video_path)
 
         logger.info(f"[Chanakya {day}] ✅ Long-form completed: {submission['title']}")
 

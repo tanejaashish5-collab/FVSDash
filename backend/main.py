@@ -4,6 +4,7 @@ ForgeVoice Studio API - Main Application Entry Point
 This is the new modular FastAPI application structure.
 All routes are organized into separate router modules in the /routers directory.
 """
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter, Request
 from starlette.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -57,7 +58,7 @@ if _sentry_dsn:
         logger.warning("sentry-sdk not installed — skipping Sentry init (run: pip install sentry-sdk[fastapi])")
 
 # Create FastAPI app
-app = FastAPI(title="ForgeVoice Studio API")
+app = FastAPI(title="ForgeVoice Studio API", lifespan=lifespan)
 
 # Attach rate limiter to app state and add exception handler
 app.state.limiter = limiter
@@ -377,9 +378,10 @@ def _bootstrap_gcp_credentials():
 _bootstrap_gcp_credentials()
 
 
-@app.on_event("startup")
-async def startup():
-    """Initialize database indexes and seed data on startup."""
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup and shutdown lifecycle."""
+    # --- Startup ---
     try:
         db = get_db()
         await db.users.create_index("email", unique=True)
@@ -393,6 +395,14 @@ async def startup():
         await db.publish_jobs.create_index([("status", 1), ("createdAt", -1)])
         await db.brain_scores.create_index("user_id")
         await db.brain_scores.create_index([("user_id", 1), ("performance_verdict", 1)])
+        await db.submissions.create_index("id", unique=True)
+        await db.submissions.create_index([("clientId", 1), ("createdAt", -1)])
+        await db.submissions.create_index([("clientId", 1), ("status", 1)])
+        await db.assets.create_index("id", unique=True)
+        await db.assets.create_index("submissionId")
+        await db.assets.create_index([("clientId", 1), ("submissionId", 1)])
+        await db.video_tasks.create_index([("clientId", 1), ("createdAt", -1)])
+        await db.fvs_ideas.create_index([("clientId", 1), ("status", 1)])
         logger.info("Database indexes created successfully")
     except Exception as e:
         logger.error(f"Index creation error (non-fatal): {e}")
@@ -402,23 +412,19 @@ async def startup():
         if result:
             logger.info("Demo data seeded successfully")
 
-        # Run identity migration (Sprint 12)
         from migrations.versions.s12_identity_fix import run_identity_migration
         db = get_db()
         await run_identity_migration(db)
     except Exception as e:
         logger.error(f"Seed error: {e}")
-    
-    # Start the publishing scheduler
+
     start_scheduler()
 
-    # Log which AI providers are configured
     from services.ai_service import check_ai_providers
     check_ai_providers()
 
+    yield
 
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    """Close database connection on shutdown."""
+    # --- Shutdown ---
     stop_scheduler()
     close_client()

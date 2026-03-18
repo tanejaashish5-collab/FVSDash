@@ -123,8 +123,5 @@ def calendar_suggestions_collection():
 def fvs_recommendations_collection():
     return get_db().fvs_recommendations
 
-def video_tasks_collection_v2():
-    return get_db().video_tasks
-
 def video_editor_projects_collection():
     return get_db().video_editor_projects

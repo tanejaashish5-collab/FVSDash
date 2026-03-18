@@ -460,7 +460,7 @@ async def _chanakya_generate_short(day: str):
                 description=f"{title}\n\nChanakya Niti wisdom for modern leaders.\n\n#Chanakya #Leadership #Business #Strategy #Wisdom",
                 tags=["Chanakya", "Leadership", "Business", "Strategy", "Wisdom", "Shorts"],
                 category_id="22",
-                privacy_status="public"
+                privacy_status="unlisted"
             )
 
             if youtube_result.get("success"):
@@ -626,7 +626,7 @@ async def _chanakya_generate_longform(day: str):
                 description=f"{long_idea['topic']}\n\n{script_data['text'][:4500]}\n\n#Chanakya #Leadership #Business #Wisdom #IndianPhilosophy #Strategy",
                 tags=["Chanakya", "Leadership", "Business", "Wisdom", "IndianPhilosophy", "Strategy", "Entrepreneurship"],
                 category_id="22",
-                privacy_status="public"
+                privacy_status="unlisted"
             )
 
             if youtube_result.get("success"):

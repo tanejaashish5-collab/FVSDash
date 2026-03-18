@@ -246,3 +246,128 @@ async def trigger_chanakya_now(
             "format": "longform",
             "message": f"Chanakya Long-form generation started for {day}. Check Railway logs to follow progress."
         }
+
+
+@router.post("/chanakya/test-e2e")
+async def test_e2e_video_pipeline(user: dict = Depends(require_admin)):
+    """
+    Lean end-to-end test: 1 Veo clip → stitch → YouTube upload (unlisted).
+    Skips idea generation, audio, thumbnails. Tests video pipeline only.
+    """
+    import asyncio
+    asyncio.create_task(_run_e2e_test())
+    return {"status": "triggered", "message": "E2E test started. Monitor DB for results."}
+
+
+async def _run_e2e_test():
+    """Generate 1 Veo clip, stitch it, upload to YouTube as unlisted."""
+    import uuid
+    import logging
+    from datetime import datetime, timezone
+
+    logger = logging.getLogger(__name__)
+    logger.info("[E2E Test] Starting lean video pipeline test...")
+
+    try:
+        # Step 1: Generate a single Veo clip
+        logger.info("[E2E Test] Step 1: Generating 1 Veo clip...")
+        from services.video_production_service import generate_veo_clip, TEMP_DIR
+
+        clip_path = await generate_veo_clip(
+            prompt="Ancient Indian palace at sunset, cinematic drone shot, golden light, 4K",
+            duration=8,
+            aspect="9:16",
+            quality="fast"
+        )
+        logger.info(f"[E2E Test] Clip generated: {clip_path}")
+
+        # Check if it's a mock
+        import os
+        file_size = os.path.getsize(clip_path)
+        is_mock = file_size < 50_000  # Mock clips are tiny
+        logger.info(f"[E2E Test] File size: {file_size} bytes | Mock: {is_mock}")
+
+        # Step 2: Create submission record
+        from db.mongo import submissions_collection, assets_collection
+        subs_db = submissions_collection()
+        assets_db = assets_collection()
+
+        now = datetime.now(timezone.utc).isoformat()
+        submission_id = str(uuid.uuid4())
+        submission = {
+            "id": submission_id,
+            "clientId": "chanakya-sutra",
+            "title": f"[E2E TEST] Pipeline Test {datetime.now(timezone.utc).strftime('%H:%M')}",
+            "contentType": "Short",
+            "status": "EDITING",
+            "fvsIdeaId": None,
+            "languageStyle": "english",
+            "createdAt": now,
+            "updatedAt": now,
+            "_isTest": True,
+        }
+        await subs_db.insert_one(submission)
+        logger.info(f"[E2E Test] Submission created: {submission_id}")
+
+        # Step 3: Upload clip to storage and create asset
+        from services.video_production_service import upload_final_video
+        upload_result = await upload_final_video(clip_path, f"e2e_test_{uuid.uuid4().hex[:8]}.mp4")
+
+        video_asset = {
+            "id": str(uuid.uuid4()),
+            "clientId": "chanakya-sutra",
+            "submissionId": submission_id,
+            "name": "E2E Test Video",
+            "type": "Video",
+            "url": upload_result["url"],
+            "status": "Final",
+            "provider": "veo",
+            "fvsGenerated": True,
+            "isMocked": is_mock,
+            "createdAt": now,
+            "updatedAt": now,
+        }
+        await assets_db.insert_one(video_asset)
+        logger.info(f"[E2E Test] Video asset stored: {upload_result['url'][:60]}")
+
+        # Step 4: Upload to YouTube (unlisted)
+        logger.info("[E2E Test] Step 4: Uploading to YouTube (unlisted)...")
+        from services.youtube_upload_service import upload_video_to_youtube
+
+        youtube_result = await upload_video_to_youtube(
+            user_id="chanakya-sutra",
+            job_id=str(uuid.uuid4()),
+            video_file_path=clip_path,
+            title=f"[TEST] Pipeline E2E {datetime.now(timezone.utc).strftime('%H:%M')}",
+            description="Automated end-to-end pipeline test. This video will be deleted.",
+            tags=["test", "automation"],
+            category_id="22",
+            privacy_status="unlisted"
+        )
+
+        if youtube_result.get("success"):
+            logger.info(f"[E2E Test] ✅ YouTube upload SUCCESS: {youtube_result.get('video_id')}")
+            await subs_db.update_one(
+                {"id": submission_id},
+                {"$set": {
+                    "youtubeVideoId": youtube_result.get("video_id"),
+                    "youtubeUrl": youtube_result.get("url"),
+                    "status": "PUBLISHED",
+                    "updatedAt": datetime.now(timezone.utc).isoformat(),
+                }}
+            )
+        else:
+            logger.error(f"[E2E Test] ❌ YouTube upload FAILED: {youtube_result.get('error')}")
+            await subs_db.update_one(
+                {"id": submission_id},
+                {"$set": {"status": "FAILED", "error": youtube_result.get("error"), "updatedAt": now}}
+            )
+
+        # Cleanup temp file
+        try:
+            os.unlink(clip_path)
+        except OSError:
+            pass
+
+    except Exception as e:
+        logger.exception(f"[E2E Test] ❌ Pipeline failed: {e}")

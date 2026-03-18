@@ -417,11 +417,10 @@ async def _get_mock_video_clip(aspect: str = "9:16") -> str:
     else:
         size = "1920x1080"
 
-    # Generate a simple dark background with text as mock clip
+    # Generate a plain color bar (no drawtext — fonts not available on slim containers)
     _run_ffmpeg([
         "-f", "lavfi",
         "-i", f"color=c=0x0a0a0f:size={size}:rate=30",
-        "-vf", f"drawtext=text='ForgeVoice Studio':fontsize=60:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2",
         "-t", "8",
         "-c:v", "libx264",
         "-pix_fmt", "yuv420p",

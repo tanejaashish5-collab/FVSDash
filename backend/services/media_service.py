@@ -98,15 +98,18 @@ async def generate_voice_for_script(
     Returns:
         AudioGenerationResult with URL and metadata
     """
+    # Check ELEVENLABS_ENABLED toggle (defaults to false — must opt-in)
+    elevenlabs_enabled = os.environ.get("ELEVENLABS_ENABLED", "false").lower() in ("true", "1", "yes")
     api_key = os.environ.get("ELEVENLABS_API_KEY")
-    
-    if not api_key:
-        logger.warning("ELEVENLABS_API_KEY not configured. Using mocked audio URL.")
+
+    if not elevenlabs_enabled or not api_key:
+        reason = "ELEVENLABS_ENABLED not set" if not elevenlabs_enabled else "ELEVENLABS_API_KEY not configured"
+        logger.info(f"ElevenLabs disabled: {reason}. Using silent audio.")
         return AudioGenerationResult(
             url=MOCK_AUDIO_URL,
             provider="mock_elevenlabs",
             is_mocked=True,
-            warning="ElevenLabs API key not configured. Using placeholder audio."
+            warning=f"{reason}. Using placeholder audio."
         )
     
     # Use configured voice ID or default
@@ -523,6 +526,7 @@ async def preview_multiple_voices(preview_text: str, voice_ids: Optional[list] =
     Generate short audio previews using multiple ElevenLabs voices.
     Returns a list of { voiceId, name, description, url, isMocked } objects.
     """
+    elevenlabs_enabled = os.environ.get("ELEVENLABS_ENABLED", "false").lower() in ("true", "1", "yes")
     api_key = os.environ.get("ELEVENLABS_API_KEY")
     voices_to_preview = []
 
@@ -534,7 +538,7 @@ async def preview_multiple_voices(preview_text: str, voice_ids: Optional[list] =
 
     results = []
     for voice in voices_to_preview:
-        if not api_key:
+        if not elevenlabs_enabled or not api_key:
             results.append({
                 "voiceId": voice["id"],
                 "name": voice["name"],
